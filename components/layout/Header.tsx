@@ -92,7 +92,7 @@ export function Header() {
 
           {/* Brand */}
           <Link
-            href="/"
+            href="/frontend/public"
             className="col-start-2 justify-self-center font-heading text-2xl tracking-wide transition-opacity hover:opacity-65 md:text-[1.7rem]"
           >
             Parfois Luxe
