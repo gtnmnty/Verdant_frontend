@@ -1,64 +1,46 @@
-# Include any files or directories that you don't want to be copied to your
-# container here (e.g., local build artifacts, temporary files, etc.).
-#
-# For more help, visit the .dockerignore file reference guide at
-# https://docs.docker.com/go/build-context-dockerignore/
+# Secrets and local environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
 
-**/.DS_Store
-**/.classpath
-**/.dockerignore
-**/.env
-**/.env.*
-!**/.env.example
-**/.factorypath
-**/.git
-**/.gitignore
-**/.idea
-**/.project
-**/.sts4-cache
-**/.settings
-**/.toolstarget
-**/.vs
-**/.vscode
-**/.next
-**/.cache
-**/*.dbmdl
-**/*.jfm
-**/charts
-**/docker-compose*
-**/compose.y*ml
-**/Dockerfile*
-**/secrets.dev.yaml
-**/values.dev.yaml
-**/vendor
-LICENSE
-README.md
-**/*.class
-**/*.iml
-**/*.ipr
-**/*.iws
-**/*.log
-**/.apt_generated
-**/.gradle
-**/.gradletasknamecache
-**/.nb-gradle
-**/.springBeans
-**/build
-**/dist
-**/gradle-app.setting
-**/nbbuild
-**/nbdist
-**/nbproject/private
-**/target
-*.ctxt
-.mtj.tmp
-.mvn/timing.properties
-buildNumber.properties
-dependency-reduced-pom.xml
+# Dependencies and build output
+node_modules
+.next
+out
+dist
+coverage
+.turbo
+.vercel
+.cache
+*.tsbuildinfo
+
+# Logs and diagnostics
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+*.log
 hs_err_pid*
-pom.xml.next
-pom.xml.releaseBackup
-pom.xml.tag
-pom.xml.versionsBackup
-release.properties
 replay_pid*
+
+# Source control and local tooling
+.git
+.gitignore
+.dockerignore
+Dockerfile*
+compose.y*ml
+docker-compose*.yml
+.idea
+.vscode
+.vs
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Project-only assistant files
+AGENTS.md
+CLAUDE.md

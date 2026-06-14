@@ -1,42 +1,43 @@
+# syntax=docker/dockerfile:1
 
-FROM eclipse-temurin:21-jdk-jammy as deps
+FROM node:22-alpine AS deps
+WORKDIR /app
 
-WORKDIR /build
+COPY package.json package-lock.json ./
+RUN --mount=type=cache,target=/root/.npm npm ci
 
-COPY --chmod=0755 mvnw mvnw
-COPY .mvn/ .mvn/
+FROM node:22-alpine AS build
+WORKDIR /app
 
-RUN --mount=type=bind,source=pom.xml,target=pom.xml \
-    --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline -DskipTests
+ARG NEXT_PUBLIC_API_URL=http://localhost:8080
+ARG NEXT_PUBLIC_GRAPHQL_URL=http://localhost:8080/graphql
 
-################################################################################
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_GRAPHQL_URL=$NEXT_PUBLIC_GRAPHQL_URL
 
-FROM deps AS package
+COPY --from=deps /app/node_modules ./node_modules
+COPY . .
+RUN npm run build
 
-WORKDIR /build
+FROM node:22-alpine AS runner
+WORKDIR /app
 
-COPY ./backend src/
-RUN --mount=type=bind,source=pom.xml,target=pom.xml \
-    --mount=type=cache,target=/root/.m2 \
-    ./mvnw package -DskipTests && \
-    mv target/$(./mvnw help:evaluate -Dexpression=project.artifactId -q -DforceStdout)-$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout).jar target/app.jar
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_PUBLIC_API_URL=http://localhost:8080
+ENV NEXT_PUBLIC_GRAPHQL_URL=http://localhost:8080/graphql
 
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nextjs
 
-FROM eclipse-temurin:21-jre-jammy AS final
+COPY --from=build /app/public ./public
+COPY --from=build --chown=nextjs:nodejs /app/.next ./.next
+COPY --from=build /app/package.json ./package.json
+COPY --from=build /app/node_modules ./node_modules
 
-ARG UID=10001
-RUN adduser \
-    --disabled-password \
-    --gecos "" \
-    --home "/nonexistent" \
-    --shell "/sbin/nologin" \
-    --no-create-home \
-    --uid "${UID}" \
-    appuser
-USER appuser
-
-COPY --from=package build/target/app.jar app.jar
+USER nextjs
 
 EXPOSE 3000
 
-ENTRYPOINT [ "java", "-jar", "app.jar" ]
+CMD ["npm", "run", "start"]
