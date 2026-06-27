@@ -11,7 +11,7 @@ import {
 } from "@/components/icons";
 
 const NAV_LINKS = [
-    { label: "Home", to: "/home" },
+    { label: "Home", href: "/home" },
     { label: "Collections", href: "/collections" },
     { label: "Services", href: "/services" },
     { label: "Gallery", href: "/gallery" },
@@ -104,7 +104,7 @@ export default function Header(){
               ))}
           </nav>
 
-          <a href="#" aria-label="Verdant Luxe home"
+          <a href="/home" aria-label="Verdant Luxe home"
             className="min-w-0 truncate font-serif text-[clamp(16px,3vw,30px)]
             leading-none tracking-tight text-primary lg:justify-self-center">
               Verdant Luxe
