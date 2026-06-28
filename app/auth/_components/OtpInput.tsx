@@ -28,9 +28,28 @@ export function OtpInput({
   }
 
   function handleChange(index: number, raw: string) {
-    const digit = raw.replace(/\D/g, "").slice(-1);
-    setDigit(index, digit);
-    if (digit && index < length - 1) {
+    const digits = raw.replace(/\D/g, "");
+
+    if(digits.length === 0){
+      setDigit(index, "")
+      return;
+    }
+
+    if(digits.length > 1){
+      const next = [...value];
+      let cursor = index;
+      for (const digit of digits) {
+        if (cursor >= length) break;
+        next[cursor] = digit;
+        cursor +=1
+      }
+      onChange(next)
+      inputsRef.current[Math.min(cursor, length - 1)]?.focus()
+      return;
+    }
+
+    setDigit(index, digits);
+    if (index < length - 1) {
       inputsRef.current[index + 1]?.focus();
     }
   }

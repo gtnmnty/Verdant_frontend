@@ -13,6 +13,7 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
   ref
 ) {
   const id = useId();
+  const errorId = `${id}-error`;
 
   return (
     <div className="flex flex-col gap-1">
@@ -31,7 +32,11 @@ export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Che
           {label}
         </span>
       </label>
-      {error ? <p className="pl-[26px] text-[0.78rem] text-[#9B3B3B]">{error}</p> : null}
+      {error ? (
+         <p id={errorId} className="pl-[26px] text-[0.78rem] text-[`#9B3B3B`]">
+              {error}
+            </p>
+        ) : null}
     </div>
   );
 });

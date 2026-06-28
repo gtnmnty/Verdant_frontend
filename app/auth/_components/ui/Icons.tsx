@@ -21,7 +21,9 @@ export function EyeOffIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
       <path
-        d="M3 3l18 18M10.6 10.7a3 3 0 0 0 4.2 4.2M6.2 6.4C4 7.9 2.5 10 2.5 10S6 17 12 17c1.4 0 2.7-.3 3.8-.7M9.9 5.2A10.4 10.4 0 0 1 12 5c6 0 9.5 7 9.5 7-.4.8-1.1 1.9-2.1 2.9"
+        d="M3 3l18 18M10.6 10.7a3 3 0 0 0 4.2 4.2M6.2 6.4C4 7.9 2.5 10 2.5 10S6
+        17 12 17c1.4 0 2.7-.3 3.8-.7M9.9 5.2A10.4 10.4 0 0 1 12 5c6 0 9.5 7 9.5
+        7-.4.8-1.1 1.9-2.1 2.9"
         stroke="currentColor"
         strokeWidth="1.6"
         strokeLinecap="round"
@@ -113,15 +115,12 @@ export function MailIcon(props: IconProps) {
 }
 
 export function SpinnerIcon(props: IconProps) {
+  const { className, ...rest } = props;
   return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="animate-spin" {...props}>
-      <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" opacity="0.25" />
-      <path
-        d="M21.5 12a9.5 9.5 0 0 0-9.5-9.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"
+      className={`animate-spin ${className ?? ""}`}{...rest}>
+      <path d="M21.5 12a9.5 9.5 0 0 0-9.5-9.5" stroke="currentColor"
+            strokeWidth="2" strokeLinecap="round"/>
     </svg>
   );
 }
@@ -131,11 +130,13 @@ export function GoogleIcon(props: IconProps) {
     <svg viewBox="0 0 18 18" aria-hidden="true" {...props}>
       <path
         fill="#4285F4"
-        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"
+        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14
+        4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"
       />
       <path
         fill="#34A853"
-        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.55-1.85.87-3.06.87-2.36 0-4.36-1.59-5.07-3.73H.93v2.33A9 9 0 0 0 9 18Z"
+        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.55-1.85.87-3.06.87-2.36
+        0-4.36-1.59-5.07-3.73H.93v2.33A9 9 0 0 0 9 18Z"
       />
       <path
         fill="#FBBC05"
@@ -143,7 +144,8 @@ export function GoogleIcon(props: IconProps) {
       />
       <path
         fill="#EA4335"
-        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A8.6 8.6 0 0 0 9 0 9 9 0 0 0 .93 4.97l3 2.33C4.64 5.17 6.64 3.58 9 3.58Z"
+        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A8.6 8.6 0 0 0 9 0 9 9 0 0
+        0 .93 4.97l3 2.33C4.64 5.17 6.64 3.58 9 3.58Z"
       />
     </svg>
   );
@@ -152,7 +154,10 @@ export function GoogleIcon(props: IconProps) {
 export function AppleIcon(props: IconProps) {
   return (
     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M16.4 1.3c.1 1.1-.3 2.2-1 3-.7.8-1.8 1.4-2.9 1.3-.1-1.1.4-2.2 1-3 .8-.8 1.9-1.3 2.9-1.3ZM20 17.2c-.5 1.1-.8 1.6-1.4 2.6-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9-1.9 0-2.4.9-3.8.9-1.6 0-2.8-1.6-3.7-2.9-2.5-3.7-2.8-8.1-1.2-10.5.9-1.4 2.5-2.3 4.1-2.3 1.6 0 2.5.9 3.8.9s2-.9 3.8-.9c1.5 0 3.1.8 4.1 2.2-3.6 2-3 7.2 1.8 7.8Z" />
+      <path d="M16.4 1.3c.1 1.1-.3 2.2-1 3-.7.8-1.8 1.4-2.9 1.3-.1-1.1.4-2.2 1-3
+      .8-.8 1.9-1.3 2.9-1.3ZM20 17.2c-.5 1.1-.8 1.6-1.4 2.6-.9 1.4-2.2 3.1-3.8 3.1-1.4
+      0-1.8-.9-3.7-.9-1.9 0-2.4.9-3.8.9-1.6 0-2.8-1.6-3.7-2.9-2.5-3.7-2.8-8.1-1.2-10.5.9-1.4
+      2.5-2.3 4.1-2.3 1.6 0 2.5.9 3.8.9s2-.9 3.8-.9c1.5 0 3.1.8 4.1 2.2-3.6 2-3 7.2 1.8 7.8Z" />
     </svg>
   );
 }

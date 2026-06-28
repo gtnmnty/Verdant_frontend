@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState, type SubmitEvent } from "react";
 import { Button } from "./ui/Button";
 import { TextField } from "./ui/Field";
 import { MailIcon, ChevronLeftIcon } from "./ui/Icons";
@@ -19,7 +19,7 @@ export function ForgotPasswordForm({ onBackToLogin }: ForgotPasswordFormProps) {
   const error = touched && email.length > 0 && !isValidEmail(email) ? "Enter a valid email address." : undefined;
   const isValid = isValidEmail(email);
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
     event.preventDefault();
     setTouched(true);
     if (!isValid) return;

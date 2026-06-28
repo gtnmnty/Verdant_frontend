@@ -1,7 +1,4 @@
-// services/authService.ts
-
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
-const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL!;
 
 export interface AuthUser {
   id: string;
@@ -39,7 +36,7 @@ export async function loginUser(
   }
 
   const data = await res.json();
-  const user = await decodeTokenPayload(data.token);
+  const user = decodeTokenPayload(data.token);
   if (!user) throw new Error("Failed to load user profile");
 
   return { token: data.token, user };

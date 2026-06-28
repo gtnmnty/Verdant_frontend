@@ -66,9 +66,14 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
         credentials: "include",
       })
 
-      if(!retry.ok) throw new Error(await retry.text()); {
-        return parseJsonResponse<T>(retry);
+      if (retry.status === 401) {
+         setToken(null);
+         window.location.href = "/auth";
+         throw new Error("Session expired");
       }
+
+      if (!retry.ok) throw new Error(await retry.text());
+        return parseJsonResponse<T>(retry);
     }
 
     setToken(null);

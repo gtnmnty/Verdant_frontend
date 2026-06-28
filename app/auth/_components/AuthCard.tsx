@@ -7,7 +7,7 @@ import { LoginForm } from "./LoginForm";
 import { SignUpForm } from "./SignUpForm";
 import { ForgotPasswordForm } from "./ForgotPasswordForm";
 import { FadeSwitch, MountFade } from "./Transition";
-import type { AuthMode, SignUpPayload } from "../lib/types";
+import type { AuthMode, SignUpPayload } from "@/lib/types";
 
 const HEADER_COPY: Record<AuthMode, { eyebrow: string; heading: string; blurb: string }> = {
   login: {
@@ -42,7 +42,6 @@ export function AuthCard() {
   function handleSignUpSuccess(payload: SignUpPayload) {
     const params = new URLSearchParams({
       email: payload.email,
-      name: payload.fullName,
     });
     router.push(`/auth/verify?${params.toString()}`);
   }

@@ -8,7 +8,7 @@ import { PasswordField } from "./ui/Field";
 import { PasswordStrengthMeter } from "./PasswordStrengthMeter";
 import { MountFade } from "./Transition";
 import { CheckCircleIcon, LockIcon } from "./ui/Icons";
-import { isPasswordValid } from "../lib/validation";
+import { isPasswordValid } from "@/lib/validation";
 
 export function NewPasswordForm() {
   const router = useRouter();

@@ -66,6 +66,7 @@ interface PasswordFieldProps extends Omit<FieldProps, "type" | "rightSlot"> {
 export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
   function PasswordField({ showToggleLabel = "password", ...rest }, ref) {
     const [visible, setVisible] = useState(false);
+    const toggleDisabled = Boolean(rest.disabled || rest.readOnly);
 
     return (
       <TextField
@@ -75,10 +76,11 @@ export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
           <button
             type="button"
             onClick={() => setVisible((v) => !v)}
-            className="rounded p-1 text-[#A39C8C] transition-colors hover:text-[#15241D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40"
+            disabled={toggleDisabled}
+            className="rounded p-1 text-[#A39C8C] transition-colors hover:text-[#15241D]
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40"
             aria-label={visible ? `Hide ${showToggleLabel}` : `Show ${showToggleLabel}`}
             aria-pressed={visible}
-            tabIndex={0}
           >
             {visible ? <EyeOffIcon className="h-[18px] w-[18px]" /> : <EyeIcon className="h-[18px] w-[18px]" />}
           </button>
