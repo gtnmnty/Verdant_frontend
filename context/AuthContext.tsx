@@ -1,4 +1,3 @@
-// context/AuthContext.tsx
 "use client";
 
 import {
@@ -31,6 +30,7 @@ interface AuthContextValue extends AuthState {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
+const GRAPHQL_URL = process.env.NEXT_PUBLIC_GRAPHQL_URL!;
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [auth, setAuth] = useState<AuthState>({ user: null, accessToken: null });
@@ -49,6 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // Silent refresh on mount
   useEffect(() => {
     async function restoreSession() {
+      console.log("restoreSession fired");
       try {
         const res = await fetch(`${BASE_URL}/auth/refresh`, {
           method: "POST",
@@ -57,8 +58,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (res.ok) {
           const data = await res.json();
-          setAuth({ accessToken: data.accessToken, user: data.user });
+          const token = data.token;
+
+          const meRes = await fetch(`${GRAPHQL_URL}`, {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`,
+            },
+            body: JSON.stringify({ query: `{ me { id email fullName } }` }),
+          });
+
+          const meData = await meRes.json();
+          const user = meData.data?.me ?? null;
+          setAuth({ accessToken: token, user });
         }
+      } catch {
+        // Backend unreachable or no session — treat as logged out
       } finally {
         setIsLoading(false);
       }
