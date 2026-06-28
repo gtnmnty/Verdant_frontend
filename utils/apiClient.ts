@@ -29,9 +29,15 @@ async function refreshAccessToken(): Promise<string | null> {
   }
 }
 
-//
-//
-//
+// Parses the response from backend into a JSON format.
+async function parseJsonResponse<T>(response: Response): Promise<T> {
+  const text = await response.text();
+  return text ? JSON.parse(text) as T : undefined as T;
+}
+
+// Central fetch wrapper for all authenticated API requests
+// Automatically attaches the access token and retries once on 401
+// using the refresh token before redirecting to log in.
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T>{
   const token = getToken();
 
@@ -52,6 +58,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     const newToken = await refreshAccessToken();
 
     if (newToken){
+      setToken(newToken)
       headers["Authorization"] = `Bearer ${newToken}`;
       const retry = await fetch(`${BASE_URL}${path}`, {
         ...options,
@@ -60,7 +67,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
       })
 
       if(!retry.ok) throw new Error(await retry.text()); {
-        return retry.json();
+        return parseJsonResponse<T>(retry);
       }
     }
 
@@ -69,5 +76,5 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     throw new Error("Session expired");
   }
   if (!response.ok) throw new Error(await response.text());
-  return response.json();
+  return parseJsonResponse<T>(response);
 }
