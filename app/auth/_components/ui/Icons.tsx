@@ -1,192 +1,56 @@
-import type { SVGProps } from "react";
+import type {SVGProps} from "react";
 
-type IconProps = SVGProps<SVGSVGElement>;
+export {
+    Eye,
+    EyeOff,
+    CheckCircle2,
+    ArrowLeft,
+    ShieldCheck,
+    Loader2,
+} from "lucide-react";
 
-export function EyeIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7Z"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
+export function GoogleIcon(props: SVGProps<SVGSVGElement>) {
+    return (
+        <svg viewBox="0 0 24 24" width="18" height="18" {...props}>
+            <path
+                fill="#4285F4"
+                d="M23.49 12.27c0-.85-.08-1.67-.22-2.45H12v4.63h6.44a5.5 5.5
+        0 0 1-2.39 3.61v3h3.86c2.26-2.08 3.58-5.15 3.58-8.79Z"
+            />
+            <path
+                fill="#34A853"
+                d="M12 24c3.24 0 5.96-1.07
+        7.95-2.91l-3.86-3c-1.07.72-2.45
+        1.15-4.09 1.15-3.14
+        0-5.8-2.12-6.75-4.97H1.27v3.12A12 12 0 0 0 12 24Z"
+            />
+            <path
+                fill="#FBBC05"
+                d="M5.25 14.27a7.2 7.2 0 0 1
+        0-4.54V6.61H1.27a12 12 0 0 0 0
+        10.78l3.98-3.12Z"
+            />
+            <path
+                fill="#EA4335"
+                d="M12 4.75c1.76 0 3.34.6 4.59
+        1.79l3.43-3.43C17.95 1.19 15.24 0
+        12 0A12 12 0 0 0 1.27 6.61l3.98
+        3.12C6.2 6.87 8.86 4.75 12 4.75Z"
+            />
+        </svg>
+    );
 }
 
-export function EyeOffIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M3 3l18 18M10.6 10.7a3 3 0 0 0 4.2 4.2M6.2 6.4C4 7.9 2.5 10 2.5 10S6 17 12 17c1.4 0 2.7-.3 3.8-.7M9.9 5.2A10.4 10.4 0 0 1 12 5c6 0 9.5 7 9.5 7-.4.8-1.1 1.9-2.1 2.9"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export function CheckIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M4.5 12.5 9 17l10.5-11"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export function CheckCircleIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <circle cx="12" cy="12" r="9.25" stroke="currentColor" strokeWidth="1.5" />
-      <path
-        d="M8 12.3 10.8 15 16 9.5"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export function AlertIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <circle cx="12" cy="12" r="9.25" stroke="currentColor" strokeWidth="1.5" />
-      <path d="M12 7.5v5.4" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
-      <circle cx="12" cy="16.1" r="0.9" fill="currentColor" />
-    </svg>
-  );
-}
-
-export function XIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M5 5l14 14M19 5 5 19"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-export function ChevronLeftIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M15 5 8 12l7 7"
-        stroke="currentColor"
-        strokeWidth="1.7"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export function MailIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <rect x="3" y="5.5" width="18" height="13" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="m4 7 8 6 8-6"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export function SpinnerIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" className="animate-spin" {...props}>
-      <circle cx="12" cy="12" r="9.5" stroke="currentColor" strokeWidth="2" opacity="0.25" />
-      <path
-        d="M21.5 12a9.5 9.5 0 0 0-9.5-9.5"
-        stroke="currentColor"
-        strokeWidth="2"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-export function GoogleIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 18 18" aria-hidden="true" {...props}>
-      <path
-        fill="#4285F4"
-        d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.9c1.7-1.57 2.7-3.88 2.7-6.62Z"
-      />
-      <path
-        fill="#34A853"
-        d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.9-2.26c-.8.55-1.85.87-3.06.87-2.36 0-4.36-1.59-5.07-3.73H.93v2.33A9 9 0 0 0 9 18Z"
-      />
-      <path
-        fill="#FBBC05"
-        d="M3.93 10.7a5.4 5.4 0 0 1 0-3.4V4.97H.93a9 9 0 0 0 0 8.06l3-2.33Z"
-      />
-      <path
-        fill="#EA4335"
-        d="M9 3.58c1.32 0 2.5.45 3.44 1.35l2.58-2.58A8.6 8.6 0 0 0 9 0 9 9 0 0 0 .93 4.97l3 2.33C4.64 5.17 6.64 3.58 9 3.58Z"
-      />
-    </svg>
-  );
-}
-
-export function AppleIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" {...props}>
-      <path d="M16.4 1.3c.1 1.1-.3 2.2-1 3-.7.8-1.8 1.4-2.9 1.3-.1-1.1.4-2.2 1-3 .8-.8 1.9-1.3 2.9-1.3ZM20 17.2c-.5 1.1-.8 1.6-1.4 2.6-.9 1.4-2.2 3.1-3.8 3.1-1.4 0-1.8-.9-3.7-.9-1.9 0-2.4.9-3.8.9-1.6 0-2.8-1.6-3.7-2.9-2.5-3.7-2.8-8.1-1.2-10.5.9-1.4 2.5-2.3 4.1-2.3 1.6 0 2.5.9 3.8.9s2-.9 3.8-.9c1.5 0 3.1.8 4.1 2.2-3.6 2-3 7.2 1.8 7.8Z" />
-    </svg>
-  );
-}
-
-export function ShieldIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <path
-        d="M12 3 4.5 6v6c0 4.6 3.2 7.8 7.5 9 4.3-1.2 7.5-4.4 7.5-9V6L12 3Z"
-        stroke="currentColor"
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M9 12.2 11.3 14.5 15.3 9.8"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-export function LockIcon(props: IconProps) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true" {...props}>
-      <rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" strokeWidth="1.6" />
-      <path
-        d="M8 11V7.5a4 4 0 0 1 8 0V11"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
+export function AppleIcon(props: SVGProps<SVGSVGElement>) {
+    return (
+        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" {...props}>
+            <path d="M16.365 1.43c0 1.14-.47 2.24-1.19 3.03-.8.9-2.09 1.6-3.16
+      1.51-.13-1.11.45-2.28 1.16-3.04.79-.86 2.17-1.51 3.19-1.5Zm3.93
+      16.6c-.36.83-.53 1.2-.99 1.94-.64 1.03-1.55 2.31-2.68 2.32-1
+      .01-1.26-.66-2.62-.65-1.36.01-1.65.66-2.65.65-1.13-.01-1.99-1.17-2.63-2.2-1.8-2.9-1.99-6.3-.88-8.12.79-1.29
+      2.03-2.05 3.19-2.05 1.18 0 1.92.66
+      2.9.66.95 0 1.53-.66 2.9-.66 1.03 0 2.12.56 2.9
+      1.53-2.55 1.4-2.14 5.04.56 6.58Z"/>
+        </svg>
+    );
 }

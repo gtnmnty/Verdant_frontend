@@ -1,128 +1,122 @@
 "use client";
 
-import { useMemo, useState, type SubmitEvent } from "react";
-import { Button } from "./ui/Button";
-import { TextField, PasswordField } from "./ui/Field";
-import { Checkbox } from "./ui/Checkbox";
-import { SocialButtons } from "./SocialButtons";
-import { isValidIdentifier } from "@/lib/validation";
-import type { AsyncStatus } from "@/lib/types";
-import {useRouter} from "next/navigation";
+import {useState, type SubmitEvent} from "react";
+import {Button} from "@/app/auth/_components/ui/Button";
+import {Checkbox} from "@/app/auth/_components/ui/Checkbox";
+import {SocialButtons} from "@/app/auth/_components/SocialButtons";
 import {useAuth} from "@/context/AuthContext";
-import { loginUser } from "@/services/authService";
+import {apiRequest} from "@/utils/apiClient";
 
-interface LoginFormProps {
-  onSwitchToSignUp: () => void;
-  onSwitchToForgot: () => void;
-  initialIdentifier?: string;
-}
+import {toast} from "sonner";
+import {Field} from "@/app/auth/_components/ui/Field";
 
-export function LoginForm(
-  { onSwitchToSignUp, onSwitchToForgot, initialIdentifier = "" }: LoginFormProps) {
-  const [identifier, setIdentifier] = useState(initialIdentifier);
-  const [password, setPassword] = useState("");
-  const [remember, setRemember] = useState(false);
-  const [touched, setTouched] = useState(false);
-  const [status, setStatus] = useState<AsyncStatus>("idle");
-  const [notice, setNotice] = useState<string | null>(null);
-  const router = useRouter();
-  const { login } = useAuth();
+type Errors = { email?: string; password?: string };
 
-  const identifierError =
-    touched && identifier.length > 0 && !isValidIdentifier(identifier)
-      ? "Enter a valid email address or phone number."
-      : undefined;
 
-  const isFormValid = useMemo(
-    () => isValidIdentifier(identifier) && password.length >= 1,
-    [identifier, password]
-  );
+export function LoginForm({
+  onSwitchToSignup,
+  onForgotPassword,
+  onSuccess,
+}: {
+    onSwitchToSignup: () => void;
+    onForgotPassword: () => void;
+    onSuccess: () => void;
+}) {
+    const [email, setEmail] = useState("");
+    const [password, setPassword] = useState("");
+    const [remember, setRemember] = useState(true);
+    const [errors, setErrors] = useState<Errors>({});
+    const [loading, setLoading] = useState(false);
 
-  async function handleSubmit(event: SubmitEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setTouched(true);
-    if (!isFormValid) return;
+    const { setToken } = useAuth();
 
-    setStatus("loading");
-    setNotice(null);
+    const validate = () => {
+        const e: Errors = {};
+        if (!/^\S+@\S+\.\S+$/.test(email)) e.email = "Enter a valid email address";
+        if (password.length < 8) e.password = "Password must be at least 8 characters";
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    };
 
-    try {
-      const { token, user } = await loginUser(identifier, password);
-      login(token, user);
-      router.push("/");
-    } catch (err) {
-      setStatus("error");
-      setNotice(err instanceof Error ? err.message : "Something went wrong. Please try again.");
-    }
-  }
+    const onSubmit = async (ev: SubmitEvent) => {
+        ev.preventDefault();
+        if (!validate()) {
+            toast.error("Please correct the highlighted fields.");
+            return;
+        }
+        setLoading(true);
 
-  return (
-    <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
-      <TextField
-        label="Email or phone number"
-        name="identifier"
-        type="text"
-        autoComplete="username"
-        placeholder="your@email.com"
-        value={identifier}
-        onChange={(e) => setIdentifier(e.target.value)}
-        onBlur={() => setTouched(true)}
-        error={identifierError}
-      />
+        try{
+            const data = await apiRequest<{ accessToken: string }>("/auth/login", {
+                method: "POST",
+                body: JSON.stringify( { email, password } )
+            })
+            setToken(data.accessToken)
+            toast.success("Welcome back to Verdant Luxe.");
+            onSuccess();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Login failed.");
+        } finally {
+            setLoading(false)
+        }
+    };
 
-      <div>
-        <PasswordField
-          label="Password"
-          name="password"
-          autoComplete="current-password"
-          placeholder="Enter your password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          showToggleLabel="password"
-        />
-        <button
-          type="button"
-          onClick={onSwitchToForgot}
-          className="mt-2 text-[0.8rem] font-medium text-[#B68D40] underline-offset-2
-          transition-colors hover:text-[#15241D] hover:underline focus-visible:outline-none
-          focus-visible:ring-2 focus-visible:ring-[#B68D40]/40 focus-visible:rounded-sm"
-        >
-          Forgot password?
-        </button>
-      </div>
+    return (
+        <form onSubmit={onSubmit} className="space-y-5">
+            <Field
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => {
+                    setEmail(e.target.value);
+                    setErrors((er) => ({...er, email: undefined}));
+                }}
+                error={errors.email}
+            />
+            <Field
+                label="Password"
+                type="password"
+                value={password}
+                onChange={(e) => {
+                    setPassword(e.target.value);
+                    setErrors((er) => ({...er, password: undefined}));
+                }}
+                error={errors.password}
+            />
 
-      <Checkbox
-        label="Remember me on this device"
-        checked={remember}
-        onChange={(e) => setRemember(e.target.checked)}
-      />
+            <div className="flex items-center justify-between">
+                <label className="flex items-center gap-2 text-xs text-on-surface-variant">
+                    <Checkbox
+                        checked={remember}
+                        onCheckedChange={(v) => setRemember(v === true)}
+                    />
+                    Remember me
+                </label>
+                <button
+                    type="button"
+                    onClick={onForgotPassword}
+                    className="text-xs font-semibold text-primary underline underline-offset-4"
+                >
+                    Forgot password?
+                </button>
+            </div>
 
-      {notice ? <p className="text-[0.8rem] text-[#6E6859]">{notice}</p> : null}
+            <Button type="submit" disabled={loading} size="lg" className="w-full">
+                {loading ? "Logging In…" : "Log In"}
+            </Button>
 
-      <Button
-        type="submit"
-        isLoading={status === "loading"}
-        loadingLabel="Signing in"
-        disabled={!isFormValid}
-      >
-        Log in
-      </Button>
+            <SocialButtons/>
 
-      <SocialButtons onSelect={(provider) => setNotice(
-        `${provider === "google" ? "Google" : "Apple"} sign-in is a demo placeholder.`)} />
-
-      <p className="text-center text-[0.85rem] text-[#6E6859]">
-        Don&apos;t have an account?{" "}
-        <button
-          type="button"
-          onClick={onSwitchToSignUp}
-          className="font-medium text-[#15241D] underline-offset-2 hover:underline
-          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40
-          focus-visible:rounded-sm"
-        >
-          Create account now
-        </button>
-      </p>
-    </form>
-  );
+            <p className="pt-2 text-center text-sm text-on-surface-variant">
+                No account yet?{" "}
+                <button
+                    type="button"
+                    onClick={onSwitchToSignup}
+                    className="font-semibold text-primary underline underline-offset-4"
+                >
+                    Create one now
+                </button>
+            </p>
+        </form>
+    );
 }

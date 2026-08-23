@@ -1,64 +1,41 @@
-"use client";
+function getStrength(password: string) {
+    let score = 0;
+    if (password.length >= 8) score++;
+    if (password.length >= 12) score++;
+    if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+    if (/\d/.test(password)) score++;
+    if (/[^A-Za-z0-9]/.test(password)) score++;
+    return Math.min(score, 4);
+}
 
-import { CheckIcon } from "./ui/Icons";
-import { getMetRequirementIds, getPasswordStrength, passwordRequirements } from "../lib/validation";
+const LABELS = ["Too Weak", "Weak", "Fair", "Good", "Strong"];
+const COLORS = [
+    "bg-rose-300",
+    "bg-rose-400",
+    "bg-amber-400",
+    "bg-lime-500",
+    "bg-emerald-500",
+];
 
-const SEGMENT_COLORS = ["#9B3B3B", "#C08A3E", "#B68D40", "#6F9468", "#2F5233"];
+export function PasswordStrengthMeter({password}: { password: string }) {
+    if (!password) return null;
+    const strength = getStrength(password);
 
-export function PasswordStrengthMeter({ password }: { password: string }) {
-  const { score, label } = getPasswordStrength(password);
-  const metIds = getMetRequirementIds(password);
-  const activeColor = SEGMENT_COLORS[Math.max(score, password.length > 0 ? 1 : 0)];
-
-  return (
-    <div className="flex flex-col gap-3">
-      <div>
-        <div className="flex items-center justify-between">
-          <span className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#6E6859]">
-            Password strength
-          </span>
-          {password.length > 0 ? (
-            <span className="text-[0.78rem] font-medium" style={{ color: activeColor }}>
-              {label}
-            </span>
-          ) : null}
+    return (
+        <div className="mt-1.5">
+            <div className="flex gap-1.5">
+                {Array.from({length: 4}).map((_, i) => (
+                    <span
+                        key={i}
+                        className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${
+                            i < strength ? COLORS[strength] : "bg-muted"
+                        }`}
+                    />
+                ))}
+            </div>
+            <p className="mt-1.5 text-[11px] font-medium text-on-surface-variant">
+                {LABELS[strength]}
+            </p>
         </div>
-        <div className="mt-2 grid grid-cols-4 gap-1.5" role="presentation">
-          {Array.from({ length: 4 }).map((_, index) => {
-            const filled = password.length > 0 && index <= score;
-            return (
-              <span
-                key={index}
-                className="h-1.5 rounded-full transition-colors duration-300"
-                style={{ backgroundColor: filled ? activeColor : "#E3DAC9" }}
-              />
-            );
-          })}
-        </div>
-      </div>
-
-      <ul className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-        {passwordRequirements.map((req) => {
-          const met = metIds.has(req.id);
-          return (
-            <li
-              key={req.id}
-              className={`flex items-center gap-1.5 text-[0.78rem] transition-colors duration-200 ${
-                met ? "text-[#2F5233]" : "text-[#A39C8C]"
-              }`}
-            >
-              <span
-                className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border transition-colors duration-200 ${
-                  met ? "border-[#2F5233] bg-[#2F5233]" : "border-[#D8D0BD]"
-                }`}
-              >
-                {met ? <CheckIcon className="h-2.5 w-2.5 text-white" /> : null}
-              </span>
-              {req.label}
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
+    );
 }

@@ -1,149 +1,71 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { AuthShell } from "./AuthShell";
-import { OtpInput } from "./OtpInput";
-import { Button } from "./ui/Button";
-import { MountFade } from "./Transition";
-import { CheckCircleIcon, ShieldIcon } from "./ui/Icons";
+import {useState, type SubmitEvent} from "react";
+import {toast} from "sonner";
+import {Button} from "@/app/auth/_components/ui/Button";
+import {OtpInput} from "@/app/auth/_components/OtpInput";
+import {apiRequest} from "@/utils/apiClient";
 
-const CODE_LENGTH = 6;
-const RESEND_SECONDS = 60;
-/** Demo-only: this is the code that is treated as "correct" in this mock flow. */
-const MOCK_VALID_CODE = "123456";
+export function VerifyForm({ email, onVerified }: { email: string; onVerified: (code: string) => void; }) {
+    const [code, setCode] = useState("");
+    const [error, setError] = useState<string>();
+    const [loading, setLoading] = useState(false);
 
-function formatCountdown(totalSeconds: number) {
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = totalSeconds % 60;
-  return `${minutes}:${seconds.toString().padStart(2, "0")}`;
-}
+    const authPost =
+        async (path: string, body: object, successMsg: string, onSuccess?: () => void) => {
+            setLoading(true);
+            try {
+                await apiRequest(path, { method: "POST", body: JSON.stringify(body) });
+                toast.success(successMsg);
+                onSuccess?.();
+            } catch (e) {
+                toast.error(e instanceof Error ? e.message : "Something went wrong.");
+            } finally {
+                setLoading(false);
+            }
+    };
 
-export function VerifyForm() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const email = searchParams.get("email") ?? "your email";
 
-  const [digits, setDigits] = useState<string[]>(Array(CODE_LENGTH).fill(""));
-  const [status, setStatus] = useState<"idle" | "checking" | "success" | "error">("idle");
-  const [secondsLeft, setSecondsLeft] = useState(RESEND_SECONDS);
-  const [resending, setResending] = useState(false);
-
-  const code = digits.join("");
-  const isComplete = code.length === CODE_LENGTH;
-
-  useEffect(() => {
-    if (secondsLeft <= 0) return;
-    const interval = setInterval(() => setSecondsLeft((s) => Math.max(0, s - 1)), 1000);
-    return () => clearInterval(interval);
-  }, [secondsLeft]);
-
-  const errorId = "verify-otp-error";
-
-  async function handleVerify() {
-    if (!isComplete) return;
-    setStatus("checking");
-    await new Promise((resolve) => setTimeout(resolve, 900));
-
-    if (code === MOCK_VALID_CODE) {
-      setStatus("success");
-      await new Promise((resolve) => setTimeout(resolve, 700));
-      router.push(`/auth/new-password?email=${encodeURIComponent(email)}`);
-      return;
-    }
-
-    setStatus("error");
-  }
-
-  async function handleResend() {
-    setResending(true);
-    await new Promise((resolve) => setTimeout(resolve, 700));
-    setDigits(Array(CODE_LENGTH).fill(""));
-    setStatus("idle");
-    setSecondsLeft(RESEND_SECONDS);
-    setResending(false);
-  }
-
-  function handleChangeEmail() {
-    router.push(`/auth?mode=signup&email=${encodeURIComponent(email)}`);
-  }
-
-  return (
-    <MountFade>
-      <AuthShell
-        eyebrow="Verification"
-        heading="Verify your email"
-        blurb={`We sent a 6-digit code to ${email}.`}
-        headerExtra={
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#2F5233]/10 text-[#2F5233]">
-            <ShieldIcon className="h-5 w-5" />
-          </span>
+    const onSubmit = async (ev: SubmitEvent) => {
+        ev.preventDefault();
+        if (code.length < 6) {
+            setError("Enter the 6-digit code we sent you");
+            return;
         }
-      >
-        {status === "success" ? (
-          <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <span className="flex h-12 w-12 items-center justify-center rounded-full bg-[#2F5233]/10 text-[#2F5233]">
-              <CheckCircleIcon className="h-6 w-6" />
-            </span>
-            <h2 className="font-serif text-[1.15rem] text-[#15241D]">Verified</h2>
-            <p className="text-[0.85rem] text-[#6E6859]">Taking you to set a new password…</p>
-          </div>
-        ) : (
-          <div className="flex flex-col gap-6">
+
+        await authPost("/auth/verify", {email, verificationCode: code}, "Code verified.", () => {
+            onVerified(code);
+        });
+    };
+
+    return (
+        <form onSubmit={onSubmit} className="space-y-6">
+            <p className="text-center text-sm text-on-surface-variant">
+                We sent a verification code to{" "}
+                <span className="font-semibold text-primary">{email || "your email"}</span>
+            </p>
+
             <OtpInput
-              value={digits}
-              onChange={(next) => {
-                setDigits(next);
-                if (status === "error") setStatus("idle");
-              }}
-              disabled={status === "checking"}
-              error={status === "error"}
-              describedById={status === "error" ? errorId : undefined}
+                value={code}
+                onChange={(v) => {
+                    setCode(v);
+                    setError(undefined);
+                }}
             />
+            {error && <p className="text-center text-xs text-rose-500">{error}</p>}
 
-            {status === "error" ? (
-              <p id={errorId} role="alert" className="text-[0.82rem] text-[#9B3B3B]">
-                That code didn&apos;t match. Check the digits and try again.
-              </p>
-            ) : (
-              <p className="text-[0.78rem] text-[#A39C8C]">
-                Demo tip: enter <span className="font-medium text-[#6E6859]">123456</span> to
-                continue.
-              </p>
-            )}
-
-            <Button type="button" onClick={handleVerify} isLoading={status === "checking"} loadingLabel="Verifying" disabled={!isComplete}>
-              Verify
+            <Button type="submit" disabled={loading} size="lg" className="w-full">
+                {loading ? "Verifying…" : "Verify Code"}
             </Button>
 
-            <div className="flex flex-col items-center gap-3 text-center">
-              {secondsLeft > 0 ? (
-                <p className="text-[0.82rem] text-[#6E6859]">
-                  Resend code in{" "}
-                  <span className="font-medium text-[#15241D]">{formatCountdown(secondsLeft)}</span>
-                </p>
-              ) : (
-                <button
-                  type="button"
-                  onClick={handleResend}
-                  disabled={resending}
-                  className="text-[0.85rem] font-medium text-[#B68D40] underline-offset-2 transition-colors hover:text-[#15241D] hover:underline disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40 focus-visible:rounded-sm"
-                >
-                  {resending ? "Sending a new code…" : "Resend code"}
-                </button>
-              )}
-
-              <button
+            <button
                 type="button"
-                onClick={handleChangeEmail}
-                className="text-[0.8rem] text-[#A39C8C] underline-offset-2 transition-colors hover:text-[#15241D] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40 focus-visible:rounded-sm"
-              >
-                Change email
-              </button>
-            </div>
-          </div>
-        )}
-      </AuthShell>
-    </MountFade>
-  );
+                onClick={() => authPost("/auth/resend", {email}, "Verification code resent.")}
+                className="block w-full text-center text-xs font-semibold uppercase tracking-[0.16em]
+                text-primary underline underline-offset-4"
+            >
+                Resend Code
+            </button>
+        </form>
+    );
 }
