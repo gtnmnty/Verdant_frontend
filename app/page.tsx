@@ -9,15 +9,15 @@ import PromoBanner from "@/app/_components/PromoBanner";
 import { Footer } from "@/components/layout/Footer";
 
 export const metadata: Metadata = {
-    title: "Parfois — Hair Is Our Craft",
+    title: "Verdant — Hair Is Our Craft",
     description:
-        `Parfois is a boutique salon offering expert hair styling, 
+        `Verdant is a boutique salon offering expert hair styling, 
          spa treatments, and professional coloring crafted by master stylists.`,
     openGraph: {
-        title: "Parfois — Hair Is Our Craft",
+        title: "Verdant — Hair Is Our Craft",
         description:
             "Boutique hair styling, spa treatments and luxe products. " +
-            "Book your experience at Parfois.",
+            "Book your experience at Verdant.",
     },
 };
 

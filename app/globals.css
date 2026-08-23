@@ -41,7 +41,7 @@
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
 
-  /* Parfois Luxe extras */
+  /* Verdant Luxe extras */
   --color-tertiary: var(--tertiary);
   --color-tertiary-foreground: var(--tertiary-foreground);
   --color-tertiary-container: var(--tertiary-container);
@@ -205,7 +205,7 @@
 
 @layer utilities {
   .label-caps {
-    font-family: var(--font-sans);
+    font-family: var(--font-sans), serif;
     font-size: 0.75rem;
     font-weight: 600;
     line-height: 1rem;
