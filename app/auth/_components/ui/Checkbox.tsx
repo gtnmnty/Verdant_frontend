@@ -1,42 +1,36 @@
 "use client";
 
-import { forwardRef, useId, type InputHTMLAttributes, type ReactNode } from "react";
-import { CheckIcon } from "./Icons";
+import * as React from "react";
+import * as CheckboxPrimitive from "@radix-ui/react-checkbox";
+import { Check } from "lucide-react";
 
-interface CheckboxProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "type" | "id"> {
-  label: ReactNode;
-  error?: string;
+import { cn } from "@/lib/utils";
+
+function Checkbox({
+  className,
+  ...props
+}: React.ComponentProps<typeof CheckboxPrimitive.Root>) {
+  return (
+    <CheckboxPrimitive.Root
+      data-slot="checkbox"
+      className={cn(
+        "peer h-4.5 w-4.5 shrink-0 rounded-[6px] border " +
+          "border-border bg-white shadow-xs outline-none transition-colors " +
+          "focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed " +
+          "disabled:opacity-50 data-[state=checked]:border-primary data-[state=checked]:bg-primary " +
+          "data-[state=checked]:text-primary-foreground",
+        className,
+      )}
+      {...props}
+    >
+      <CheckboxPrimitive.Indicator
+        data-slot="checkbox-indicator"
+        className="flex items-center justify-center text-current"
+      >
+        <Check className="h-3.5 w-3.5" strokeWidth={3} />
+      </CheckboxPrimitive.Indicator>
+    </CheckboxPrimitive.Root>
+  );
 }
 
-export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(function Checkbox(
-  { label, error, className = "", ...rest },
-  ref
-) {
-  const id = useId();
-  const errorId = `${id}-error`;
-
-  return (
-    <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="group flex cursor-pointer items-start gap-2.5 select-none">
-        <span className="relative mt-0.5 flex h-[18px] w-[18px] shrink-0 items-center justify-center">
-          <input
-            ref={ref}
-            id={id}
-            type="checkbox"
-            className={`peer absolute inset-0 h-full w-full cursor-pointer appearance-none rounded-[4px] border border-[#C9BFA8] bg-[#FBF8F2] transition-colors checked:border-[#15241D] checked:bg-[#15241D] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40 focus-visible:ring-offset-1 ${className}`}
-            {...rest}
-          />
-          <CheckIcon className="pointer-events-none relative h-3 w-3 text-[#F7F2E8] opacity-0 transition-opacity peer-checked:opacity-100" />
-        </span>
-        <span className="text-[0.85rem] leading-snug text-[#4A4538] group-hover:text-[#15241D]">
-          {label}
-        </span>
-      </label>
-      {error ? (
-         <p id={errorId} className="pl-[26px] text-[0.78rem] text-[`#9B3B3B`]">
-              {error}
-            </p>
-        ) : null}
-    </div>
-  );
-});
+export { Checkbox };

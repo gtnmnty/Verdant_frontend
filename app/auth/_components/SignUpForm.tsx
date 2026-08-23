@@ -1,195 +1,161 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import { Button } from "./ui/Button";
-import { TextField, PasswordField } from "./ui/Field";
-import { Checkbox } from "./ui/Checkbox";
-import { SocialButtons } from "./SocialButtons";
-import { TermsDialog } from "./TermsDialog";
-import {
-  isValidEmail,
-  isValidFullName,
-  isValidPhone,
-  isUsablePassword,
-} from "@/lib/validation";
-import type { SignUpPayload } from "@/lib/types";
-
-interface SignUpFormProps {
-  onSwitchToLogin: () => void;
-  onSubmitSuccess: (payload: SignUpPayload) => void;
-  initialEmail?: string;
-}
+import {useState, type SubmitEvent} from "react";
+import {toast} from "sonner";
+import {Button} from "@/app/auth/_components/ui/Button";
+import {Checkbox} from "@/app/auth/_components/ui/Checkbox";
+import {Field} from "@/app/auth/_components/ui/Field";
+import {PasswordStrengthMeter} from "@/app/auth/_components/PasswordStrengthMeter";
+import {SocialButtons} from "@/app/auth/_components/SocialButtons";
+import {TermsDialog} from "@/app/auth/_components/TermsDialog";
+import {apiRequest} from "@/utils/apiClient";
 
 interface FormState {
-  fullName: string;
-  phone: string;
-  email: string;
-  password: string;
-  agreed: boolean;
+    fullName: string;
+    phone: string;
+    email: string;
+    password: string;
+    agree: boolean;
 }
 
-const initialState: FormState = {
-  fullName: "",
-  phone: "",
-  email: "",
-  password: "",
-  agreed: false,
+type Errors = Partial<Record<keyof FormState, string>>;
+
+const INITIAL: FormState = {
+    fullName: "",
+    phone: "",
+    email: "",
+    password: "",
+    agree: false,
 };
 
-export function SignUpForm({ onSwitchToLogin, onSubmitSuccess, initialEmail = "" }: SignUpFormProps) {
-  const [form, setForm] = useState<FormState>({ ...initialState, email: initialEmail });
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isTermsOpen, setIsTermsOpen] = useState(false);
-  const [notice, setNotice] = useState<string | null>(null);
+export function SignUpForm({
+   onSwitchToLogin,
+   onSuccess,
+}: {
+    onSwitchToLogin: () => void;
+    onSuccess: () => void;
+}) {
+    const [form, setForm] = useState<FormState>(INITIAL);
+    const [errors, setErrors] = useState<Errors>({});
+    const [loading, setLoading] = useState(false);
 
-  function update<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
+    const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
+        setForm((f) => ({...f, [key]: value}));
+        setErrors((e) => ({...e, [key]: undefined}));
+    };
 
-  function markTouched(key: keyof FormState) {
-    setTouched((prev) => ({ ...prev, [key]: true }));
-  }
+    const validate = () => {
+        const e: Errors = {};
+        if (!form.fullName.trim()) e.fullName = "Full name is required";
+        if (!/^\+?[\d\s()-]{7,}$/.test(form.phone)) e.phone = "Enter a valid phone number";
+        if (!/^\S+@\S+\.\S+$/.test(form.email)) e.email = "Enter a valid email address";
+        if (form.password.length < 8) e.password = "Password must be at least 8 characters";
+        if (!form.agree) e.agree = "You must agree to the Terms and Conditions";
+        setErrors(e);
+        return Object.keys(e).length === 0;
+    };
 
-  const errors = {
-    fullName:
-      touched.fullName && !isValidFullName(form.fullName) ? "Enter your full name." : undefined,
-    phone:
-      touched.phone && !isValidPhone(form.phone) ? "Enter a valid phone number." : undefined,
-    email:
-      touched.email && !isValidEmail(form.email) ? "Enter a valid email address." : undefined,
-    password:
-      touched.password && !isUsablePassword(form.password)
-        ? "Use at least 8 characters."
-        : undefined,
-  };
+    const onSubmit =  async (ev: SubmitEvent) => {
+        ev.preventDefault();
+        if (!validate()) {
+            toast.error("Please input correct info in respective fields.");
+            return;
+        }
+        setLoading(true);
+        try{
+            await apiRequest("/auth/signup", {
+                method: "POST",
+                body: JSON.stringify({
+                    fullName: form.fullName,
+                    email: form.email,
+                    phone: form.phone,
+                    password: form.password,
+                })
+            })
+            toast.success("Account created! Check your email to verify.");
+            onSuccess(); // takes user to login
+        }
+        catch (e) {
+            toast.error(e instanceof Error ? e.message : "Account creation failed.");
+        } finally {
+            setLoading(false)
+        }
+    };
 
-  const isFormValid = useMemo(
-    () =>
-      isValidFullName(form.fullName) &&
-      isValidPhone(form.phone) &&
-      isValidEmail(form.email) &&
-      isUsablePassword(form.password) &&
-      form.agreed,
-    [form]
-  );
+    return (
+        <form onSubmit={onSubmit} className="space-y-5">
+            <div className="grid gap-5 sm:grid-cols-2">
+                <Field
+                    label="Full Name"
+                    value={form.fullName}
+                    onChange={(e) => set("fullName", e.target.value)}
+                    error={errors.fullName}
+                />
+                <Field
+                    label="Phone Number"
+                    value={form.phone}
+                    onChange={(e) => set("phone", e.target.value)}
+                    error={errors.phone}
+                />
+            </div>
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setTouched({ fullName: true, phone: true, email: true, password: true, agreed: true });
-    if (!isFormValid) return;
+            <Field
+                label="Email"
+                type="email"
+                value={form.email}
+                onChange={(e) => set("email", e.target.value)}
+                error={errors.email}
+            />
 
-    setIsSubmitting(true);
-    setNotice(null);
-    await new Promise((resolve) => setTimeout(resolve, 1100));
-    setIsSubmitting(false);
-    onSubmitSuccess({
-      fullName: form.fullName.trim(),
-      phone: form.phone.trim(),
-      email: form.email.trim(),
-      password: form.password,
-    });
-  }
+            <div>
+                <Field
+                    label="Password"
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => set("password", e.target.value)}
+                    error={errors.password}
+                />
+                <PasswordStrengthMeter password={form.password}/>
+            </div>
 
-  return (
-    <>
-      <form className="flex flex-col gap-5" onSubmit={handleSubmit} noValidate>
-        <TextField
-          label="Full name"
-          name="fullName"
-          autoComplete="name"
-          placeholder="Full name"
-          value={form.fullName}
-          onChange={(e) => update("fullName", e.target.value)}
-          onBlur={() => markTouched("fullName")}
-          error={errors.fullName}
-        />
-
-        <TextField
-          label="Phone number"
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          placeholder="09XX XXX XXXX"
-          value={form.phone}
-          onChange={(e) => update("phone", e.target.value)}
-          onBlur={() => markTouched("phone")}
-          error={errors.phone}
-        />
-
-        <TextField
-          label="Email address"
-          name="email"
-          type="email"
-          autoComplete="email"
-          placeholder="your@email.com"
-          value={form.email}
-          onChange={(e) => update("email", e.target.value)}
-          onBlur={() => markTouched("email")}
-          error={errors.email}
-        />
-
-        <PasswordField
-          label="Password"
-          name="password"
-          autoComplete="new-password"
-          placeholder="Create a password"
-          value={form.password}
-          onChange={(e) => update("password", e.target.value)}
-          onBlur={() => markTouched("password")}
-          error={errors.password}
-          hint={!errors.password ? "At least 8 characters." : undefined}
-          showToggleLabel="password"
-        />
-
-        <Checkbox
-          label={
-            <span>
-              I agree to the{" "}
+            <div>
+                <label className="flex items-start gap-3 text-sm text-on-surface-variant">
+                    <Checkbox
+                        checked={form.agree}
+                        onCheckedChange={(v) => set("agree", v === true)}
+                        className="mt-0.5"
+                    />
+                    <span>
+            I agree to the{" "}
+                        <TermsDialog>
               <button
-                type="button"
-                onClick={() => setIsTermsOpen(true)}
-                className="font-medium text-[#B68D40] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40 focus-visible:rounded-sm"
+                  type="button"
+                  className="text-primary underline underline-offset-4"
               >
-                Terms &amp; Privacy
+                Terms and Conditions
               </button>
-            </span>
-          }
-          checked={form.agreed}
-          onChange={(e) => update("agreed", e.target.checked)}
-          onBlur={() => markTouched("agreed")}
-          error={touched.agreed && !form.agreed ? "Please accept the terms to continue." : undefined}
-        />
+            </TermsDialog>
+          </span>
+                </label>
+                {errors.agree && <p className="mt-1 text-xs text-rose-500">{errors.agree}</p>}
+            </div>
 
-        {notice ? <p className="text-[0.8rem] text-[#6E6859]">{notice}</p> : null}
+            <Button type="submit" disabled={loading} size="lg" className="w-full">
+                {loading ? "Creating Account…" : "Sign Up"}
+            </Button>
 
-        <Button type="submit" isLoading={isSubmitting} loadingLabel="Creating account" disabled={!isFormValid}>
-          Create account
-        </Button>
+            <SocialButtons/>
 
-        <SocialButtons
-          onSelect={(provider) =>
-            setNotice(`${provider === "google" ? "Google" : "Apple"} sign-in is a demo placeholder.`)
-          }
-        />
-
-        <p className="text-center text-[0.85rem] text-[#6E6859]">
-          Already have an account?{" "}
-          <button
-            type="button"
-            onClick={onSwitchToLogin}
-            className="font-medium text-[#15241D] underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40 focus-visible:rounded-sm"
-          >
-            Log in here
-          </button>
-        </p>
-      </form>
-
-      <TermsDialog
-        isOpen={isTermsOpen}
-        onClose={() => setIsTermsOpen(false)}
-        onAccept={() => update("agreed", true)}
-      />
-    </>
-  );
+            <p className="pt-2 text-center text-sm text-on-surface-variant">
+                Already have an account?{" "}
+                <button
+                    type="button"
+                    onClick={onSwitchToLogin}
+                    className="font-semibold text-primary underline underline-offset-4"
+                >
+                    Log in here
+                </button>
+            </p>
+        </form>
+    );
 }

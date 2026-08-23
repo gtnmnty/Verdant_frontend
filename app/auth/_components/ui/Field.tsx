@@ -1,92 +1,82 @@
 "use client";
 
-import { forwardRef, useId, useState, type InputHTMLAttributes, type ReactNode } from "react";
-import { EyeIcon, EyeOffIcon } from "./Icons";
+import * as React from "react";
+import {useId, useState} from "react";
+import {Eye, EyeOff} from "lucide-react";
 
-interface FieldProps extends Omit<InputHTMLAttributes<HTMLInputElement>, "id"> {
-  label: string;
-  error?: string;
-  hint?: string;
-  rightSlot?: ReactNode;
-}
+import {cn} from "@/lib/utils";
 
-const inputBase =
-  "w-full min-w-0 rounded-md border bg-[#FBF8F2] px-3.5 py-2.5 text-[0.95rem] text-[#15241D] placeholder:text-[#A39C8C] transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-0";
+type FieldProps = Omit<React.ComponentProps<"input">, "id"> & {
+    label: string;
+    error?: string;
+    id?: string;
+};
 
-export const TextField = forwardRef<HTMLInputElement, FieldProps>(function TextField(
-  { label, error, hint, rightSlot, className = "", ...rest },
-  ref
-) {
-  const id = useId();
-  const errorId = `${id}-error`;
-  const hintId = `${id}-hint`;
+export const Field = React.forwardRef<HTMLInputElement, FieldProps>(
+    ({label, error, type = "text", className, id, ...props}, ref) => {
+        const generatedId = useId();
+        const fieldId = id ?? generatedId;
+        const [showPassword, setShowPassword] = useState(false);
+        const isPassword = type === "password";
+        const resolvedType = isPassword && showPassword ? "text" : type;
 
-  return (
-    <div className="flex flex-col gap-1.5">
-      <label
-        htmlFor={id}
-        className="text-[11px] font-medium uppercase tracking-[0.16em] text-[#6E6859]"
-      >
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          ref={ref}
-          id={id}
-          aria-invalid={Boolean(error) || undefined}
-          aria-describedby={error ? errorId : hint ? hintId : undefined}
-          className={`${inputBase} ${
-            error
-              ? "border-[#9B3B3B] focus:border-[#9B3B3B] focus:ring-[#9B3B3B]/25"
-              : "border-[#E3DAC9] focus:border-[#B68D40] focus:ring-[#B68D40]/30"
-          } ${rightSlot ? "pr-11" : ""} ${className}`}
-          {...rest}
-        />
-        {rightSlot ? (
-          <div className="absolute inset-y-0 right-2 flex items-center">{rightSlot}</div>
-        ) : null}
-      </div>
-      {error ? (
-        <p id={errorId} className="text-[0.78rem] text-[#9B3B3B]">
-          {error}
-        </p>
-      ) : hint ? (
-        <p id={hintId} className="text-[0.78rem] text-[#A39C8C]">
-          {hint}
-        </p>
-      ) : null}
-    </div>
-  );
-});
-
-interface PasswordFieldProps extends Omit<FieldProps, "type" | "rightSlot"> {
-  showToggleLabel?: string;
-}
-
-export const PasswordField = forwardRef<HTMLInputElement, PasswordFieldProps>(
-  function PasswordField({ showToggleLabel = "password", ...rest }, ref) {
-    const [visible, setVisible] = useState(false);
-    const toggleDisabled = Boolean(rest.disabled || rest.readOnly);
-
-    return (
-      <TextField
-        ref={ref}
-        type={visible ? "text" : "password"}
-        rightSlot={
-          <button
-            type="button"
-            onClick={() => setVisible((v) => !v)}
-            disabled={toggleDisabled}
-            className="rounded p-1 text-[#A39C8C] transition-colors hover:text-[#15241D]
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#B68D40]/40"
-            aria-label={visible ? `Hide ${showToggleLabel}` : `Show ${showToggleLabel}`}
-            aria-pressed={visible}
-          >
-            {visible ? <EyeOffIcon className="h-[18px] w-[18px]" /> : <EyeIcon className="h-[18px] w-[18px]" />}
-          </button>
-        }
-        {...rest}
-      />
-    );
-  }
+        return (
+            <div className="w-full">
+                <div className="relative">
+                    <input
+                        ref={ref}
+                        id={fieldId}
+                        type={resolvedType}
+                        placeholder=" "
+                        aria-invalid={!!error}
+                        className={cn(
+                            "peer w-full rounded-xl border " +
+                            "bg-white px-4 pb-2.5 pt-5 text-sm " +
+                            "text-on-surface outline-none transition-colors " +
+                            "placeholder-shown:pb-4 placeholder-shown:pt-4 " +
+                            "focus:pb-2.5 focus:pt-5",
+                            isPassword && "pr-11",
+                            error
+                                ? "border-rose-400 focus:border-rose-500"
+                                : "border-border focus:border-primary",
+                            className,
+                        )}
+                        {...props}
+                    />
+                    <label
+                        htmlFor={fieldId}
+                        className={cn(
+                            "pointer-events-none absolute left-4 top-2.5 text-xs " +
+                            "text-on-surface-variant transition-all duration-150",
+                            "peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 " +
+                            "peer-placeholder-shown:text-sm peer-placeholder-shown:text-on-surface-variant/70",
+                            "peer-focus:top-2.5 peer-focus:-translate-y-0 peer-focus:text-xs peer-focus:text-primary",
+                        )}
+                    >
+                        {label}
+                    </label>
+                    {isPassword && (
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword((s) => !s)}
+                            tabIndex={-1}
+                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            className="absolute right-3 top-1/2 -translate-y-1/2
+                            text-on-surface-variant/70 transition-colors
+                            hover:text-primary"
+                        >
+                            {showPassword ? (
+                                <EyeOff className="h-4 w-4"/>
+                            ) : (
+                                <Eye className="h-4 w-4"/>
+                            )}
+                        </button>
+                    )}
+                </div>
+                {error && <p className="mt-1.5 text-xs text-rose-500">{error}</p>}
+            </div>
+        );
+    },
 );
+
+Field.displayName = "Field";

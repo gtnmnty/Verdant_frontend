@@ -1,102 +1,52 @@
-import type { ReactNode } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import {ArrowLeft} from "@/app/auth/_components/ui/Icons";
 
-function Seal({ className = "" }: { className?: string }) {
-  return (
-    <span
-      className={`inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-[#B68D40]/70 font-serif text-[0.95rem] tracking-[0.04em] text-[#B68D40] ${className}`}
-      aria-hidden="true"
-    >
-      VL
-    </span>
-  );
-}
+export function AuthShell({children}: { children: React.ReactNode }) {
+    return (
+        <div className="mx-auto w-full max-w-5xl py-[clamp(2rem,6vw,4rem)]">
+            <Link
+                href="/"
+                className="mb-6 inline-flex items-center
+        gap-2 text-xs font-semibold uppercase
+        tracking-[0.18em] text-on-surface-variant
+        transition-colors hover:text-primary"
+            >
+                <ArrowLeft className="h-3.5 w-3.5"/>
+                Back to Verdant Luxe
+            </Link>
 
-function BrandPanel() {
-  return (
-    <div
-      className="relative hidden w-full max-w-[420px] flex-col justify-between overflow-hidden rounded-2xl bg-[#15241D] p-10 text-[#F7F2E8] lg:flex"
-      style={{
-        backgroundImage:
-          "radial-gradient(circle at 1px 1px, rgba(247,242,232,0.16) 1px, transparent 0)",
-        backgroundSize: "18px 18px",
-      }}
-    >
-      <div>
-        <div className="flex items-center gap-3">
-          <Seal />
-          <div className="font-serif text-[1.05rem] leading-tight tracking-[0.02em]">
-            Verdant Luxe
-          </div>
-        </div>
-        <p className="mt-1 text-[11px] uppercase tracking-[0.22em] text-[#B68D40]">
-          Private Members&apos; Club
-        </p>
-      </div>
+            <div className="grid grid-cols-1 overflow-hidden
+                      rounded-[2rem] border border-blush/40
+                      bg-surface-lowest shadow-xl
+                      lg:grid-cols-2">
+                {/* Visual side */}
+                <div className="relative hidden min-h-[28rem] lg:block">
+                    <Image
+                        src="https://images.unsplash.com/photo-1522337360788-8b13dee7a37e?auto=format&fit=crop&w=1000&q=80"
+                        alt="Verdant Luxe boutique interior"
+                        fill
+                        sizes="50vw"
+                        className="object-cover"
+                    />
+                    <div
+                        className="absolute inset-0 bg-gradient-to-t
+                        from-stone-900/80 via-stone-900/20 to-transparent"/>
+                    <div className="absolute inset-x-0 bottom-0 p-10">
+                        <p className="text-[0.7rem] uppercase tracking-[0.35em] text-rose-100/80">
+                            The Verdant Luxe Boutique
+                        </p>
+                        <p className="mt-3 font-display text-2xl leading-snug text-rose-50">
+                            Elegance is the only beauty that never fades.
+                        </p>
+                    </div>
+                </div>
 
-      <blockquote className="border-l border-[#B68D40]/50 pl-5">
-        <p className="font-serif text-[1.35rem] leading-snug text-[#F7F2E8]/95">
-          Quiet luxury is never loud about it.
-        </p>
-        <p className="mt-3 max-w-[280px] text-[0.85rem] leading-relaxed text-[#F7F2E8]/60">
-          Every detail of your stay, your table, and your time is considered before you ask.
-        </p>
-      </blockquote>
-
-      <p className="text-[0.72rem] uppercase tracking-[0.18em] text-[#F7F2E8]/40">
-        Est. for those who notice the difference
-      </p>
-    </div>
-  );
-}
-
-interface AuthShellProps {
-  eyebrow: string;
-  heading: string;
-  blurb?: string;
-  headerExtra?: ReactNode;
-  children: ReactNode;
-}
-
-export function AuthShell({ eyebrow, heading, blurb, headerExtra, children }: AuthShellProps) {
-  return (
-    <div className="flex min-h-screen w-full items-center justify-center overflow-x-hidden bg-[#F7F2E8] px-4 py-10 sm:px-6">
-      <div className="flex w-full max-w-[920px] items-stretch justify-center gap-6">
-        <BrandPanel />
-
-        <div className="flex min-w-0 w-full max-w-[440px] flex-col">
-          <div className="mb-6 flex items-center justify-between gap-3 lg:hidden">
-            <div className="flex items-center gap-2.5">
-              <Seal className="h-9 w-9 text-[0.8rem]" />
-              <span className="font-serif text-[1rem] tracking-[0.02em] text-[#15241D]">
-                Verdant Luxe
-              </span>
+                {/* Form side */}
+                <div className="flex items-center justify-center px-6 py-10 sm:px-10 sm:py-14">
+                    <div className="w-full max-w-sm">{children}</div>
+                </div>
             </div>
-          </div>
-
-          <div className="w-full rounded-2xl border border-[#E3DAC9]/70 bg-white p-6 shadow-[0_24px_48px_-24px_rgba(21,36,29,0.22)] sm:p-9">
-            <div className="mb-7 flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="text-[11px] font-medium uppercase tracking-[0.2em] text-[#B68D40]">
-                  {eyebrow}
-                </p>
-                <h1 className="mt-1.5 font-serif text-[1.6rem] leading-tight text-[#15241D] sm:text-[1.75rem]">
-                  {heading}
-                </h1>
-                {blurb ? (
-                  <p className="mt-1.5 text-[0.875rem] leading-relaxed text-[#6E6859]">{blurb}</p>
-                ) : null}
-              </div>
-              {headerExtra}
-            </div>
-
-            {children}
-          </div>
-
-          <p className="mt-6 text-center text-[0.75rem] text-[#A39C8C]">
-            © {new Date().getFullYear()} Verdant Luxe. All rights reserved.
-          </p>
         </div>
-      </div>
-    </div>
-  );
+    );
 }

@@ -7,79 +7,81 @@ let getToken: TokenGetter = () => null;
 let setToken: TokenSetter = () => {};
 
 export function configureApiClient(getter: TokenGetter, setter: TokenSetter) {
-  getToken = getter;
-  setToken = setter;
+    getToken = getter;
+    setToken = setter;
 }
 
 // Calls the /auth/refresh endpoint in the backend
 // to get a new token in case the current one has expired
 // or user refresh the pages
 async function refreshAccessToken(): Promise<string | null> {
-  try{
-    const response = await fetch(`${BASE_URL}/auth/refresh`, {
-      method: "POST",
-      credentials: "include"
-    });
+    try {
+        const response = await fetch(`${BASE_URL}/auth/refresh`, {
+            method: "POST",
+            credentials: "include"
+        });
 
-    if(!response) return null;
-    const data = await response.json();
-    return data.accessToken ?? null;
-  } catch {
-    return null;
-  }
+        if (!response) return null;
+        const data = await response.json();
+        return data.accessToken ?? null;
+    } catch {
+        return null;
+    }
 }
 
 // Parses the response from backend into a JSON format.
 async function parseJsonResponse<T>(response: Response): Promise<T> {
-  const text = await response.text();
-  return text ? JSON.parse(text) as T : undefined as T;
+    const text = await response.text();
+    return text ? JSON.parse(text) as T : undefined as T;
 }
 
 // Central fetch wrapper for all authenticated API requests
 // Automatically attaches the access token and retries once on 401
 // using the refresh token before redirecting to log in.
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T>{
-  const token = getToken();
+export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const token = getToken();
 
-  const headers: Record<string, string> = {
-    "Content-Type": "application/json",
-    ...(options.headers as Record<string, string> ?? {}),
-  };
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        ...(options.headers as Record<string, string> ?? {}),
+    };
 
-  if (token) { headers["Authorization"] = `Bearer ${token}`; }
+    if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+    }
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    ...options,
-    headers,
-    credentials: "include",
-  })
-
-  if (response.status === 401) {
-    const newToken = await refreshAccessToken();
-
-    if (newToken){
-      setToken(newToken)
-      headers["Authorization"] = `Bearer ${newToken}`;
-      const retry = await fetch(`${BASE_URL}${path}`, {
+    const response = await fetch(`${BASE_URL}${path}`, {
         ...options,
         headers,
         credentials: "include",
-      })
+    })
 
-      if (retry.status === 401) {
-         setToken(null);
-         window.location.href = "/auth";
-         throw new Error("Session expired");
-      }
+    if (response.status === 401) {
+        const newToken = await refreshAccessToken();
 
-      if (!retry.ok) throw new Error(await retry.text());
-        return parseJsonResponse<T>(retry);
+        if (newToken) {
+            setToken(newToken)
+            headers["Authorization"] = `Bearer ${newToken}`;
+            const retry = await fetch(`${BASE_URL}${path}`, {
+                ...options,
+                headers,
+                credentials: "include",
+            })
+
+            if (retry.status === 401) {
+                setToken(null);
+                window.location.href = "/auth";
+                throw new Error("Session expired");
+            }
+
+            if (!retry.ok) throw new Error(await retry.text());
+            return parseJsonResponse<T>(retry);
+        }
+
+        setToken(null);
+        window.location.href = "/auth";
+        throw new Error("Session expired");
     }
-
-    setToken(null);
-    window.location.href = "/auth";
-    throw new Error("Session expired");
-  }
-  if (!response.ok) throw new Error(await response.text());
-  return parseJsonResponse<T>(response);
+    if (!response.ok) throw new Error(await response.text());
+    return parseJsonResponse<T>(response);
 }
