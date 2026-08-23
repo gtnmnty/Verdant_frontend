@@ -1,6 +1,6 @@
 import type {Metadata} from "next";
 import { Providers } from "@/components/Providers"
-import {Bodoni_Moda, Geist, Geist_Mono, Hanken_Grotesk} from "next/font/google";
+import {Geist, Geist_Mono} from "next/font/google";
 import "./globals.css";
 import {cn} from "@/lib/utils";
 import React from "react";
