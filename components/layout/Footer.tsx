@@ -64,20 +64,23 @@ export function Footer() {
     };
 
     return (
-        <footer className="mt-24 border-t border-blush/40 bg-surface-low text-on-surface">
-            <div className="mx-auto w-[min(90vw,1400px)] py-[clamp(2.5rem,5vw,4rem)]">
+        <footer className="mt-24 border-t border-blush/40 bg-surface-low
+                 text-on-surface">
+            <div className="mx-auto w-[min(90vw,1400px)]
+                 py-[clamp(2.5rem,5vw,4rem)]">
                 {/* Top: brand -> divider -> socials -> newsletter */}
                 <div className="flex flex-col items-center text-center">
                     <Link
                         href="/"
                         className="font-display text-[clamp(1.75rem,4vw,3rem)]
-                        leading-none tracking-[0.22em] text-primary"
+                                        leading-none tracking-[0.22em] text-primary"
                     >
                         VERDANT&nbsp;LUXE
                     </Link>
                     <div className="mt-5 flex items-center gap-4">
                         <span className="h-px w-12 bg-champagne-gold/70"/>
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.32em] text-champagne-gold">
+                        <span className="text-[10px] font-semibold uppercase
+                 tracking-[0.32em] text-champagne-gold">
               Salon &amp; Studio
             </span>
                         <span className="h-px w-12 bg-champagne-gold/70"/>
@@ -89,9 +92,11 @@ export function Footer() {
                                 key={i}
                                 href="#"
                                 aria-label="Social"
-                                className="grid h-10 w-10 place-items-center rounded-full
-                                border border-blush/60 text-primary transition-colors hover:bg-primary
-                                hover:text-primary-foreground"
+                                className="grid h-10 w-10 place-items-center
+                                                rounded-full border border-blush/60
+                                                text-primary transition-colors
+                                                hover:bg-primary
+                                                hover:text-primary-foreground"
                             >
                                 <Icon className="h-4 w-4"/>
                             </a>
@@ -99,7 +104,8 @@ export function Footer() {
                     </div>
 
                     <form onSubmit={onSubscribe} className="mt-8 w-full max-w-md px-4 sm:px-0">
-                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-soft-rose">
+                        <p className="text-[10px] font-semibold uppercase
+                 tracking-[0.22em] text-soft-rose">
                             Stay Updated
                         </p>
                         <p className="mt-2 text-sm text-on-surface-variant">
@@ -128,7 +134,8 @@ export function Footer() {
                 <div className="my-[clamp(2rem,4vw,3rem)] h-px bg-blush/40"/>
 
                 {/* Bottom: three responsive columns */}
-                <div className="grid gap-10 px-4 text-center sm:px-0 sm:grid-cols-2 sm:text-left md:grid-cols-3">
+                <div className="grid gap-10 px-4 text-center sm:px-0
+                 sm:grid-cols-2 sm:text-left md:grid-cols-3">
                     <FooterColumn title="Quick Links">
                         {QUICK_LINKS.map((l) => (
                             <FooterLink key={l.label} item={l}/>
@@ -140,23 +147,28 @@ export function Footer() {
                         ))}
                     </FooterColumn>
                     <div className="min-w-0 sm:col-span-2 md:col-span-1">
-                        <h4 className="text-[10px] font-semibold uppercase tracking-[0.22em] text-soft-rose">
+                        <h4 className="text-[10px] font-semibold uppercase
+                 tracking-[0.22em] text-soft-rose">
                             Contact &amp; Support
                         </h4>
                         <ul className="mt-5 space-y-3 text-sm text-on-surface-variant">
-                            <li className="flex items-start justify-center gap-2 sm:justify-start">
+                            <li className="flex items-start justify-center gap-2
+                 sm:justify-start">
                                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-champagne-gold"/>
                                 <span>35G Liberty Ave, Quezon City</span>
                             </li>
-                            <li className="flex items-start justify-center gap-2 sm:justify-start">
+                            <li className="flex items-start justify-center gap-2
+                 sm:justify-start">
                                 <Mail className="mt-0.5 h-4 w-4 shrink-0 text-champagne-gold"/>
                                 <span>concierge@verdantluxe.com</span>
                             </li>
-                            <li className="flex items-start justify-center gap-2 sm:justify-start">
+                            <li className="flex items-start justify-center gap-2
+                 sm:justify-start">
                                 <Phone className="mt-0.5 h-4 w-4 shrink-0 text-champagne-gold"/>
                                 <span>+1 (555) 000 0000</span>
                             </li>
-                            <li className="flex items-start justify-center gap-2 sm:justify-start">
+                            <li className="flex items-start justify-center gap-2
+                 sm:justify-start">
                                 <Clock className="mt-0.5 h-4 w-4 shrink-0 text-champagne-gold"/>
                                 <span>Mon–Sat · 9:00 AM – 6:00 PM EST</span>
                             </li>
@@ -176,7 +188,7 @@ export function Footer() {
                                 <button
                                     onClick={() => toast.success("Live chat opening soon…")}
                                     className="inline-flex items-center gap-1.5
-                                    text-on-surface-variant hover:text-primary"
+                                                    text-on-surface-variant hover:text-primary"
                                 >
                                     <MessageCircle className="h-3.5 w-3.5"/> Live Chat / Contact
                                     Support
@@ -187,8 +199,10 @@ export function Footer() {
                 </div>
 
                 <div
-                    className="mt-12 flex flex-col items-center justify-between gap-4 border-t
-                    border-blush/40 px-4 pt-6 text-xs text-on-surface-variant sm:flex-row sm:px-0">
+                    className="mt-12 flex flex-col items-center
+                                    justify-between gap-4 border-t
+                                    border-blush/40 px-4 pt-6 text-xs
+                                    text-on-surface-variant sm:flex-row sm:px-0">
                     <p>© {new Date().getFullYear()} Verdant Luxe. All rights reserved.</p>
                     <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2">
                         {LEGAL_LINKS.map((l) => (
@@ -206,9 +220,10 @@ export function Footer() {
                 <button
                     onClick={() => window.scrollTo({top: 0, behavior: "smooth"})}
                     aria-label="Back to top"
-                    className="fixed bottom-6 right-6 z-40 grid h-11 w-11 place-items-center
-                    rounded-full bg-primary text-primary-foreground shadow-lg transition-transform
-                    hover:-translate-y-0.5"
+                    className="fixed bottom-6 right-6 z-40 grid h-11 w-11
+                                    place-items-center rounded-full bg-primary
+                                    text-primary-foreground shadow-lg
+                                    transition-transform hover:-translate-y-0.5"
                 >
                     <ArrowUp className="h-5 w-5"/>
                 </button>
@@ -220,7 +235,8 @@ export function Footer() {
 function FooterColumn({title, children }: { title: string; children: ReactNode; }) {
     return (
         <div className="min-w-0">
-            <h4 className="text-[10px] font-semibold uppercase tracking-[0.22em] text-soft-rose">
+            <h4 className="text-[10px] font-semibold uppercase
+                 tracking-[0.22em] text-soft-rose">
                 {title}
             </h4>
             <ul className="mt-5 space-y-3">{children}</ul>
@@ -234,14 +250,16 @@ function FooterLink({item}: { item: LinkItem }) {
             {item.href?.startsWith("/") ? (
                 <Link
                     href={item.href}
-                    className="text-sm text-on-surface-variant transition-colors hover:text-primary"
+                    className="text-sm text-on-surface-variant
+                                    transition-colors hover:text-primary"
                 >
                     {item.label}
                 </Link>
             ) : (
                 <a
                     href={item.href ?? "#"}
-                    className="text-sm text-on-surface-variant transition-colors hover:text-primary"
+                    className="text-sm text-on-surface-variant
+                                    transition-colors hover:text-primary"
                 >
                     {item.label}
                 </a>

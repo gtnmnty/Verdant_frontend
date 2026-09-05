@@ -7,6 +7,18 @@ import React from "react";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
+const bodoniModa = Bodoni_Moda({
+    variable: "--font-display-sans",
+    subsets: ["latin"],
+    weight: ["400", "500", "600"],
+});
+
+const hankenGrotesk = Hanken_Grotesk({
+    variable: "--font-sans-body",
+    subsets: ["latin"],
+    weight: ["400", "500", "600", "700"],
+});
+
 const geistSans = Geist({
     variable: "--font-geist-sans",
     subsets: ["latin"],
@@ -30,9 +42,13 @@ export default function RootLayout({ children }: Readonly<{children: React.React
                 geistSans.variable, geistMono.variable,
                 "font-sans", geist.variable)}
         >
-        <body className="min-h-full flex flex-col overflow-x-hidden">
-            <Providers>{children}</Providers>
-        </body>
+            <body className={`${bodoniModa.variable} ${hankenGrotesk.variable} 
+            min-h-screen bg-background font-sans text-on-surface 
+            antialiased overflow-x-hidden`}>
+                <main>
+                    <Providers>{children}</Providers>
+                </main>
+            </body>
         </html>
     );
 }
