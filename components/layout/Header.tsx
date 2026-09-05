@@ -51,30 +51,37 @@ export function Header() {
                 isScrolled ? "shadow-sm" : ""
             }`}
         >
-            <div className="flex h-[clamp(56px,8vw,76px)] w-full items-center
-                 justify-between gap-4 px-[5vw] sm:px-[6vw] lg:grid
-                 lg:grid-cols-[1fr_auto_1fr] lg:gap-0 lg:px-[10vw]">
+            <div className="flex h-[clamp(56px,8vw,76px)] w-full
+                 items-center justify-between gap-4 px-[5vw]
+                 sm:px-[6vw] lg:grid
+                 lg:grid-cols-[1fr_auto_1fr] lg:gap-0
+                 lg:px-[10vw]">
                 {/* Desktop primary nav */}
                 <nav
                     aria-label="Primary"
-                    className="hidden items-center gap-[clamp(12px,2vw,32px)] lg:flex"
+                    className="hidden items-center
+                                    gap-[clamp(12px,2vw,32px)] lg:flex"
                 >
                     {NAV_LINKS.map((link) =>
                         link.href.startsWith("/") ? (
                             <Link
                                 key={link.label}
                                 href={link.href}
-                                className="whitespace-nowrap text-[clamp(9px,1.1vw,12px)]
-                                font-semibold uppercase tracking-[0.14em] text-on-surface-variant
-                                transition-colors duration-200 hover:text-primary"
+                                className="whitespace-nowrap
+                                                text-[clamp(9px,1.1vw,12px)] font-semibold
+                                                uppercase tracking-[0.14em]
+                                                text-on-surface-variant transition-colors
+                                                duration-200 hover:text-primary"
                             >
                                 {link.label}
                             </Link>
                         ) : (
                             <a key={link.label} href={link.href}
-                               className="whitespace-nowrap text-[clamp(9px,1.1vw,12px)]
-                               font-semibold uppercase tracking-[0.14em] text-on-surface-variant
-                               transition-colors duration-200 hover:text-primary"
+                               className="whitespace-nowrap
+                                               text-[clamp(9px,1.1vw,12px)] font-semibold
+                                               uppercase tracking-[0.14em]
+                                               text-on-surface-variant transition-colors
+                                               duration-200 hover:text-primary"
                             >
                                 {link.label}
                             </a>
@@ -87,9 +94,9 @@ export function Header() {
                     href="/"
                     aria-label="Verdant Luxe home"
                     className="min-w-0 truncate font-display
-                    text-[clamp(16px,3vw,30px)] leading-none
-                    tracking-tight text-primary
-                    lg:justify-self-center"
+                                    text-[clamp(16px,3vw,30px)] leading-none
+                                    tracking-tight text-primary
+                                    lg:justify-self-center"
                 >
                     Verdant Luxe
                 </Link>
@@ -98,7 +105,8 @@ export function Header() {
                 <div
                     role="toolbar"
                     aria-label="Actions"
-                    className="hidden items-center justify-end gap-[clamp(10px,1.6vw,22px)] lg:flex"
+                    className="hidden items-center justify-end
+                                    gap-[clamp(10px,1.6vw,22px)] lg:flex"
                 >
                     {ICON_ACTIONS.map(({label, icon: Icon, href}) =>
                         href ? (
@@ -106,22 +114,28 @@ export function Header() {
                                 key={label}
                                 href={href}
                                 aria-label={label}
-                                className="flex h-[clamp(28px,3vw,36px)] w-[clamp(28px,3vw,36px)]
-                                items-center justify-center text-primary opacity-75
-                                transition-opacity duration-200 hover:opacity-100"
+                                className="flex h-[clamp(28px,3vw,36px)]
+                                                w-[clamp(28px,3vw,36px)] items-center
+                                                justify-center text-primary opacity-75
+                                                transition-opacity duration-200
+                                                hover:opacity-100"
                             >
-                                <Icon className="h-[clamp(16px,1.8vw,20px)] w-[clamp(16px,1.8vw,20px)]"/>
+                                <Icon className="h-[clamp(16px,1.8vw,20px)]
+                 w-[clamp(16px,1.8vw,20px)]"/>
                             </Link>
                         ) : (
                             <button
                                 key={label}
                                 onClick={() => toast.success("Saved to your wishlist.")}
                                 aria-label={label}
-                                className="flex h-[clamp(28px,3vw,36px)] w-[clamp(28px,3vw,36px)]
-                                items-center justify-center text-primary opacity-75 transition-opacity
-                                duration-200 hover:opacity-100"
+                                className="flex h-[clamp(28px,3vw,36px)]
+                                                w-[clamp(28px,3vw,36px)] items-center
+                                                justify-center text-primary opacity-75
+                                                transition-opacity duration-200
+                                                hover:opacity-100"
                             >
-                                <Icon className="h-[clamp(16px,1.8vw,20px)] w-[clamp(16px,1.8vw,20px)]"/>
+                                <Icon className="h-[clamp(16px,1.8vw,20px)]
+                 w-[clamp(16px,1.8vw,20px)]"/>
                             </button>
                         ),
                     )}
@@ -129,15 +143,19 @@ export function Header() {
                     <Link
                         href="/notifications"
                         aria-label={`Notifications${unread ? `, ${unread} unread` : ""}`}
-                        className="relative flex h-[clamp(28px,3vw,36px)] w-[clamp(28px,3vw,36px)]
-                        items-center justify-center text-primary opacity-75 transition-opacity
-                        duration-200 hover:opacity-100"
+                        className="relative flex h-[clamp(28px,3vw,36px)]
+                                        w-[clamp(28px,3vw,36px)] items-center
+                                        justify-center text-primary opacity-75
+                                        transition-opacity duration-200
+                                        hover:opacity-100"
                     >
-                        <Bell className="h-[clamp(16px,1.8vw,20px)] w-[clamp(16px,1.8vw,20px)]"/>
+                        <Bell className="h-[clamp(16px,1.8vw,20px)]
+                 w-[clamp(16px,1.8vw,20px)]"/>
                         {unread > 0 ? (
                             <span className="absolute -right-1 -top-1 grid h-4 min-w-4
-                                  place-items-center rounded-full bg-soft-rose px-1 text-[10px]
-                                  font-semibold leading-none text-white">
+                 place-items-center rounded-full bg-soft-rose
+                 px-1 text-[10px] font-semibold leading-none
+                 text-white">
                                 {unread > 9 ? "9+" : unread}
                             </span>
                         ) : null}
@@ -150,8 +168,10 @@ export function Header() {
                         <button
                             type="button"
                             aria-label="Open menu"
-                            className="flex h-9 w-9 flex-shrink-0 items-center justify-center
-                            text-primary transition-opacity duration-200 hover:opacity-70 lg:hidden"
+                            className="flex h-9 w-9 flex-shrink-0 items-center
+                                            justify-center text-primary
+                                            transition-opacity duration-200
+                                            hover:opacity-70 lg:hidden"
                         >
                             <Menu className="h-5 w-5"/>
                         </button>
@@ -167,9 +187,10 @@ export function Header() {
                                         key={link.label}
                                         href={link.href}
                                         onClick={() => setIsMenuOpen(false)}
-                                        className="border-b border-blush/20 py-4 text-sm font-semibold
-                                        uppercase tracking-[0.14em] text-on-surface-variant transition-colors
-                                        duration-200 hover:text-primary"
+                                        className="border-b border-blush/20 py-4 text-sm
+                                                        font-semibold uppercase tracking-[0.14em]
+                                                        text-on-surface-variant transition-colors
+                                                        duration-200 hover:text-primary"
                                     >
                                         {link.label}
                                     </Link>
@@ -178,9 +199,10 @@ export function Header() {
                                         key={link.label}
                                         href={link.href}
                                         onClick={() => setIsMenuOpen(false)}
-                                        className="border-b border-blush/20 py-4 text-sm font-semibold uppercase
-                                        tracking-[0.14em] text-on-surface-variant transition-colors duration-200
-                                        hover:text-primary"
+                                        className="border-b border-blush/20 py-4 text-sm
+                                                        font-semibold uppercase tracking-[0.14em]
+                                                        text-on-surface-variant transition-colors
+                                                        duration-200 hover:text-primary"
                                     >
                                         {link.label}
                                     </a>
@@ -192,10 +214,12 @@ export function Header() {
                                         key={label}
                                         href={href}
                                         onClick={() => setIsMenuOpen(false)}
-                                        className="flex items-center gap-3 border-b border-blush/20
-                                        py-4 text-sm font-semibold uppercase tracking-[0.14em]
-                                        text-on-surface-variant transition-colors duration-200
-                                        last:border-b-0 hover:text-primary"
+                                        className="flex items-center gap-3 border-b
+                                                        border-blush/20 py-4 text-sm font-semibold
+                                                        uppercase tracking-[0.14em]
+                                                        text-on-surface-variant transition-colors
+                                                        duration-200 last:border-b-0
+                                                        hover:text-primary"
                                     >
                                         <Icon className="h-4 w-4 flex-shrink-0"/>
                                         {label}
@@ -208,9 +232,11 @@ export function Header() {
                                             toast.success("Saved to your wishlist.");
                                         }}
                                         className="flex items-center gap-3 border-b
-                                        border-blush/20 py-4 text-sm font-semibold uppercase tracking-[0.14em]
-                                        text-on-surface-variant transition-colors duration-200 last:border-b-0
-                                        hover:text-primary"
+                                                        border-blush/20 py-4 text-sm font-semibold
+                                                        uppercase tracking-[0.14em]
+                                                        text-on-surface-variant transition-colors
+                                                        duration-200 last:border-b-0
+                                                        hover:text-primary"
                                     >
                                         <Icon className="h-4 w-4 flex-shrink-0"/>
                                         {label}
