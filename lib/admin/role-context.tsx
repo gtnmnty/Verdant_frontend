@@ -15,7 +15,7 @@ interface RoleCtx {
   role: Role;
   perms: RolePerms;
   setRole: (r: Role) => void;
-  /** The stylist id representing the "logged in stylist" when role=stylist */
+  // The stylist id representing the "logged in stylist" when role=stylist
   currentStylistId: string;
 }
 

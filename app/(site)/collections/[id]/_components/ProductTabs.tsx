@@ -1,8 +1,25 @@
 import {CheckCircle2} from "lucide-react";
 import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {PRODUCT} from "@/app/(site)/collections/[id]/_components/data";
 
-export function ProductTabs() {
+export interface ProductTabsData {
+    description: string;
+    // Backend's Product only exposes a generic `info` string list — there's
+    // no distinct ingredients/usage/care model, so it's reused as
+    // "Ingredients" here and the other two tabs fall back to static copy.
+    info: string[];
+}
+
+const USAGE_FALLBACK = [
+    "Follow the instructions on the packaging for best results.",
+    "Patch test on a small area first if you have sensitive skin.",
+];
+
+const CARE_FALLBACK = [
+    "Store in a cool, dry place away from direct sunlight.",
+    "Reseal tightly after each use.",
+];
+
+export function ProductTabs({description, info}: ProductTabsData) {
     return (
         <Tabs defaultValue="details">
             <TabsList className="h-auto w-full flex-wrap justify-start gap-2
@@ -15,23 +32,16 @@ export function ProductTabs() {
             </TabsList>
             <TabsContent value="details" className="mt-6 text-sm leading-relaxed
                  text-on-surface-variant">
-                <p>{PRODUCT.description}</p>
-                <ul className="mt-4 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
-                    {PRODUCT.highlights.map((h) => (
-                        <li key={h} className="flex items-center gap-2">
-                            <span className="text-champagne-gold">✦</span> {h}
-                        </li>
-                    ))}
-                </ul>
+                <p>{description || "No description available yet."}</p>
             </TabsContent>
             <TabsContent value="ingredients" className="mt-6">
-                <BulletList items={PRODUCT.ingredients}/>
+                <BulletList items={info.length > 0 ? info : ["No ingredients listed yet."]}/>
             </TabsContent>
             <TabsContent value="usage" className="mt-6">
-                <BulletList items={PRODUCT.usage}/>
+                <BulletList items={USAGE_FALLBACK}/>
             </TabsContent>
             <TabsContent value="care" className="mt-6">
-                <BulletList items={PRODUCT.care}/>
+                <BulletList items={CARE_FALLBACK}/>
             </TabsContent>
         </Tabs>
     );

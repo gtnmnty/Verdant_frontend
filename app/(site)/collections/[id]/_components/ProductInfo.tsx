@@ -14,49 +14,85 @@ import {
     Truck,
 } from "lucide-react";
 import {Button} from "@/components/ui/button";
-import {Label} from "@/components/ui/label";
-import {PRODUCT} from "@/app/(site)/collections/[id]/_components/data";
+import {gqlRequest} from "@/utils/graphqlClient";
 import {Stars} from "@/app/(site)/collections/[id]/_components/shared";
 
-export function ProductInfo() {
-    const [wished, setWished] = useState(false);
+export interface ProductInfoData {
+    id: string;
+    name: string;
+    categoryLabel: string;
+    description: string;
+    price: number;
+    salePrice: number | null;
+    averageRating: number;
+    reviewCount: number;
+    tags: string[];
+    inStock: boolean;
+    isFavorited: boolean;
+}
+
+const ADD_TO_CART_MUTATION = `
+    mutation AddToCart($input: AddToCartInput!) {
+        addToCart(input: $input) { items { id } }
+    }
+`;
+
+const TOGGLE_FAVORITE_MUTATION = `
+    mutation ToggleFavoriteProduct($targetId: ID!) {
+        toggleFavoriteProduct(targetId: $targetId) { id }
+    }
+`;
+
+export function ProductInfo({product}: { product: ProductInfoData }) {
+    const [wished, setWished] = useState(product.isFavorited);
     const [qty, setQty] = useState(1);
-    const [shade, setShade] = useState(PRODUCT.shades[0]);
-    const [size, setSize] = useState(PRODUCT.sizes[1]);
     const [adding, setAdding] = useState(false);
 
-    const total = PRODUCT.price * qty;
+    const activePrice = product.salePrice ?? product.price;
+    const total = activePrice * qty;
 
     const addToCart = () => {
         setAdding(true);
-        setTimeout(() => {
-            setAdding(false);
-            toast.success("Added to cart", {
-                description: `${PRODUCT.name} · ${shade} · ${size}`,
+        gqlRequest(ADD_TO_CART_MUTATION, {
+            input: {productId: product.id, quantity: qty, deliveryOption: "STANDARD"},
+        })
+            .then(() => {
+                toast.success("Added to cart", {description: `${product.name} × ${qty}`});
+            })
+            .catch((err) => {
+                toast.error(err instanceof Error ? err.message : "Failed to add to cart.");
+            })
+            .finally(() => setAdding(false));
+    };
+
+    const toggleWishlist = () => {
+        const wasWished = wished;
+        setWished(!wasWished);
+
+        gqlRequest(TOGGLE_FAVORITE_MUTATION, {targetId: product.id})
+            .then(() => toast(wasWished ? "Removed from wishlist" : "Saved to wishlist"))
+            .catch((err) => {
+                setWished(wasWished);
+                toast.error(err instanceof Error ? err.message : "Failed to update wishlist.");
             });
-        }, 600);
     };
 
     return (
         <div className="min-w-0">
             <p className="text-[10px] font-semibold uppercase
                  tracking-[0.22em] text-champagne-gold">
-                {PRODUCT.category}
+                {product.categoryLabel}
             </p>
             <h1 className="mt-2 font-display
                  text-[clamp(1.75rem,4vw,3rem)] leading-[1.05]
                  tracking-tight text-primary">
-                {PRODUCT.name}
+                {product.name}
             </h1>
-            <p className="mt-3 text-sm leading-relaxed
-                 text-on-surface-variant">
-                {PRODUCT.subtitle}
-            </p>
 
             <div className="mt-4 flex items-center gap-3">
-                <Stars value={PRODUCT.rating}/>
+                <Stars value={product.averageRating}/>
                 <span className="text-xs text-on-surface-variant">
-          {PRODUCT.rating.toFixed(1)} · {PRODUCT.reviewsCount} reviews
+          {product.averageRating.toFixed(1)} · {product.reviewCount.toLocaleString()} reviews
         </span>
             </div>
 
@@ -65,51 +101,47 @@ export function ProductInfo() {
             <div className="flex items-end gap-3">
                 <p className="font-display text-[clamp(1.5rem,3vw,2rem)]
                  text-soft-rose">
-                    ${PRODUCT.price}
+                    ${activePrice.toLocaleString()}
                 </p>
-                {PRODUCT.oldPrice && (
-                    <p className="pb-1 text-sm 
-                       text-on-surface-variant 
+                {product.salePrice && (
+                    <p className="pb-1 text-sm
+                       text-on-surface-variant
                        line-through">
-                        ${PRODUCT.oldPrice}
+                        ${product.price.toLocaleString()}
                     </p>
                 )}
                 <span
                     className={`ml-auto inline-flex items-center 
                     gap-1.5 rounded-full px-2.5 py-1 text-[10px] 
                     font-semibold uppercase tracking-[0.15em] ${
-                        PRODUCT.inStock
+                        product.inStock
                             ? "bg-blush/60 text-primary"
                             : "bg-muted text-on-surface-variant"
                     }`}
                 >
                     <CheckCircle2 className="h-3 w-3"/>
-                    {PRODUCT.inStock ? "In Stock" : "Sold Out"}
+                    {product.inStock ? "In Stock" : "Sold Out"}
                 </span>
             </div>
 
             <p className="mt-4 text-sm leading-relaxed
                  text-on-surface-variant">
-                {PRODUCT.description}
+                {product.description || "No description available yet."}
             </p>
 
-            {/* Variants */}
-            <div className="mt-6 space-y-4">
-                <VariantRow label="Shade">
-                    {PRODUCT.shades.map((s) => (
-                        <Chip key={s} active={s === shade} onClick={() => setShade(s)}>
-                            {s}
-                        </Chip>
+            {product.tags.length > 0 && (
+                <ul className="mt-5 flex flex-wrap gap-2">
+                    {product.tags.map((t) => (
+                        <li
+                            key={t}
+                            className="rounded-full border border-border
+                             px-3 py-1 text-xs text-on-surface-variant"
+                        >
+                            {t}
+                        </li>
                     ))}
-                </VariantRow>
-                <VariantRow label="Size">
-                    {PRODUCT.sizes.map((s) => (
-                        <Chip key={s} active={s === size} onClick={() => setSize(s)}>
-                            {s}
-                        </Chip>
-                    ))}
-                </VariantRow>
-            </div>
+                </ul>
+            )}
 
             <div className="mt-6 flex flex-wrap items-center gap-4">
                 <div className="flex items-center gap-3">
@@ -140,10 +172,7 @@ export function ProductInfo() {
                 </div>
 
                 <button
-                    onClick={() => {
-                        setWished((w) => !w);
-                        toast(wished ? "Removed from wishlist" : "Saved to wishlist");
-                    }}
+                    onClick={toggleWishlist}
                     aria-pressed={wished}
                     className="inline-flex h-9 items-center gap-2
                           rounded-full border border-border px-3
@@ -158,7 +187,7 @@ export function ProductInfo() {
                     onClick={() => {
                         if (typeof navigator !== "undefined" && navigator.share) {
                             navigator
-                                .share({title: PRODUCT.name, url: window.location.href})
+                                .share({title: product.name, url: window.location.href})
                                 .catch(() => {
                                 });
                         } else if (typeof navigator !== "undefined") {
@@ -178,13 +207,13 @@ export function ProductInfo() {
 
             <Button
                 onClick={addToCart}
-                disabled={adding || !PRODUCT.inStock}
+                disabled={adding || !product.inStock}
                 size="lg"
                 className="mt-6 w-full text-[11px] uppercase
                         tracking-[0.18em]"
             >
                 <ShoppingBag className="mr-1.5 h-4 w-4"/>
-                {adding ? "Adding…" : `Add to Cart · $${total}`}
+                {adding ? "Adding…" : `Add to Cart · $${total.toLocaleString()}`}
             </Button>
 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -193,43 +222,6 @@ export function ProductInfo() {
                 <Feature icon={<Sparkles className="h-4 w-4"/>} label="Complimentary samples"/>
             </div>
         </div>
-    );
-}
-
-function VariantRow({label, children}: { label: string; children: React.ReactNode }) {
-    return (
-        <div>
-            <Label className="mb-2 block text-[10px] font-semibold
-                 uppercase tracking-[0.18em]
-                 text-on-surface-variant">
-                {label}
-            </Label>
-            <div className="flex flex-wrap gap-2">{children}</div>
-        </div>
-    );
-}
-
-function Chip({
-    active,
-    onClick,
-    children,
-}: {
-    active: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-}) {
-    return (
-        <button
-            type="button"
-            onClick={onClick}
-            className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-colors ${
-                active
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-transparent text-on-surface hover:border-primary"
-            }`}
-        >
-            {children}
-        </button>
     );
 }
 

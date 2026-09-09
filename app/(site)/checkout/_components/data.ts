@@ -55,27 +55,6 @@ export interface CheckoutOrderItem {
     quantity: number;
 }
 
-// TODO: replace with the authenticated user's saved address from a real
-// backend once that endpoint exists.
-export type SavedCustomerInfo = Omit<ShippingDetails, "deliveryOption">;
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars -- kept for developers to swap into MOCK_SAVED_CUSTOMER below to preview the "returning customer" state
-const RETURNING_CUSTOMER: SavedCustomerInfo = {
-    firstName: "Evelyn",
-    lastName: "Sterling",
-    email: "evelyn.sterling@example.com",
-    phone: "+1 (555) 214-7788",
-    streetAddress: "124 Luxury Lane, Suite 400",
-    city: "Paris",
-    postalCode: "75001",
-    country: "France",
-};
-
-// Toggle between `null` (first-time checkout: empty form, save-info prompt
-// shown after ordering) and `RETURNING_CUSTOMER` (auto-filled form, prompt
-// skipped) to preview both states.
-export const MOCK_SAVED_CUSTOMER: SavedCustomerInfo | null = null;
-
 export const COUNTRY_OPTIONS = [
     "Philippines",
     "United States",
