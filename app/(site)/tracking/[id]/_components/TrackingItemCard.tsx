@@ -1,6 +1,9 @@
 import Image from "next/image";
 import {STAGES, type TrackItem} from "@/app/(site)/tracking/[id]/_components/data";
 
+// `item.stage` is the same order-level status for every item on this page —
+// see the comment in TrackingContent.tsx for why the backend can't give a
+// distinct per-item stage today.
 export function TrackingItemCard({item}: { item: TrackItem }) {
     const stageIdx = STAGES.indexOf(item.stage);
 
@@ -33,7 +36,7 @@ export function TrackingItemCard({item}: { item: TrackItem }) {
                                  border-champagne-gold/60 px-3 py-1 text-xs
                                  font-semibold uppercase tracking-[0.14em]
                                  text-[#8a6d1f]">
-                                In Progress
+                                {item.stage === "Delivered" ? "Delivered" : "In Progress"}
                               </span>
                         </div>
                     </div>
@@ -43,25 +46,29 @@ export function TrackingItemCard({item}: { item: TrackItem }) {
                         {STAGES.map((stage, i) => {
                             const active = i <= stageIdx;
                             return (
-                                <li key={stage} className="flex flex-1 flex-col items-center text-center">
+                                <li key={stage} className="flex flex-1 flex-col
+                                items-center text-center">
                                     <div className="flex w-full items-center">
                                         {i > 0 && (
-                                            <span
-                                                className={`h-px flex-1 ${i <= stageIdx ? "bg-primary" : "bg-blush/60"}`}/>
+                                            <span className={`h-px flex-1 ${i <= stageIdx ? 
+                                                "bg-primary" : "bg-blush/60"}`}/>
                                         )}
                                         <span
-                                            className={`grid h-3.5 w-3.5 shrink-0 place-items-center rounded-full ${
+                                            className={`grid h-3.5 w-3.5 shrink-0 
+                                            place-items-center rounded-full ${
                                                 active ? "bg-primary" : "bg-blush/60"
                                             }`}
                                         />
                                         {i < STAGES.length - 1 && (
-                                            <span
-                                                className={`h-px flex-1 ${i < stageIdx ? "bg-primary" : "bg-blush/60"}`}/>
+                                            <span className={`h-px flex-1 ${i < stageIdx ? 
+                                                    "bg-primary" : "bg-blush/60"}`}/>
                                         )}
                                     </div>
                                     <p
-                                        className={`mt-2 text-[9px] font-semibold uppercase tracking-[0.14em] ${
-                                            active ? "text-primary" : "text-on-surface-variant"
+                                        className={`mt-2 text-[9px] font-semibold 
+                                        uppercase tracking-[0.14em] ${
+                                            active ? "text-primary" : 
+                                                "text-on-surface-variant"
                                         }`}
                                     >
                                         {stage}
@@ -72,7 +79,7 @@ export function TrackingItemCard({item}: { item: TrackItem }) {
                     </ol>
 
                     <p className="mt-5 border-t border-blush/40 pt-4 text-sm
-                 italic text-on-surface-variant">
+                       italic text-on-surface-variant">
                         &ldquo;{item.note}&rdquo;
                     </p>
                 </div>

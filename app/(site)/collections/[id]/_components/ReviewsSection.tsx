@@ -1,10 +1,9 @@
 "use client";
 
-import {useMemo, useState, type SubmitEvent} from "react";
+import {useEffect, useMemo, useState, type SubmitEvent} from "react";
 import {toast} from "sonner";
 import {Star} from "lucide-react";
 import {Button} from "@/components/ui/button";
-import {Input} from "@/components/ui/input";
 import {Textarea} from "@/components/ui/textarea";
 import {
     Select,
@@ -22,25 +21,98 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
-import {INITIAL_REVIEWS} from "@/app/(site)/collections/[id]/_components/data";
+import {gqlRequest} from "@/utils/graphqlClient";
 import {SectionTitle, Stars} from "@/app/(site)/collections/[id]/_components/shared";
 
 const PER_PAGE = 3;
 type SortKey = "recent" | "high" | "low";
 
-export function ReviewsSection() {
-    const [reviews, setReviews] = useState(INITIAL_REVIEWS);
-    const [reviewSort, setReviewSort] = useState<SortKey>("recent");
-    const [reviewFilter, setReviewFilter] = useState("all");
-    const [reviewPage, setReviewPage] = useState(1);
+interface BackendReview {
+    id: string;
+    user: {fullName: string};
+    stars: number;
+    text: string | null;
+    createdAt: string;
+}
 
-    const [rvName, setRvName] = useState("");
+interface ReviewConnection {
+    items: BackendReview[];
+    totalCount: number;
+    totalPages: number;
+}
+
+const REVIEWS_QUERY = `
+    query ProductReviews($targetId: ID!, $sort: ReviewClientSort, $page: Int!, $pageSize: Int!) {
+        reviews(targetType: PRODUCT, targetId: $targetId, sort: $sort, page: $page, pageSize: $pageSize) {
+            items {
+                id
+                user { fullName }
+                stars
+                text
+                createdAt
+            }
+            totalCount
+            totalPages
+        }
+    }
+`;
+
+const UPSERT_REVIEW_MUTATION = `
+    mutation UpsertProductReview($targetId: ID!, $stars: Int!, $text: String) {
+        upsertReview(targetType: PRODUCT, targetId: $targetId, stars: $stars, text: $text) {
+            id
+        }
+    }
+`;
+
+const SORT_TO_BACKEND: Record<SortKey, string> = {
+    recent: "MOST_RECENT",
+    high: "HIGHEST_RATED",
+    low: "LOWEST_RATED",
+};
+
+export function ReviewsSection({productId}: { productId: string }) {
+    const [reviews, setReviews] = useState<BackendReview[]>([]);
+    const [totalCount, setTotalCount] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
+
+    const [reviewSort, setReviewSort] = useState<SortKey>("recent");
+    const [reviewPage, setReviewPage] = useState(0); // reviews query is 0-indexed
+
     const [rvRating, setRvRating] = useState(5);
     const [rvText, setRvText] = useState("");
+    const [submitting, setSubmitting] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+
+        gqlRequest<{ reviews: ReviewConnection }>(REVIEWS_QUERY, {
+            targetId: productId,
+            sort: SORT_TO_BACKEND[reviewSort],
+            page: reviewPage,
+            pageSize: PER_PAGE,
+        })
+            .then((res) => {
+                if (cancelled) return;
+                setReviews(res.reviews.items);
+                setTotalCount(res.reviews.totalCount);
+                setTotalPages(Math.max(1, res.reviews.totalPages));
+            })
+            .catch((err) => {
+                if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load reviews.");
+            })
+            .finally(() => { if (!cancelled) setLoading(false); });
+
+        return () => { cancelled = true; };
+    }, [productId, reviewSort, reviewPage]);
 
     const breakdown = useMemo(() => {
         const counts = [0, 0, 0, 0, 0];
-        reviews.forEach((r) => counts[r.rating - 1]++);
+        reviews.forEach((r) => {
+            if (r.stars >= 1 && r.stars <= 5) counts[r.stars - 1]++;
+        });
         const t = reviews.length || 1;
         return [5, 4, 3, 2, 1].map((s) => ({
             star: s,
@@ -49,49 +121,32 @@ export function ReviewsSection() {
         }));
     }, [reviews]);
 
-    const filteredReviews = useMemo(() => {
-        let list = [...reviews];
-        if (reviewFilter !== "all") {
-            list = list.filter((r) => r.rating === Number(reviewFilter));
-        }
-        list.sort((a, b) => {
-            if (reviewSort === "high") return b.rating - a.rating;
-            if (reviewSort === "low") return a.rating - b.rating;
-            return 0;
-        });
-        return list;
-    }, [reviews, reviewSort, reviewFilter]);
-
-    const totalPages = Math.max(1, Math.ceil(filteredReviews.length / PER_PAGE));
-    const currentPage = Math.min(reviewPage, totalPages);
-    const paged = filteredReviews.slice(
-        (currentPage - 1) * PER_PAGE,
-        currentPage * PER_PAGE,
-    );
-
     const averageRating =
-        reviews.reduce((a: number, r: { rating: number }) => a + r.rating, 0) / (reviews.length || 1);
+        reviews.reduce((a, r) => a + r.stars, 0) / (reviews.length || 1);
 
     const submitReview = (e: SubmitEvent) => {
         e.preventDefault();
-        if (!rvName.trim() || !rvText.trim()) {
-            toast.error("Please complete the form.");
+        if (!rvText.trim()) {
+            toast.error("Please write a review before submitting.");
             return;
         }
-        setReviews((prev) => [
-            {
-                id: `rv-${Date.now()}`,
-                name: rvName.trim(),
-                date: new Date().toLocaleDateString(),
-                rating: rvRating,
-                text: rvText.trim(),
-            },
-            ...prev,
-        ]);
-        setRvName("");
-        setRvRating(5);
-        setRvText("");
-        toast.success("Review submitted");
+        setSubmitting(true);
+        gqlRequest(UPSERT_REVIEW_MUTATION, {
+            targetId: productId,
+            stars: rvRating,
+            text: rvText.trim(),
+        })
+            .then(() => {
+                toast.success("Review submitted");
+                setRvRating(5);
+                setRvText("");
+                setReviewPage(0);
+                setReviewSort("recent");
+            })
+            .catch((err) => {
+                toast.error(err instanceof Error ? err.message : "Failed to submit review.");
+            })
+            .finally(() => setSubmitting(false));
     };
 
     return (
@@ -101,10 +156,12 @@ export function ReviewsSection() {
                  lg:grid-cols-[280px_1fr]">
                 <aside className="rounded-2xl border border-border
                  bg-surface-lowest p-5">
-                    <p className="font-display text-4xl text-primary">{averageRating.toFixed(1)}</p>
+                    <p className="font-display text-4xl text-primary">
+                        {reviews.length > 0 ? averageRating.toFixed(1) : "—"}
+                    </p>
                     <Stars value={averageRating}/>
                     <p className="mt-1 text-xs text-on-surface-variant">
-                        Based on {reviews.length} reviews
+                        Based on {totalCount} reviews
                     </p>
                     <ul className="mt-5 space-y-2">
                         {breakdown.map((b) => (
@@ -125,7 +182,7 @@ export function ReviewsSection() {
                                   tracking-[0.18em] text-on-surface-variant">
                                 Sort
                             </span>
-                            <Select value={reviewSort} onValueChange={(v) => setReviewSort(v as SortKey)}>
+                            <Select value={reviewSort} onValueChange={(v) => { setReviewSort(v as SortKey); setReviewPage(0); }}>
                                 <SelectTrigger className="w-37.5">
                                     <SelectValue/>
                                 </SelectTrigger>
@@ -136,48 +193,30 @@ export function ReviewsSection() {
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-semibold uppercase
-                                  tracking-[0.18em] text-on-surface-variant">
-                                Filter
-                            </span>
-                            <Select
-                                value={reviewFilter}
-                                onValueChange={(v) => {
-                                    setReviewFilter(v);
-                                    setReviewPage(1);
-                                }}
-                            >
-                                <SelectTrigger className="w-35">
-                                    <SelectValue/>
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Ratings</SelectItem>
-                                    {[5, 4, 3, 2, 1].map((n) => (
-                                        <SelectItem key={n} value={String(n)}>
-                                            {n} Stars
-                                        </SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
                     </div>
 
-                    {paged.length === 0 ? (
+                    {loading ? (
+                        <p className="py-16 text-center text-sm text-on-surface-variant">Loading reviews…</p>
+                    ) : reviews.length === 0 ? (
                         <div className="py-16 text-center">
-                            <p className="font-display text-lg text-primary">No reviews match</p>
+                            <p className="font-display text-lg text-primary">No reviews yet</p>
+                            <p className="mt-1 text-xs text-on-surface-variant">
+                                Be the first to share your experience.
+                            </p>
                         </div>
                     ) : (
                         <ul className="mt-5 space-y-4">
-                            {paged.map((r) => (
+                            {reviews.map((r) => (
                                 <li key={r.id} className="rounded-2xl border border-border
                                     bg-surface-lowest p-5">
                                     <div className="flex items-start justify-between gap-3">
                                         <div>
-                                            <p className="font-semibold text-primary">{r.name}</p>
-                                            <p className="text-[11px] text-on-surface-variant">{r.date}</p>
+                                            <p className="font-semibold text-primary">{r.user.fullName}</p>
+                                            <p className="text-[11px] text-on-surface-variant">
+                                                {new Date(r.createdAt).toLocaleDateString()}
+                                            </p>
                                         </div>
-                                        <Stars value={r.rating} small/>
+                                        <Stars value={r.stars} small/>
                                     </div>
                                     <p className="mt-3 text-sm leading-relaxed
                                        text-on-surface-variant">{r.text}</p>
@@ -195,19 +234,19 @@ export function ReviewsSection() {
                                             href="#"
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                setReviewPage((p) => Math.max(1, p - 1));
+                                                setReviewPage((p) => Math.max(0, p - 1));
                                             }}
-                                            className={currentPage === 1 ? "pointer-events-none opacity-40" : ""}
+                                            className={reviewPage === 0 ? "pointer-events-none opacity-40" : ""}
                                         />
                                     </PaginationItem>
                                     {Array.from({length: totalPages}).map((_, i) => (
                                         <PaginationItem key={i}>
                                             <PaginationLink
                                                 href="#"
-                                                isActive={i + 1 === currentPage}
+                                                isActive={i === reviewPage}
                                                 onClick={(e) => {
                                                     e.preventDefault();
-                                                    setReviewPage(i + 1);
+                                                    setReviewPage(i);
                                                 }}
                                             >
                                                 {i + 1}
@@ -219,10 +258,10 @@ export function ReviewsSection() {
                                             href="#"
                                             onClick={(e) => {
                                                 e.preventDefault();
-                                                setReviewPage((p) => Math.min(totalPages, p + 1));
+                                                setReviewPage((p) => Math.min(totalPages - 1, p + 1));
                                             }}
                                             className={
-                                                currentPage === totalPages ? "pointer-events-none opacity-40" : ""
+                                                reviewPage === totalPages - 1 ? "pointer-events-none opacity-40" : ""
                                             }
                                         />
                                     </PaginationItem>
@@ -240,34 +279,23 @@ export function ReviewsSection() {
                         text-primary-foreground"
             >
                 <p className="font-display text-2xl">Share Your Experience</p>
-                <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <Input
-                        value={rvName}
-                        onChange={(e) => setRvName(e.target.value)}
-                        placeholder="Your name"
-                        className="border-primary-foreground/30
-                            bg-primary-foreground/10
-                            text-primary-foreground
-                            placeholder:text-primary-foreground/60"
-                    />
-                    <div className="flex items-center gap-1.5">
-                        {[1, 2, 3, 4, 5].map((n) => (
-                            <button
-                                key={n}
-                                type="button"
-                                onClick={() => setRvRating(n)}
-                                aria-label={`${n} stars`}
-                            >
-                                <Star
-                                    className={`h-6 w-6 ${
-                                        n <= rvRating
-                                            ? "fill-champagne-gold text-champagne-gold"
-                                            : "text-primary-foreground/40"
-                                    }`}
-                                />
-                            </button>
-                        ))}
-                    </div>
+                <div className="mt-4 flex items-center gap-2">
+                    {[1, 2, 3, 4, 5].map((n) => (
+                        <button
+                            key={n}
+                            type="button"
+                            onClick={() => setRvRating(n)}
+                            aria-label={`${n} stars`}
+                        >
+                            <Star
+                                className={`h-6 w-6 ${
+                                    n <= rvRating
+                                        ? "fill-champagne-gold text-champagne-gold"
+                                        : "text-primary-foreground/40"
+                                }`}
+                            />
+                        </button>
+                    ))}
                 </div>
                 <Textarea
                     value={rvText}
@@ -281,10 +309,11 @@ export function ReviewsSection() {
                 />
                 <Button
                     type="submit"
+                    disabled={submitting}
                     className="mt-5 bg-champagne-gold text-primary
                           hover:bg-champagne-gold/90"
                 >
-                    Submit Review
+                    {submitting ? "Submitting…" : "Submit Review"}
                 </Button>
             </form>
         </section>

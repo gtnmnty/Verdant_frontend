@@ -5,6 +5,7 @@ import {useRouter} from "next/navigation";
 import {toast} from "sonner";
 import {ShieldCheck} from "lucide-react";
 import {Button} from "@/components/ui/button";
+import {gqlRequest} from "@/utils/graphqlClient";
 import {CheckoutStepper} from "@/app/(site)/checkout/_components/CheckoutStepper";
 import {OrderSummary} from "@/app/(site)/checkout/_components/OrderSummary";
 import {ShippingStep} from "@/app/(site)/checkout/_components/ShippingStep";
@@ -15,12 +16,10 @@ import {
     BASE_SHIPPING_FEE,
     DELIVERY_OPTION_FEES,
     FREE_SHIPPING_THRESHOLD,
-    INITIAL_CART_ITEMS,
     TAX_RATE,
 } from "@/app/(site)/cart/_components/data";
 import {
     EMPTY_SHIPPING_DETAILS,
-    MOCK_SAVED_CUSTOMER,
     type CheckoutOrderItem,
     type CheckoutStep,
     type PaymentSummary,
@@ -30,34 +29,93 @@ import {
 const SESSION_STORAGE_KEY = "verdant-luxe-checkout-items";
 const PROMO_CODES: Record<string, number> = {WELCOME10: 0.1};
 
-function readCheckoutItems(): CheckoutOrderItem[] {
-    const toOrderItem = (
-        item: (typeof INITIAL_CART_ITEMS)[number],
-    ): CheckoutOrderItem => ({
-        id: item.id,
-        name: item.name,
-        category: item.category,
-        image: item.image,
-        price: item.price,
-        quantity: item.quantity,
-    });
+interface BackendCartItem {
+    id: string;
+    quantity: number;
+    product: {
+        name: string;
+        catalog: string;
+        price: number;
+        salePrice: number | null;
+        primaryImage: {url: string} | null;
+    };
+}
 
-    if (typeof window !== "undefined") {
-        try {
-            const raw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
-            if (raw) {
-                const ids: string[] = JSON.parse(raw);
-                const matched = INITIAL_CART_ITEMS.filter((item) => ids.includes(item.id));
-                if (matched.length > 0) return matched.map(toOrderItem);
+interface BackendMe {
+    id: string;
+    fullName: string;
+    email: string;
+    phone: string | null;
+    shippingAddress: {
+        line1: string;
+        line2: string | null;
+        city: string;
+        state: string;
+        postal: string;
+        country: string;
+    } | null;
+}
+
+const CATEGORY_LABELS: Record<string, string> = {
+    SKIN_CARE: "Skincare",
+    HAIR_CARE: "Haircare",
+    MAKE_UP: "Makeup",
+};
+
+const MY_CART_QUERY = `
+    query CheckoutCart {
+        myCart {
+            items {
+                id
+                quantity
+                product {
+                    name
+                    catalog
+                    price
+                    salePrice
+                    primaryImage { url }
+                }
             }
-        } catch {
-            // fall through to default below
         }
     }
+`;
 
-    // Fallback for direct navigation to /checkout without a cart handoff —
-    // mirrors the items the cart page marks as selected by default.
-    return INITIAL_CART_ITEMS.filter((item) => item.selected).map(toOrderItem);
+const ME_QUERY = `
+    query CheckoutMe {
+        me {
+            id
+            fullName
+            email
+            phone
+            shippingAddress { line1 line2 city state postal country }
+        }
+    }
+`;
+
+const UPDATE_PROFILE_MUTATION = `
+    mutation SaveCheckoutInfo($input: UpdateProfileInput!) {
+        updateProfile(input: $input) { id }
+    }
+`;
+
+const PLACE_ORDER_MUTATION = `
+    mutation PlaceOrder($input: PlaceOrderInput!) {
+        placeOrder(input: $input) {
+            id
+            orderCode
+        }
+    }
+`;
+
+function toOrderItem(item: BackendCartItem): CheckoutOrderItem {
+    return {
+        id: item.id,
+        name: item.product.name,
+        category: CATEGORY_LABELS[item.product.catalog] ?? item.product.catalog,
+        image: item.product.primaryImage?.url ?? "https://picsum.photos/seed/checkout-item/300/300",
+        price: item.product.salePrice ?? item.product.price,
+        quantity: item.quantity,
+    };
 }
 
 export function CheckoutContent() {
@@ -65,12 +123,9 @@ export function CheckoutContent() {
 
     const [step, setStep] = useState<CheckoutStep>("shipping");
     const [items, setItems] = useState<CheckoutOrderItem[] | null>(null);
+    const [me, setMe] = useState<BackendMe | null>(null);
 
-    const [shipping, setShipping] = useState<ShippingDetails>(
-        MOCK_SAVED_CUSTOMER
-            ? {...MOCK_SAVED_CUSTOMER, deliveryOption: "standard"}
-            : EMPTY_SHIPPING_DETAILS,
-    );
+    const [shipping, setShipping] = useState<ShippingDetails>(EMPTY_SHIPPING_DETAILS);
     const [payment, setPayment] = useState<PaymentSummary | null>(null);
 
     const [promoCode, setPromoCode] = useState("");
@@ -78,18 +133,65 @@ export function CheckoutContent() {
     const [promoError, setPromoError] = useState<string | null>(null);
 
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-    const [orderNumber, setOrderNumber] = useState<string | null>(null);
-    const [hasSavedInfo, setHasSavedInfo] = useState(Boolean(MOCK_SAVED_CUSTOMER));
+    const [placedOrder, setPlacedOrder] = useState<{id: string; orderCode: string} | null>(null);
+    const [hasSavedInfo, setHasSavedInfo] = useState(false);
     const [hasRespondedToSavePrompt, setHasRespondedToSavePrompt] = useState(false);
 
     useEffect(() => {
-        setItems(readCheckoutItems());
+        let cancelled = false;
+
+        gqlRequest<{ myCart: {items: BackendCartItem[]} }>(MY_CART_QUERY)
+            .then((res) => {
+                if (cancelled) return;
+                let raw: string[] = [];
+                try {
+                    raw = typeof window !== "undefined"
+                        ? JSON.parse(window.sessionStorage.getItem(SESSION_STORAGE_KEY) ?? "[]")
+                        : [];
+                } catch {
+                    raw = [];
+                }
+                const selected = raw.length > 0
+                    ? res.myCart.items.filter((i) => raw.includes(i.id))
+                    : res.myCart.items; // fallback: direct navigation to /checkout
+                setItems(selected.map(toOrderItem));
+            })
+            .catch((err) => {
+                if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load your bag.");
+                if (!cancelled) setItems([]);
+            });
+
+        gqlRequest<{ me: BackendMe }>(ME_QUERY)
+            .then((res) => {
+                if (cancelled) return;
+                setMe(res.me);
+                const [firstName, ...rest] = res.me.fullName.split(" ");
+                setShipping((prev) => ({
+                    ...prev,
+                    firstName: firstName ?? "",
+                    lastName: rest.join(" "),
+                    email: res.me.email,
+                    phone: res.me.phone ?? "",
+                    streetAddress: res.me.shippingAddress?.line1 ?? "",
+                    city: res.me.shippingAddress?.city ?? "",
+                    postalCode: res.me.shippingAddress?.postal ?? "",
+                    country: res.me.shippingAddress?.country ?? "",
+                }));
+                setHasSavedInfo(Boolean(res.me.shippingAddress));
+            })
+            .catch(() => { /* not logged in — leave the form empty */ });
+
+        return () => { cancelled = true; };
     }, []);
 
     const subtotal = useMemo(
-        () => (items ?? []).reduce((sum, item) => sum + item.price * item.quantity, 0),
+        () => (items ?? []).reduce((sum, item) =>
+            sum + item.price * item.quantity, 0),
         [items],
     );
+    // This dropdown only drives the frontend's shipping-fee *estimate* — the
+    // backend derives each order item's real deliveryOption from what was
+    // already chosen in the cart, and placeOrder has no field to override it.
     const deliverySurcharge = DELIVERY_OPTION_FEES[shipping.deliveryOption];
     const shippingFee =
         (items?.length ?? 0) === 0
@@ -100,6 +202,7 @@ export function CheckoutContent() {
     const total = subtotal + shippingFee + tax - discount;
 
     function applyPromoCode() {
+        // No backend concept of promo codes — this stays a frontend-only demo.
         const rate = PROMO_CODES[promoCode.trim().toUpperCase()];
         if (rate) {
             setPromoApplied(true);
@@ -111,21 +214,61 @@ export function CheckoutContent() {
     }
 
     function handlePlaceOrder() {
+        if (!items || items.length === 0 || !payment) return;
         setIsPlacingOrder(true);
-        // Simulated order creation — replace with a real order/payment API call
-        // once a backend exists.
-        setTimeout(() => {
-            const newOrderNumber = `VL-${Date.now().toString().slice(-6)}`;
-            setOrderNumber(newOrderNumber);
-            setIsPlacingOrder(false);
-            sessionStorage.removeItem(SESSION_STORAGE_KEY);
-        }, 900);
+
+        gqlRequest<{ placeOrder: {id: string; orderCode: string} }>(PLACE_ORDER_MUTATION, {
+            input: {
+                cartItemIds: items.map((i) => i.id),
+                shippingAddress: {
+                    line1: shipping.streetAddress,
+                    line2: undefined,
+                    city: shipping.city,
+                    // ShippingStep doesn't collect a state/region field, and
+                    // AddressInput.state is required — sent blank for now.
+                    state: "",
+                    postal: shipping.postalCode,
+                    country: shipping.country,
+                },
+                paymentMethod: `${payment.brand} •••• ${payment.last4}`,
+            },
+        })
+            .then((res) => {
+                setPlacedOrder(res.placeOrder);
+                sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            })
+            .catch((err) => {
+                toast.error(err instanceof Error ? err.message :
+                    "Failed to place order.");
+            })
+            .finally(() => setIsPlacingOrder(false));
     }
 
     function handleSaveInformation() {
-        setHasSavedInfo(true);
-        setHasRespondedToSavePrompt(true);
-        toast.success("Your information has been saved.");
+        gqlRequest(UPDATE_PROFILE_MUTATION, {
+            input: {
+                fullName: `${shipping.firstName} ${shipping.lastName}`.trim(),
+                phone: shipping.phone,
+                email: shipping.email,
+                shippingAddress: {
+                    line1: shipping.streetAddress,
+                    line2: undefined,
+                    city: shipping.city,
+                    state: "",
+                    postal: shipping.postalCode,
+                    country: shipping.country,
+                },
+            },
+        })
+            .then(() => {
+                setHasSavedInfo(true);
+                setHasRespondedToSavePrompt(true);
+                toast.success("Your information has been saved.");
+            })
+            .catch((err) => {
+                toast.error(err instanceof Error ? err.message :
+                    "Failed to save your information.");
+            });
     }
 
     const showSavePrompt = !hasSavedInfo;
@@ -145,7 +288,8 @@ export function CheckoutContent() {
                     <p className="mt-2 max-w-sm text-sm text-on-surface-variant">
                         Add a few favorites to your bag before heading to checkout.
                     </p>
-                    <Button className="mt-6 uppercase tracking-[0.14em]" onClick={() => router.push("/cart")}>
+                    <Button className="mt-6 uppercase tracking-[0.14em]"
+                            onClick={() => router.push("/cart")}>
                         Return to Cart
                     </Button>
                 </div>
@@ -180,10 +324,11 @@ export function CheckoutContent() {
                     {step === "shipping" ? (
                         <ShippingStep
                             value={shipping}
-                            onChange={(patch) => setShipping((prev) => ({...prev, ...patch}))}
+                            onChange={(patch) => setShipping(
+                                (prev) => ({...prev, ...patch}))}
                             onContinue={() => setStep("payment")}
                             onReturnToCart={() => router.push("/cart")}
-                            wasPrefilled={Boolean(MOCK_SAVED_CUSTOMER)}
+                            wasPrefilled={Boolean(me?.shippingAddress)}
                         />
                     ) : null}
 
@@ -235,18 +380,18 @@ export function CheckoutContent() {
             </div>
 
             <OrderConfirmationDialog
-                open={orderNumber !== null}
+                open={placedOrder !== null}
                 onOpenChange={(open) => {
-                    if (!open) setOrderNumber(null);
+                    if (!open) setPlacedOrder(null);
                 }}
-                orderNumber={orderNumber ?? ""}
+                orderNumber={placedOrder?.orderCode ?? ""}
                 email={shipping.email}
                 showSavePrompt={showSavePrompt}
                 hasRespondedToSavePrompt={hasRespondedToSavePrompt}
                 onSaveInformation={handleSaveInformation}
                 onDismissSavePrompt={() => setHasRespondedToSavePrompt(true)}
-                onViewOrder={() => router.push(`/orders/${orderNumber}`)}
-                onTrackOrder={() => router.push(`/tracking/${orderNumber}`)}
+                onViewOrder={() => router.push(`/orders/${placedOrder?.id}`)}
+                onTrackOrder={() => router.push(`/tracking/${placedOrder?.id}`)}
                 onContinueShopping={() => router.push("/collections")}
             />
         </div>
