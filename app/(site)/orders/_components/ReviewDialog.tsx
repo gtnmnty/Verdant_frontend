@@ -33,7 +33,7 @@ export function ReviewDialog({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Write a Review</DialogTitle>
-                    <DialogDescription>{item?.name}</DialogDescription>
+                    <DialogDescription>{item?.productName}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">
                     <div>
@@ -45,7 +45,8 @@ export function ReviewDialog({
                                     onClick={() => onRatingChange(s)}
                                     aria-label={`${s} stars`}
                                     className={`text-2xl transition-colors ${
-                                        s <= rating ? "text-champagne-gold" : "text-on-surface-variant/40"
+                                        s <= rating ? "text-champagne-gold" : 
+                                                      "text-on-surface-variant/40"
                                     }`}
                                 >
                                     ★
@@ -57,7 +58,8 @@ export function ReviewDialog({
                         <Label>Your thoughts</Label>
                         <Textarea
                             value={text}
-                            onChange={(e) => onTextChange(e.target.value)}
+                            onChange={(e) =>
+                                onTextChange(e.target.value)}
                             rows={4}
                             placeholder="Share your experience…"
                             className="mt-2"

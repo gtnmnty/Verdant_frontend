@@ -12,46 +12,28 @@ import {
 } from "@/app/(site)/orders/_components/OrdersToolbar";
 import { OrderCard } from "@/app/(site)/orders/_components/OrderCard";
 import type { Order, OrderItem } from "@/app/(site)/orders/_components/data";
-import {router} from "next/client";
+import { useRouter } from "next/navigation";
+import { MY_ORDERS_QUERY } from "@/app/(site)/orders/_components/query";
 
 const PER_PAGE = 6;
 
-const MY_ORDERS_QUERY = `
-    query MyOrders($status: OrderClientFilter, $sort: OrderClientSort, $page: Int!, $pageSize: Int!) {
-        myOrders(status: $status, sort: $sort, page: $page, pageSize: $pageSize) {
-            totalPages
-            items {
-                id
-                orderCode
-                orderStatus
-                total
-                createdAt
-                items {
-                    id
-                    productName
-                    productImage
-                    quantity
-                    unitPrice
-                }
-            }
-        }
-    }
-`;
-
 export function OrdersFeed() {
-    const [orders, setOrders] =           useState<Order[]>([]);
-    const [totalPages, setTotalPages] =   useState(1);
-    const [loading, setLoading] =         useState(true);
-    const [filter, setFilter] =           useState<OrderFilter>("all");
-    const [query, setQuery] =             useState("");
-    const [sort, setSort] =               useState<OrderSort>("date-desc");
-    const [page, setPage] =               useState(1);
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
+    const [filter, setFilter] = useState<OrderFilter>("all");
+    const [query, setQuery] = useState("");
+    const [sort, setSort] = useState<OrderSort>("date-desc");
+    const [page, setPage] = useState(1);
+
+    const router = useRouter();
+
 
     useEffect(() => {
         let cancelled = false;
         setLoading(true);
 
-        gqlRequest<{ myOrders: { items: Order[]; totalPages: number } }>(MY_ORDERS_QUERY, {
+        gqlRequest<{ myOrders: { content: Order[]; totalPage: number } }>(MY_ORDERS_QUERY, {
             status: filter === "all" ? "ALL" : filter.toUpperCase().replace("-", "_"),
             sort: sort === "date-desc" ? "NEWEST" : sort === "date-asc" ? "OLDEST" : "HIGHEST_TOTAL",
             page,
@@ -59,8 +41,8 @@ export function OrdersFeed() {
         })
             .then((res) => {
                 if (cancelled) return;
-                setOrders(res.myOrders.items);
-                setTotalPages(res.myOrders.totalPages);
+                setOrders(res.myOrders.content);
+                setTotalPages(res.myOrders.totalPage);
             })
             .catch((err) => {
                 if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load orders.");
@@ -122,7 +104,8 @@ export function OrdersFeed() {
                             key={o.id}
                             order={o}
                             onBuyAgain={buyAgain}
-                            onReview={(it: OrderItem) => router.push(`/collections/${it}#reviews`)} // Marks down for potential update
+                            onReview={(it: OrderItem) =>
+                                router.push(`/collections/${it.id}#reviews`)} // Marks down for potential update
                             onDownloadInvoice={downloadInvoice}
                         />
                     ))
@@ -134,11 +117,11 @@ export function OrdersFeed() {
                             <button
                                 key={i}
                                 onClick={() => setPage(i + 1)}
-                                className={`h-9 w-9 rounded-full text-sm ${
-                                    page === i + 1
+                                className={`h-9 w-9 rounded-full text-sm ${page === i + 1
                                         ? "bg-primary text-primary-foreground"
-                                        : "border border-blush/60 text-primary hover:bg-blush/40"
-                                }`}
+                                        : "border border-blush/60 text-primary " +
+                                          "hover:bg-blush/40"
+                                    }`}
                             >
                                 {i + 1}
                             </button>

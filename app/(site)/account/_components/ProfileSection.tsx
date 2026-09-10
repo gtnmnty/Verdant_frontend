@@ -104,12 +104,12 @@ export function ProfileSection() {
                     </Avatar>
                     <div>
                         <p className="text-[10px] font-semibold uppercase
-                 tracking-[0.22em] text-soft-rose">
+                        tracking-[0.22em] text-soft-rose">
                             Profile Photo
                         </p>
                         <h3 className="mt-1 font-display text-xl text-primary">{data.fullName}</h3>
                         <div className="mt-3 flex flex-wrap justify-center gap-3
-                 sm:justify-start">
+                             sm:justify-start">
                             <input
                                 ref={fileInputRef}
                                 type="file"
@@ -139,7 +139,7 @@ export function ProfileSection() {
             <SectionCard>
                 <div className="flex flex-col gap-1">
                     <p className="text-[10px] font-semibold uppercase
-                 tracking-[0.22em] text-soft-rose">
+                        tracking-[0.22em] text-soft-rose">
                         Member Since 2022
                     </p>
                     <div
@@ -147,7 +147,7 @@ export function ProfileSection() {
                                         items-center gap-4 sm:flex sm:items-end
                                         sm:justify-between">
                         <h2 className="font-display text-[clamp(1.5rem,3vw,2.25rem)]
-                 leading-tight tracking-tight text-primary">
+                            leading-tight tracking-tight text-primary">
                             Personal Information
                         </h2>
                         <Button
@@ -178,8 +178,8 @@ export function ProfileSection() {
                 />
                 {!upcoming ? (
                     <p className="rounded-2xl border border-dashed
-                 border-blush/60 bg-surface-lowest p-8
-                 text-center text-sm text-on-surface-variant">
+                       border-blush/60 bg-surface-lowest p-8
+                       text-center text-sm text-on-surface-variant">
                         No upcoming appointments.
                     </p>
                 ) : (
@@ -191,7 +191,7 @@ export function ProfileSection() {
                     >
                         <div className="grid gap-6 md:grid-cols-[200px_1fr]">
                             <div className="relative aspect-square w-full overflow-hidden
-                 rounded-xl">
+                                 rounded-xl">
                                 <Image src={upcoming.image} alt={upcoming.service} fill sizes="200px"
                                        className="object-cover"/>
                             </div>
@@ -199,13 +199,13 @@ export function ProfileSection() {
                                 <div className="flex flex-wrap items-center gap-3">
                                     <Badge className="bg-blush/40 text-primary hover:bg-blush/40">Upcoming</Badge>
                                     <span className="text-xs uppercase tracking-[0.18em]
-                 text-on-surface-variant">
+                                          text-on-surface-variant">
                                         #{upcoming.id}
                                     </span>
                                 </div>
                                 <h3 className="mt-3 font-display
-                 text-[clamp(1.35rem,2.4vw,1.85rem)]
-                 text-primary">
+                                    text-[clamp(1.35rem,2.4vw,1.85rem)]
+                                    text-primary">
                                     {upcoming.service}
                                 </h3>
                                 <p className="mt-1 text-sm text-on-surface-variant">with {upcoming.stylist}</p>
@@ -236,12 +236,12 @@ export function ProfileSection() {
                                                 sm:grid-cols-[80px_minmax(0,1fr)_auto_auto_auto]"
                             >
                                 <div className="relative aspect-square w-full overflow-hidden
-                 rounded-lg">
+                                     rounded-lg">
                                     <Image src={o.items[0].image} alt="" fill sizes="80px" className="object-cover"/>
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-[10px] font-semibold uppercase
-                 tracking-[0.16em] text-on-surface-variant">
+                                        tracking-[0.16em] text-on-surface-variant">
                                         Order #{o.id} — {formatOrderDate(o.date)}
                                     </p>
                                     <p className="mt-1 truncate font-display text-base text-primary">
@@ -250,14 +250,14 @@ export function ProfileSection() {
                                 </div>
                                 <div className="hidden text-right sm:block">
                                     <p className="text-[10px] uppercase tracking-[0.14em]
-                 text-on-surface-variant">Total</p>
+                                        text-on-surface-variant">Total</p>
                                     <p className="text-sm">${o.total.toFixed(2)}</p>
                                 </div>
                                 <div className="hidden text-right sm:block">
                                     <p className="text-[10px] uppercase tracking-[0.14em]
-                 text-on-surface-variant">Status</p>
-                                    <p className={`text-sm ${ORDER_STATUS_LABELS[o.status].chip}`}>
-                                        {ORDER_STATUS_LABELS[o.status].label}
+                                        text-on-surface-variant">Status</p>
+                                    <p className={`text-sm ${ORDER_STATUS_LABELS[o.orderStatus].chip}`}>
+                                        {ORDER_STATUS_LABELS[o.orderStatus].label}
                                     </p>
                                 </div>
                                 <ChevronRight className="h-5 w-5 text-on-surface-variant"/>
@@ -314,7 +314,8 @@ export function ProfileSection() {
                                 <Input
                                     id={k}
                                     value={draft[k]}
-                                    onChange={(e) => setDraft({...draft, [k]: e.target.value})}
+                                    onChange={(e) =>
+                                        setDraft({...draft, [k]: e.target.value})}
                                     required
                                 />
                             </div>
