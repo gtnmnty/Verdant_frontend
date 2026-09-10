@@ -1,70 +1,145 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
-import { SettingsCard, SettingRow } from "@/app/admin/settings/_components/SettingsCard";
+import { ImageUploader } from "@/app/admin/_components/ImageUploader";
+import { SettingsCard } from "@/app/admin/settings/_components/SettingsCard";
+import { gqlRequest } from "@/utils/graphqlClient";
+import { apiRequest } from "@/utils/apiClient";
+
+interface Me {
+  fullName: string;
+  email: string;
+  phone: string | null;
+  avatarUrl: string | null;
+}
+
+const ME_QUERY = `
+    query SettingsMe {
+        me { fullName email phone avatarUrl }
+    }
+`;
+
+const UPDATE_PROFILE_MUTATION = `
+    mutation SettingsUpdateProfile($input: UpdateProfileInput!) {
+        updateProfile(input: $input) { id }
+    }
+`;
 
 export function PersonalTab() {
-  const [profile, setProfile] = useState({
-    name: "Elena Vance",
-    email: "elena@verdantsalon.com",
-    phone: "+1 (212) 555-0199",
-    bio: "Salon manager.",
-  });
+  const [profile, setProfile] = useState({ name: "", email: "", phone: "", avatar: "" });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [pw, setPw] = useState({ old: "", n: "", c: "" });
-  const [twoFA, setTwoFA] = useState(true);
-  const [notif, setNotif] = useState({ email: true, sms: false, push: true, digest: "daily" });
+  const [pwSaving, setPwSaving] = useState(false);
+
+  useEffect(() => {
+    gqlRequest<{ me: Me }>(ME_QUERY)
+      .then((res) => {
+        setProfile({
+          name: res.me.fullName,
+          email: res.me.email,
+          phone: res.me.phone ?? "",
+          avatar: res.me.avatarUrl ?? "",
+        });
+      })
+      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load your profile."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const saveProfile = () => {
+    setSaving(true);
+    gqlRequest(UPDATE_PROFILE_MUTATION, {
+      input: {
+        fullName: profile.name,
+        email: profile.email,
+        phone: profile.phone || undefined,
+      },
+    })
+      .then(() => toast.success("Profile saved"))
+      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to save profile."))
+      .finally(() => setSaving(false));
+  };
 
   const updatePassword = () => {
     if (pw.n !== pw.c) {
       toast.error("Passwords don't match");
       return;
     }
-    toast.success("Password updated");
-    setPw({ old: "", n: "", c: "" });
+    if (!pw.old || pw.n.length < 8) {
+      toast.error("Enter your current password and a new one (min. 8 characters)");
+      return;
+    }
+    setPwSaving(true);
+    apiRequest<void>("/v1/users/change-password", {
+      method: "PUT",
+      body: JSON.stringify({ oldPassword: pw.old, newPassword: pw.n }),
+    })
+      .then(() => {
+        toast.success("Password updated");
+        setPw({ old: "", n: "", c: "" });
+      })
+      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to update password."))
+      .finally(() => setPwSaving(false));
   };
 
   return (
     <div className="space-y-5">
       <SettingsCard title="Profile information">
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <Label>Full name</Label>
-            <Input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} className="mt-1.5" />
+        {loading ? (
+          <p className="text-sm text-admin-muted">Loading…</p>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div>
+              <Label>Full name</Label>
+              <Input
+                value={profile.name}
+                onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Email</Label>
+              <Input
+                value={profile.email}
+                onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Phone</Label>
+              <Input
+                value={profile.phone}
+                onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                className="mt-1.5"
+              />
+            </div>
+            <div>
+              <Label>Profile picture</Label>
+              <div className="mt-1.5">
+                <ImageUploader
+                  images={profile.avatar ? [profile.avatar] : []}
+                  onChange={(imgs) => setProfile({ ...profile, avatar: imgs[0] ?? "" })}
+                  max={1}
+                />
+              </div>
+            </div>
+            {/* "Bio" had no backing field — `User` only has
+                fullName/email/phone/shippingAddress/avatarUrl/
+                savedPaymentMethod/createdAt/cart. Dropped. */}
           </div>
-          <div>
-            <Label>Email</Label>
-            <Input value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} className="mt-1.5" />
-          </div>
-          <div>
-            <Label>Phone</Label>
-            <Input value={profile.phone} onChange={(e) => setProfile({ ...profile, phone: e.target.value })} className="mt-1.5" />
-          </div>
-          <div>
-            <Label>Profile picture</Label>
-            <Input type="file" className="mt-1.5" />
-          </div>
-          <div className="sm:col-span-2">
-            <Label>Bio</Label>
-            <Textarea rows={3} value={profile.bio} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} className="mt-1.5" />
-          </div>
-        </div>
+        )}
         <div className="mt-4 flex justify-end">
-          <Button className="bg-admin-sidebar text-white hover:bg-admin-sidebar/90" onClick={() => toast.success("Profile saved")}>
-            Save profile
+          <Button
+            className="bg-admin-sidebar text-white hover:bg-admin-sidebar/90"
+            onClick={saveProfile}
+            disabled={loading || saving}
+          >
+            {saving ? "Saving…" : "Save profile"}
           </Button>
         </div>
       </SettingsCard>
@@ -85,36 +160,15 @@ export function PersonalTab() {
           </div>
         </div>
         <div className="mt-4 flex justify-end">
-          <Button variant="outline" onClick={updatePassword} className="border-admin-line">
-            <KeyRound className="size-4" /> Update password
+          <Button variant="outline" onClick={updatePassword} disabled={pwSaving} className="border-admin-line">
+            <KeyRound className="size-4" /> {pwSaving ? "Updating…" : "Update password"}
           </Button>
         </div>
       </SettingsCard>
 
-      <SettingsCard title="Security & notifications">
-        <SettingRow label="Two-factor authentication" hint="Extra verification code at sign-in">
-          <Switch checked={twoFA} onCheckedChange={setTwoFA} />
-        </SettingRow>
-        <SettingRow label="Email notifications">
-          <Switch checked={notif.email} onCheckedChange={(v) => setNotif({ ...notif, email: v })} />
-        </SettingRow>
-        <SettingRow label="SMS notifications">
-          <Switch checked={notif.sms} onCheckedChange={(v) => setNotif({ ...notif, sms: v })} />
-        </SettingRow>
-        <SettingRow label="Push notifications">
-          <Switch checked={notif.push} onCheckedChange={(v) => setNotif({ ...notif, push: v })} />
-        </SettingRow>
-        <SettingRow label="Digest frequency">
-          <Select value={notif.digest} onValueChange={(v) => setNotif({ ...notif, digest: v })}>
-            <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="realtime">Real-time</SelectItem>
-              <SelectItem value="daily">Daily</SelectItem>
-              <SelectItem value="weekly">Weekly</SelectItem>
-            </SelectContent>
-          </Select>
-        </SettingRow>
-      </SettingsCard>
+      {/* "Security & notifications" (2FA, email/SMS/push toggles, digest
+          frequency) had no backend field of any kind on `User` — dropped
+          entirely rather than wiring switches to nothing. */}
     </div>
   );
 }

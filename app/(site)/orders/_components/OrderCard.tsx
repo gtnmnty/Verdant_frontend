@@ -20,7 +20,7 @@ export function OrderCard({
     onReview: (item: OrderItem) => void;
     onDownloadInvoice: (order: Order) => void;
 }) {
-    const trackable = o.status === "in-transit" || o.status === "processing";
+    const trackable = o.orderStatus === "IN_TRANSIT" || o.orderStatus === "PROCESSING";
 
     return (
         <article className="rounded-2xl border border-blush/50
@@ -30,14 +30,14 @@ export function OrderCard({
                  sm:justify-between">
                 <div className="min-w-0">
                     <p className="text-xs font-semibold uppercase tracking-[0.16em]">
-                        <span className={STATUS_LABELS[o.status].chip}>
-                          {STATUS_LABELS[o.status].label}
+                        <span className={STATUS_LABELS[o.orderStatus].chip}>
+                          {STATUS_LABELS[o.orderStatus].label}
                         </span>
                         <span className="mx-2 text-on-surface-variant">·</span>
                         <span className="text-primary">Order #{o.id}</span>
                     </p>
                     <p className="mt-1 text-xs text-on-surface-variant">
-                        Placed on {formatDate(o.date)}
+                        Placed on {formatDate(o.createdAt)}
                     </p>
                 </div>
                 <span className="font-display text-2xl text-primary">
@@ -76,23 +76,23 @@ export function OrderCard({
                     <li key={it.id} className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden
                              rounded-xl">
-                            <Image src={it.image} alt={it.name} fill sizes="80px" className="object-cover"/>
+                            <Image src={it.productImage} alt={it.productName} fill sizes="80px" className="object-cover"/>
                         </div>
                         <div className="min-w-0 flex-1">
-                            <p className="text-[10px] font-semibold uppercase
-                               tracking-[0.16em] text-on-surface-variant">
-                                {it.category}
-                            </p>
-                            <p className="mt-1 font-display text-lg text-primary">{it.name}</p>
+                            {/*<p className="text-[10px] font-semibold uppercase*/}
+                            {/*   tracking-[0.16em] text-on-surface-variant">*/}
+                            {/*    {it.category}*/}
+                            {/*</p>*/}
+                            <p className="mt-1 font-display text-lg text-primary">{it.productName}</p>
                             <p className="text-xs text-on-surface-variant">
-                                Quantity: {it.qty} · ${it.price.toFixed(2)}
+                                Quantity: {it.quantity} · ${it.unitPrice.toFixed(2)}
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             <Button onClick={() => onBuyAgain(it)} size="sm" className="text-xs">
                                 Buy Again
                             </Button>
-                            {o.status === "delivered" && (
+                            {o.orderStatus === "DELIVERED" && (
                                 <Button
                                     onClick={() => onReview(it)}
                                     size="sm"

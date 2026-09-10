@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { SettingsCard, SettingRow } from "@/app/admin/settings/_components/SettingsCard";
+import { SettingsCard } from "@/app/admin/settings/_components/SettingsCard";
+import { useLocalSetting } from "@/app/admin/settings/_components/useLocalSetting";
 
 const EVENTS = [
   { key: "booking_confirmed", label: "Booking confirmed", hint: "Sent when an appointment is confirmed." },
@@ -15,13 +15,22 @@ const EVENTS = [
   { key: "low_stock", label: "Low stock alert (internal)", hint: "Notifies staff when inventory hits threshold." },
 ];
 
+type Channels = Record<string, { email: boolean; sms: boolean }>;
+
+const DEFAULTS: Channels = Object.fromEntries(
+  EVENTS.map((e) => [e.key, { email: true, sms: e.key === "booking_reminder" }]),
+);
+
 export function NotificationsTab() {
-  const [channels, setChannels] = useState<Record<string, { email: boolean; sms: boolean }>>(
-    Object.fromEntries(EVENTS.map((e) => [e.key, { email: true, sms: e.key === "booking_reminder" }])),
-  );
+  // No backend model exists for notification-channel preferences —
+  // persisted to localStorage for now so it survives a reload. See
+  // useLocalSetting.ts.
+  const { value, setValue, loaded } = useLocalSetting<Channels>("notifications", DEFAULTS);
 
   const toggle = (key: string, channel: "email" | "sms") =>
-    setChannels((prev) => ({ ...prev, [key]: { ...prev[key], [channel]: !prev[key][channel] } }));
+    setValue({ ...value, [key]: { ...value[key], [channel]: !value[key][channel] } });
+
+  if (!loaded) return null;
 
   return (
     <div className="space-y-5">
@@ -46,10 +55,10 @@ export function NotificationsTab() {
                     <p className="text-xs text-admin-muted">{e.hint}</p>
                   </td>
                   <td className="py-3 pr-4">
-                    <Switch checked={channels[e.key].email} onCheckedChange={() => toggle(e.key, "email")} />
+                    <Switch checked={value[e.key].email} onCheckedChange={() => toggle(e.key, "email")} />
                   </td>
                   <td className="py-3">
-                    <Switch checked={channels[e.key].sms} onCheckedChange={() => toggle(e.key, "sms")} />
+                    <Switch checked={value[e.key].sms} onCheckedChange={() => toggle(e.key, "sms")} />
                   </td>
                 </tr>
               ))}
@@ -61,7 +70,7 @@ export function NotificationsTab() {
       <div className="flex justify-end">
         <Button
           className="bg-admin-sidebar text-white hover:bg-admin-sidebar/90"
-          onClick={() => toast.success("Notification rules saved")}
+          onClick={() => toast.success("Notification rules saved to this browser")}
         >
           Save notification rules
         </Button>

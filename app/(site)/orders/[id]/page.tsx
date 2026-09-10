@@ -3,11 +3,13 @@ import Link from "next/link";
 import Image from "next/image";
 import {ArrowLeft} from "lucide-react";
 import {Button} from "@/components/ui/button";
-import {findOrder, orderSubtotal} from "@/app/(site)/orders/_components/data";
 import {OrderDetailsHeader} from "@/app/(site)/orders/[id]/_components/OrderDetailsHeader";
 import {OrderDetailsFooter} from "@/app/(site)/orders/[id]/_components/OrderDetailsFooter";
 import {OrderTimeline} from "@/app/(site)/orders/[id]/_components/OrderTimeline";
 import {DetailCard, DetailRow} from "@/app/(site)/orders/[id]/_components/shared";
+import {gqlRequest} from "@/utils/graphqlClient";
+import {Order, orderSubtotal} from "@/app/(site)/orders/_components/data";
+import {ORDER_BY_ID_QUERY} from "@/app/(site)/orders/_components/query";
 
 export const metadata: Metadata = {
     title: "Order Details — Verdant Luxe",
@@ -28,7 +30,8 @@ export default async function OrderDetailsPage({
     params: Promise<{ id: string }>;
 }) {
     const {id} = await params;
-    const order = findOrder(id);
+    const res = await gqlRequest<{ order: Order | null }>(ORDER_BY_ID_QUERY, { id });
+    const order = res?.order ?? null;
 
     return (
         <div className="mx-auto w-[min(90vw,1200px)] pb-20">
@@ -65,12 +68,18 @@ export default async function OrderDetailsPage({
                                     <DetailRow label="Customer" value={order.customer}/>
                                     <DetailRow label="Email" value={order.email}/>
                                     <DetailRow label="Phone" value={order.phone}/>
-                                    <DetailRow label="Items" value={order.items.reduce((s, i) => s + i.qty, 0)}/>
-                                    <DetailRow label="Subtotal" value={`$${orderSubtotal(order).toFixed(2)}`}/>
-                                    <DetailRow label="Delivery" value={`$${(order.deliveryFee ?? 0).toFixed(2)}`}/>
+                                    <DetailRow label="Items" value={
+                                        order.items.reduce((s, i) =>
+                                        s + i.quantity, 0)}/>
+                                    <DetailRow label="Subtotal"
+                                               value={`$${orderSubtotal(order).toFixed(2)}`}/>
+                                    <DetailRow label="Delivery"
+                                               value={`$${(order.deliveryFee ?? 0).toFixed(2)}`}/>
                                     <DetailRow
                                         label="Total"
-                                        value={<span className="font-semibold">${order.total.toFixed(2)}</span>}
+                                        value={<span className="font-semibold">
+                                                    ${order.total.toFixed(2)}
+                                               </span>}
                                     />
                                     <DetailRow label="Payment" value={order.paymentMethod}/>
                                     <DetailRow
@@ -78,13 +87,18 @@ export default async function OrderDetailsPage({
                                         value={<span className="capitalize">{order.deliveryMethod}</span>}
                                     />
                                     <DetailRow
-                                        label={order.deliveryMethod === "pickup" ? "Pickup Branch" : "Shipping Address"}
-                                        value={order.deliveryMethod === "pickup" ? order.branch : order.shippingAddress}
+                                        label={order.deliveryMethod === "pickup" ?
+                                            "Pickup Branch" : "Shipping Address"}
+                                        value={order.deliveryMethod === "pickup" ?
+                                            order.branch : order.shippingAddress}
                                     />
-                                    {order.courier ? <DetailRow label="Courier" value={order.courier}/> : null}
+                                    {order.courier ? <DetailRow label="Courier"
+                                                                value={order.courier}/> : null}
                                     {order.tracking ? (
                                         <DetailRow label="Tracking"
-                                                   value={<span className="font-mono">{order.tracking}</span>}/>
+                                                   value={
+                                            <span className="font-mono">{order.tracking}</span>
+                                        }/>
                                     ) : null}
                                     {order.notes ? <DetailRow label="Notes" value={order.notes}/> : null}
                                 </dl>
@@ -94,18 +108,22 @@ export default async function OrderDetailsPage({
                                 <ul className="divide-y divide-blush/30">
                                     {order.items.map((it) => (
                                         <li key={it.id} className="flex items-center gap-3 py-3">
-                                            <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-md">
-                                                <Image src={it.image} alt={it.name} fill sizes="56px"
+                                            <div className="relative h-14 w-14
+                                                 shrink-0 overflow-hidden
+                                                 rounded-md">
+                                                <Image src={it.productImage} alt={it.productName} fill sizes="56px"
                                                        className="object-cover"/>
                                             </div>
                                             <div className="min-w-0 flex-1">
-                                                <p className="truncate text-sm font-medium text-on-surface">{it.name}</p>
+                                                <p className="truncate text-sm
+                                                   font-medium text-on-surface">{it.productName}</p>
                                                 <p className="text-xs text-on-surface-variant">
-                                                    {it.category} · Qty {it.qty} × ${it.price.toFixed(2)}
+                                                    {/*{it.category}*/} · Qty {it.quantity} ×
+                                                    ${it.unitPrice.toFixed(2)}
                                                 </p>
                                             </div>
                                             <p className="shrink-0 text-sm font-semibold text-primary">
-                                                ${(it.qty * it.price).toFixed(2)}
+                                                ${(it.quantity * it.unitPrice).toFixed(2)}
                                             </p>
                                         </li>
                                     ))}

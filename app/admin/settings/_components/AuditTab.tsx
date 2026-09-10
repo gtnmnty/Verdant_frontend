@@ -1,38 +1,76 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Search } from "lucide-react";
+import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DataTable, type Column } from "@/app/admin/_components/DataTable";
 import { SettingsCard } from "@/app/admin/settings/_components/SettingsCard";
-import { AUDIT, AUDIT_MODULES, type AuditRow } from "@/app/admin/settings/_components/data";
+import { gqlRequest } from "@/utils/graphqlClient";
+
+interface AuditRow {
+  id: string;
+  timestamp: string;
+  user: string;
+  action: string;
+  detail: string;
+}
+
+interface BackendAuditEntry {
+  id: string;
+  actionType: string;
+  title: string;
+  detail: string | null;
+  actorLabel: string | null;
+  createdAt: string;
+}
+
+// Same underlying feed as the standalone Audit Logs page — this is a
+// smaller, embedded view of it. The old mock had a "module" filter
+// (Products/Orders/Staff…) with no backend equivalent — AuditFeedEntry has
+// no entity-type field to group by, so that filter was dropped, keeping
+// just search.
+const AUDIT_FEED_QUERY = `
+    query SettingsAuditFeed($size: Int) {
+        auditDashboardFeed(page: 0, size: $size) {
+            content { id actionType title detail actorLabel createdAt }
+        }
+    }
+`;
+
+function toRow(e: BackendAuditEntry): AuditRow {
+  return {
+    id: e.id,
+    timestamp: new Date(e.createdAt).toLocaleString(),
+    user: e.actorLabel ?? "System",
+    action: e.title,
+    detail: e.detail ?? "",
+  };
+}
 
 export function AuditTab() {
+  const [rows, setRows] = useState<AuditRow[]>([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
-  const [module, setModule] = useState("all");
 
-  const filtered = useMemo(() => {
+  useEffect(() => {
+    gqlRequest<{ auditDashboardFeed: { content: BackendAuditEntry[] } }>(AUDIT_FEED_QUERY, { size: 50 })
+      .then((res) => setRows(res.auditDashboardFeed.content.map(toRow)))
+      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load audit log."))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filtered = rows.filter((row) => {
     const q = search.trim().toLowerCase();
-    return AUDIT.filter((row) => {
-      if (module !== "all" && row.module !== module) return false;
-      if (!q) return true;
-      return row.user.toLowerCase().includes(q) || row.action.toLowerCase().includes(q);
-    });
-  }, [search, module]);
+    if (!q) return true;
+    return row.user.toLowerCase().includes(q) || row.action.toLowerCase().includes(q);
+  });
 
   const columns: Column<AuditRow>[] = [
     { key: "timestamp", header: "Timestamp", sortable: true, sortValue: (r) => r.timestamp, render: (r) => r.timestamp },
     { key: "user", header: "User", sortable: true, sortValue: (r) => r.user, render: (r) => r.user },
-    { key: "role", header: "Role", render: (r) => r.role },
     { key: "action", header: "Action", render: (r) => r.action },
-    { key: "module", header: "Module", render: (r) => r.module },
+    { key: "detail", header: "Detail", render: (r) => <span className="text-admin-muted">{r.detail}</span> },
   ];
 
   return (
@@ -48,23 +86,12 @@ export function AuditTab() {
               className="border-admin-line bg-admin-bg pl-9"
             />
           </div>
-          <Select value={module} onValueChange={setModule}>
-            <SelectTrigger className="w-44 border-admin-line bg-admin-bg">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Modules</SelectItem>
-              {AUDIT_MODULES.map((m) => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
         </div>
         <DataTable
           rows={filtered}
           columns={columns}
           pageSize={10}
-          emptyTitle="No matching entries"
+          emptyTitle={loading ? "Loading…" : "No matching entries"}
         />
       </SettingsCard>
     </div>
