@@ -23,10 +23,55 @@ import {
 import {SectionCard, SectionTitle} from "@/app/(site)/account/_components/shared";
 import {SEED as APPT_SEED, formatDateTime} from "@/app/(site)/appointments/_components/data";
 import {
-    ORDERS,
     STATUS_LABELS as ORDER_STATUS_LABELS,
     formatDate as formatOrderDate,
+    type Order,
 } from "@/app/(site)/orders/_components/data";
+import { gqlRequest } from "@/utils/graphqlClient";
+import { apiRequest } from "@/utils/apiClient";
+import { MY_ORDERS_QUERY } from "@/app/(site)/orders/_components/query";
+
+// Flow: GraphQL query to load authenticated user profile and saved address
+const PROFILE_ME_QUERY = `
+    query ProfileMe {
+        me {
+            id
+            fullName
+            email
+            phone
+            avatarUrl
+            createdAt
+            shippingAddress {
+                line1
+                line2
+                city
+                state
+                postal
+                country
+            }
+        }
+    }
+`;
+
+// Flow: GraphQL mutation to update personal info and shipping address
+const UPDATE_PROFILE_MUTATION = `
+    mutation UpdateUserProfile($input: UpdateProfileInput!) {
+        updateProfile(input: $input) {
+            id
+            fullName
+            email
+            phone
+            shippingAddress {
+                line1
+                line2
+                city
+                state
+                postal
+                country
+            }
+        }
+    }
+`;
 
 interface ProfileData {
     fullName: string;
@@ -34,6 +79,8 @@ interface ProfileData {
     phone: string;
     street: string;
     city: string;
+    state: string;
+    postal: string;
     country: string;
 }
 
@@ -43,48 +90,150 @@ const FIELD_KEYS = [
     ["phone", "Phone"],
     ["street", "Street"],
     ["city", "City"],
+    ["state", "State / Province"],
+    ["postal", "Postal Code"],
     ["country", "Country"],
 ] as const;
 
 export function ProfileSection() {
     const router = useRouter();
     const [data, setData] = useState<ProfileData>({
-        fullName: "Elena Rodriguez",
-        email: "elena.rodriguez@verdantluxe.com",
-        phone: "+33 (0) 6 12 34 56 78",
-        street: "Rue du Faubourg Saint-Honoré",
-        city: "75008 Paris",
-        country: "France",
+        fullName: "",
+        email: "",
+        phone: "",
+        street: "",
+        city: "",
+        state: "",
+        postal: "",
+        country: "",
     });
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(data);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+    const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+    const [memberSince, setMemberSince] = useState("2024");
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Flow Step 1: Fetch user profile and recent orders from backend on mount
+    useEffect(() => {
+        let cancelled = false;
+
+        // Fetch authenticated user profile
+        gqlRequest<{
+            me: {
+                id: string;
+                fullName: string;
+                email: string;
+                phone: string | null;
+                avatarUrl: string | null;
+                createdAt: string;
+                shippingAddress: {
+                    line1: string;
+                    city: string;
+                    state: string;
+                    postal: string;
+                    country: string;
+                } | null;
+            };
+        }>(PROFILE_ME_QUERY)
+            .then((res) => {
+                if (cancelled || !res?.me) return;
+                const me = res.me;
+                const profile: ProfileData = {
+                    fullName: me.fullName ?? "",
+                    email: me.email ?? "",
+                    phone: me.phone ?? "",
+                    street: me.shippingAddress?.line1 ?? "",
+                    city: me.shippingAddress?.city ?? "",
+                    state: me.shippingAddress?.state ?? "",
+                    postal: me.shippingAddress?.postal ?? "",
+                    country: me.shippingAddress?.country ?? "",
+                };
+                setData(profile);
+                setDraft(profile);
+                if (me.avatarUrl) setAvatarUrl(me.avatarUrl);
+                if (me.createdAt) {
+                    setMemberSince(new Date(me.createdAt).getFullYear().toString());
+                }
+            })
+            .catch(() => {
+                // Not authenticated or error loading profile
+            });
+
+        // Fetch recent 3 customer orders
+        gqlRequest<{ myOrders: { items: Order[] } }>(MY_ORDERS_QUERY, {
+            page: 1,
+            pageSize: 3,
+        })
+            .then((res) => {
+                if (cancelled || !res?.myOrders) return;
+                setRecentOrders(res.myOrders.items ?? []);
+            })
+            .catch(() => {
+                // Orders loading failed
+            });
+
+        return () => { cancelled = true; };
+    }, []);
 
     const openEdit = () => {
         setDraft(data);
         setEditing(true);
     };
-    const save = (e: SubmitEvent) => {
+
+    // Flow Step 2: Persist edited profile details to database via GraphQL mutation
+    const save = async (e: SubmitEvent) => {
         e.preventDefault();
-        setData(draft);
-        setEditing(false);
-        toast.success("Profile updated.");
+        try {
+            await gqlRequest(UPDATE_PROFILE_MUTATION, {
+                input: {
+                    fullName: draft.fullName,
+                    email: draft.email,
+                    phone: draft.phone,
+                    shippingAddress: {
+                        line1: draft.street,
+                        city: draft.city,
+                        state: draft.state || "N/A",
+                        postal: draft.postal || "0000",
+                        country: draft.country,
+                    },
+                },
+            });
+            setData(draft);
+            setEditing(false);
+            toast.success("Profile updated.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to update profile.");
+        }
     };
 
-    const onAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Flow Step 3: Upload avatar image to Cloudinary via backend multipart endpoint
+    const onAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-            setAvatarUrl(reader.result as string);
-            toast.success("Photo updated.");
-        };
-        reader.readAsDataURL(file);
+
+        // Instant optimistic preview
+        const localPreview = URL.createObjectURL(file);
+        setAvatarUrl(localPreview);
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const res = await apiRequest<{ avatarUrl: string }>("/v1/users/avatar", {
+                method: "POST",
+                body: formData,
+            });
+            if (res?.avatarUrl) {
+                setAvatarUrl(res.avatarUrl);
+            }
+            toast.success("Profile photo updated.");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to upload photo.");
+        }
     };
 
     const upcoming = APPT_SEED.find((a) => a.status === "upcoming");
-    const recentOrders = ORDERS.slice(0, 3);
 
     return (
         <div className="space-y-10">
@@ -140,7 +289,7 @@ export function ProfileSection() {
                 <div className="flex flex-col gap-1">
                     <p className="text-[10px] font-semibold uppercase
                         tracking-[0.22em] text-soft-rose">
-                        Member Since 2022
+                        Member Since {memberSince}
                     </p>
                     <div
                         className="grid grid-cols-[minmax(0,1fr)_auto]
@@ -163,10 +312,17 @@ export function ProfileSection() {
                 </div>
                 <div className="my-6 h-px bg-blush/50"/>
                 <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
-                    <Field label="Full Name" value={data.fullName}/>
-                    <Field label="Phone Number" value={data.phone}/>
-                    <Field label="Email Address" value={data.email}/>
-                    <Field label="Shipping Address" value={`${data.street}\n${data.city}, ${data.country}`}/>
+                    <Field label="Full Name" value={data.fullName || "—"}/>
+                    <Field label="Phone Number" value={data.phone || "—"}/>
+                    <Field label="Email Address" value={data.email || "—"}/>
+                    <Field
+                        label="Shipping Address"
+                        value={
+                            [data.street, data.city, data.state, data.postal, data.country]
+                                .filter(Boolean)
+                                .join(", ") || "—"
+                        }
+                    />
                 </dl>
             </SectionCard>
 
@@ -224,47 +380,61 @@ export function ProfileSection() {
                     title="Recent Orders"
                     action={{label: "View All", onClick: () => router.push("/orders")}}
                 />
-                <ul className="space-y-3">
-                    {recentOrders.map((o) => (
-                        <li key={o.id}>
-                            <Link
-                                href={`/orders/${o.id}`}
-                                className="grid grid-cols-[64px_minmax(0,1fr)_auto]
-                                                items-center gap-4 rounded-2xl border
-                                                border-blush/50 bg-surface-lowest p-4
-                                                transition-colors hover:border-primary/40
-                                                sm:grid-cols-[80px_minmax(0,1fr)_auto_auto_auto]"
-                            >
-                                <div className="relative aspect-square w-full overflow-hidden
-                                     rounded-lg">
-                                    <Image src={o.items[0].image} alt="" fill sizes="80px" className="object-cover"/>
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-[10px] font-semibold uppercase
-                                        tracking-[0.16em] text-on-surface-variant">
-                                        Order #{o.id} — {formatOrderDate(o.date)}
-                                    </p>
-                                    <p className="mt-1 truncate font-display text-base text-primary">
-                                        {o.items[0].name}
-                                    </p>
-                                </div>
-                                <div className="hidden text-right sm:block">
-                                    <p className="text-[10px] uppercase tracking-[0.14em]
-                                        text-on-surface-variant">Total</p>
-                                    <p className="text-sm">${o.total.toFixed(2)}</p>
-                                </div>
-                                <div className="hidden text-right sm:block">
-                                    <p className="text-[10px] uppercase tracking-[0.14em]
-                                        text-on-surface-variant">Status</p>
-                                    <p className={`text-sm ${ORDER_STATUS_LABELS[o.orderStatus].chip}`}>
-                                        {ORDER_STATUS_LABELS[o.orderStatus].label}
-                                    </p>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-on-surface-variant"/>
-                            </Link>
-                        </li>
-                    ))}
-                </ul>
+                {recentOrders.length === 0 ? (
+                    <p className="rounded-2xl border border-dashed
+                       border-blush/60 bg-surface-lowest p-8
+                       text-center text-sm text-on-surface-variant">
+                        No recent orders found.
+                    </p>
+                ) : (
+                    <ul className="space-y-3">
+                        {recentOrders.map((o) => (
+                            <li key={o.id}>
+                                <Link
+                                    href={`/orders/${o.id}`}
+                                    className="grid grid-cols-[64px_minmax(0,1fr)_auto]
+                                                    items-center gap-4 rounded-2xl border
+                                                    border-blush/50 bg-surface-lowest p-4
+                                                    transition-colors hover:border-primary/40
+                                                    sm:grid-cols-[80px_minmax(0,1fr)_auto_auto_auto]"
+                                >
+                                    <div className="relative aspect-square w-full overflow-hidden
+                                         rounded-lg">
+                                        <Image
+                                            src={o.items[0]?.productImage || "https://picsum.photos/seed/order/80/80"}
+                                            alt={o.items[0]?.productName || "Product"}
+                                            fill
+                                            sizes="80px"
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[10px] font-semibold uppercase
+                                            tracking-[0.16em] text-on-surface-variant">
+                                            Order #{o.orderCode || o.id} — {formatOrderDate(o.createdAt)}
+                                        </p>
+                                        <p className="mt-1 truncate font-display text-base text-primary">
+                                            {o.items[0]?.productName || "Order"}
+                                        </p>
+                                    </div>
+                                    <div className="hidden text-right sm:block">
+                                        <p className="text-[10px] uppercase tracking-[0.14em]
+                                            text-on-surface-variant">Total</p>
+                                        <p className="text-sm">${o.total.toFixed(2)}</p>
+                                    </div>
+                                    <div className="hidden text-right sm:block">
+                                        <p className="text-[10px] uppercase tracking-[0.14em]
+                                            text-on-surface-variant">Status</p>
+                                        <p className={`text-sm ${ORDER_STATUS_LABELS[o.orderStatus]?.chip ?? ""}`}>
+                                            {ORDER_STATUS_LABELS[o.orderStatus]?.label ?? o.orderStatus}
+                                        </p>
+                                    </div>
+                                    <ChevronRight className="h-5 w-5 text-on-surface-variant"/>
+                                </Link>
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
 
             {/* Loyalty */}

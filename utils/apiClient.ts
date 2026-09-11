@@ -41,8 +41,12 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
     const token = getToken();
 
+    // Check if body is FormData (e.g., avatar upload).
+    // For FormData, the browser must set the multipart boundary header automatically.
+    const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+
     const headers: Record<string, string> = {
-        "Content-Type": "application/json",
+        ...(isFormData ? {} : { "Content-Type": "application/json" }),
         ...(options.headers as Record<string, string> ?? {}),
     };
 
@@ -54,7 +58,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
         ...options,
         headers,
         credentials: "include",
-    })
+    });
 
     if (response.status === 401) {
         const newToken = await refreshAccessToken();

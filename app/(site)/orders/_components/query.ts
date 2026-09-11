@@ -1,3 +1,5 @@
+// Flow: Query customer's paginated order history from backend GraphQL endpoint
+// Matches the OrderPage, Order, and OrderItem types defined in order.graphql
 export const MY_ORDERS_QUERY = `
     query MyOrders(
         $status: OrderClientFilter
@@ -15,18 +17,22 @@ export const MY_ORDERS_QUERY = `
           page: $page
           pageSize: $pageSize
         ) {
-            totalCount
-            totalPage
-            content {
+            totalItems
+            totalPages
+            items {
                 id            
-                status
+                orderCode
+                orderStatus
                 total
                 createdAt
-                orderCode
                 items {
                   id
-                  name
-                  price
+                  product {
+                    id
+                  }
+                  productName
+                  productImage
+                  unitPrice
                   quantity
                 }
             }

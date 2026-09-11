@@ -37,6 +37,8 @@ function validate(details: ShippingDetails): FieldErrors {
     if (details.phone.replace(/\D/g, "").length < 7) errors.phone = "Enter a valid phone number";
     if (!details.streetAddress.trim()) errors.streetAddress = "Required";
     if (!details.city.trim()) errors.city = "Required";
+    // AddressInput requires non-empty state in backend schema
+    if (!details.state.trim()) errors.state = "Required";
     if (!details.postalCode.trim()) errors.postalCode = "Required";
     if (!details.country.trim()) errors.country = "Select a country";
 
@@ -117,6 +119,9 @@ export function ShippingStep({
 
                 <FormField label="City" htmlFor="city" error={errors.city}>
                     <Input id="city" autoComplete="address-level2" {...field("city")} />
+                </FormField>
+                <FormField label="State / Province / Region" htmlFor="state" error={errors.state}>
+                    <Input id="state" autoComplete="address-level1" {...field("state")} />
                 </FormField>
                 <FormField label="Postal Code" htmlFor="postalCode" error={errors.postalCode}>
                     <Input id="postalCode" autoComplete="postal-code" {...field("postalCode")} />

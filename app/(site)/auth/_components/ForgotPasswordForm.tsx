@@ -19,17 +19,32 @@ export function ForgotPasswordForm({
 
     const onSubmit = async (ev: SubmitEvent) => {
         ev.preventDefault();
+
+        // Validate basic email format before dispatching request
         if (!/^\S+@\S+\.\S+$/.test(email)) {
             setError("Enter a valid email address");
             return;
         }
+
         setError(undefined);
-        await apiRequest("/auth/forgot-password", {
-            method: "POST",
-            body: JSON.stringify({ email }),
-        });
-        toast.success("If that email exists, a reset code was sent.");
-        onCodeSent(email);
+        setLoading(true);
+
+        try {
+            // Flow: Dispatch password reset code request to backend REST controller
+            await apiRequest("/auth/forgot-password", {
+                method: "POST",
+                body: JSON.stringify({ email }),
+            });
+
+            // Notify user and trigger parent callback to advance auth stepper
+            toast.success("If that email exists, a reset code was sent.");
+            onCodeSent(email);
+        } catch (e) {
+            // Display failure toast if backend rejects request or network fails
+            toast.error(e instanceof Error ? e.message : "Failed to send code.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
