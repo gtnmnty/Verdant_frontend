@@ -12,7 +12,16 @@ import {
     JOURNAL_STORIES,
     type JournalStory,
 } from "@/app/(site)/journal/_components/data";
-import {addManyToCart, addToCart} from "@/lib/cart-store";
+import { gqlRequest } from "@/utils/graphqlClient";
+
+// GraphQL mutation to add an item to the authenticated user's cart in the database
+const ADD_TO_CART_MUTATION = `
+    mutation JournalAddToCart($input: AddToCartInput!) {
+        addToCart(input: $input) {
+            totalItems
+        }
+    }
+`;
 
 export function JournalContent() {
     const [isLoading, setIsLoading] = useState(true);
@@ -45,14 +54,40 @@ export function JournalContent() {
         });
     }, [search, activeCategory]);
 
-    function handleAddProduct(productId: string, productName: string) {
-        addToCart(productId, 1);
-        toast.success(`${productName} added to your bag.`);
+    // Flow: Call the backend GraphQL mutation to persist the selected product into the user's cart
+    async function handleAddProduct(productId: string, productName: string) {
+        try {
+            await gqlRequest(ADD_TO_CART_MUTATION, {
+                input: {
+                    productId,
+                    quantity: 1,
+                    deliveryOption: "STANDARD",
+                },
+            });
+            toast.success(`${productName} added to your bag.`);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to add product to cart.");
+        }
     }
 
-    function handleAddRoutine(story: JournalStory) {
-        addManyToCart(story.products.map((product) => product.id));
-        toast.success(`${story.clientName}'s routine added to your bag.`);
+    // Flow: Concurrently add each product in the curated routine to the backend cart
+    async function handleAddRoutine(story: JournalStory) {
+        try {
+            await Promise.all(
+                story.products.map((product) =>
+                    gqlRequest(ADD_TO_CART_MUTATION, {
+                        input: {
+                            productId: product.id,
+                            quantity: 1,
+                            deliveryOption: "STANDARD",
+                        },
+                    })
+                )
+            );
+            toast.success(`${story.clientName}'s routine added to your bag.`);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to add routine to cart.");
+        }
     }
 
     return (

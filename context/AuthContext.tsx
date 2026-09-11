@@ -13,15 +13,21 @@ const context = createContext<AuthCtx>({ token: null, setToken: () => { } });
 export function AuthProvider({ children } :  { children: React.ReactNode }) {
     const [token, setToken] = useState<string | null>(null);
 
-    // Wires up apiClient to read and write token
-    useEffect(() => {
-        configureApiClient(() => token, setToken)
-    }, [token]);
+    // Flow Step 1: Wire up the apiClient callbacks synchronously during render.
+    // This ensures that any child component or effect calling apiRequest() immediately has access
+    // to the latest token getter and setter, avoiding race conditions where effects fire before
+    // configureApiClient would have been called in a separate useEffect.
+    configureApiClient(() => token, setToken);
 
+    // Flow Step 2: Attempt silent session restoration on initial mount.
+    // Sends the HTTP-only refresh cookie to the /auth/refresh endpoint.
+    // If valid, receives a fresh short-lived JWT access token and updates React state.
     useEffect(() => {
         apiRequest<{accessToken: string}>("/auth/refresh", { method: "POST" })
             .then((d) => setToken(d.accessToken))
-            .catch(() => {})
+            .catch(() => {
+                // Not authenticated or refresh token expired; user stays logged out.
+            });
     }, []);
 
     return <context.Provider value={{ token, setToken }}>{children}</context.Provider>;

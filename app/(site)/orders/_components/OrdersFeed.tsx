@@ -12,10 +12,20 @@ import {
 } from "@/app/(site)/orders/_components/OrdersToolbar";
 import { OrderCard } from "@/app/(site)/orders/_components/OrderCard";
 import type { Order, OrderItem } from "@/app/(site)/orders/_components/data";
+import { formatDate } from "@/app/(site)/orders/_components/data";
 import { useRouter } from "next/navigation";
 import { MY_ORDERS_QUERY } from "@/app/(site)/orders/_components/query";
 
 const PER_PAGE = 6;
+
+// Flow: Mutation to re-add order item to current user's backend cart
+const ADD_TO_CART_MUTATION = `
+    mutation OrderBuyAgain($input: AddToCartInput!) {
+        addToCart(input: $input) {
+            totalItems
+        }
+    }
+`;
 
 export function OrdersFeed() {
     const [orders, setOrders] = useState<Order[]>([]);
@@ -28,21 +38,22 @@ export function OrdersFeed() {
 
     const router = useRouter();
 
-
+    // Fetch paginated orders from GraphQL backend when filters, sort, or page changes
     useEffect(() => {
         let cancelled = false;
         setLoading(true);
 
-        gqlRequest<{ myOrders: { content: Order[]; totalPage: number } }>(MY_ORDERS_QUERY, {
-            status: filter === "all" ? "ALL" : filter.toUpperCase().replace("-", "_"),
+        gqlRequest<{ myOrders: { items: Order[]; totalPages: number } }>(MY_ORDERS_QUERY, {
+            status: filter === "all" ? "ALL" : filter,
             sort: sort === "date-desc" ? "NEWEST" : sort === "date-asc" ? "OLDEST" : "HIGHEST_TOTAL",
             page,
             pageSize: PER_PAGE,
         })
             .then((res) => {
                 if (cancelled) return;
-                setOrders(res.myOrders.content);
-                setTotalPages(res.myOrders.totalPage);
+                // Update component state with backend data fields: items and totalPages
+                setOrders(res.myOrders.items);
+                setTotalPages(res.myOrders.totalPages);
             })
             .catch((err) => {
                 if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load orders.");
@@ -57,11 +68,52 @@ export function OrdersFeed() {
         ? orders.filter((o) => o.orderCode.toLowerCase().includes(query.toLowerCase()))
         : orders;
 
-    const buyAgain = (it: OrderItem) =>
-        toast.success(`${it.productName} added to cart.`);
+    // "Buy Again" action sends GraphQL mutation to backend cart
+    const buyAgain = (it: OrderItem) => {
+        const productId = it.product?.id || it.id;
+        gqlRequest(ADD_TO_CART_MUTATION, {
+            input: {
+                productId,
+                quantity: 1,
+                deliveryOption: "STANDARD",
+            },
+        })
+            .then(() => toast.success(`${it.productName} added to cart.`))
+            .catch((err) =>
+                toast.error(err instanceof Error ? err.message : "Failed to add to cart.")
+            );
+    };
 
-    const downloadInvoice = (o: Order) =>
-        toast.success(`Invoice ${o.orderCode}.pdf downloaded.`);
+    // "Download Invoice" creates a formatted invoice blob and triggers a browser download
+    const downloadInvoice = (o: Order) => {
+        const invoiceContent = [
+            `========================================`,
+            `             VERDANT LUXE`,
+            `           OFFICIAL INVOICE`,
+            `========================================`,
+            `Order Reference : ${o.orderCode || o.id}`,
+            `Date            : ${formatDate(o.createdAt)}`,
+            `Status          : ${o.orderStatus}`,
+            `----------------------------------------`,
+            `ITEMS:`,
+            ...o.items.map(
+                (it) =>
+                    `  • ${it.productName} (x${it.quantity}) - $${(it.unitPrice * it.quantity).toFixed(2)}`
+            ),
+            `----------------------------------------`,
+            `Total Amount    : $${o.total.toFixed(2)}`,
+            `========================================`,
+        ].join("\n");
+
+        const blob = new Blob([invoiceContent], { type: "text/plain;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `Invoice-${o.orderCode || o.id}.txt`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success(`Invoice ${o.orderCode || o.id} downloaded.`);
+    };
 
     return (
         <div className="mx-auto w-[min(90vw,1400px)] pb-16">
@@ -104,8 +156,11 @@ export function OrdersFeed() {
                             key={o.id}
                             order={o}
                             onBuyAgain={buyAgain}
-                            onReview={(it: OrderItem) =>
-                                router.push(`/collections/${it.id}#reviews`)} // Marks down for potential update
+                            onReview={(it: OrderItem) => {
+                                // Flow: Navigate to collection product page anchoring to reviews section
+                                const productId = it.product?.id || it.id;
+                                router.push(`/collections/${productId}#reviews`);
+                            }}
                             onDownloadInvoice={downloadInvoice}
                         />
                     ))

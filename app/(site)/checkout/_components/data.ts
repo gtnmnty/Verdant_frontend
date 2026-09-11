@@ -9,6 +9,7 @@ export interface ShippingDetails {
     phone: string;
     streetAddress: string;
     city: string;
+    state: string;
     postalCode: string;
     country: string;
     deliveryOption: DeliveryOption;
@@ -21,6 +22,7 @@ export const EMPTY_SHIPPING_DETAILS: ShippingDetails = {
     phone: "",
     streetAddress: "",
     city: "",
+    state: "",
     postalCode: "",
     country: "",
     deliveryOption: "standard",

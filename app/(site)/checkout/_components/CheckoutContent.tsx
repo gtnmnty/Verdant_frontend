@@ -34,10 +34,10 @@ interface BackendCartItem {
     quantity: number;
     product: {
         name: string;
-        catalog: string;
+        itemCatalog: string;
         price: number;
         salePrice: number | null;
-        primaryImage: {url: string} | null;
+        image: string | null;
     };
 }
 
@@ -62,6 +62,7 @@ const CATEGORY_LABELS: Record<string, string> = {
     MAKE_UP: "Makeup",
 };
 
+// Flow: Query the backend cart using canonical fields matching cart.graphql (image, itemCatalog)
 const MY_CART_QUERY = `
     query CheckoutCart {
         myCart {
@@ -70,10 +71,10 @@ const MY_CART_QUERY = `
                 quantity
                 product {
                     name
-                    catalog
+                    itemCatalog
                     price
                     salePrice
-                    primaryImage { url }
+                    image
                 }
             }
         }
@@ -107,12 +108,13 @@ const PLACE_ORDER_MUTATION = `
     }
 `;
 
+// Flow: Map backend Cart item fields into UI display format
 function toOrderItem(item: BackendCartItem): CheckoutOrderItem {
     return {
         id: item.id,
         name: item.product.name,
-        category: CATEGORY_LABELS[item.product.catalog] ?? item.product.catalog,
-        image: item.product.primaryImage?.url ?? "https://picsum.photos/seed/checkout-item/300/300",
+        category: CATEGORY_LABELS[item.product.itemCatalog] ?? item.product.itemCatalog,
+        image: item.product.image ?? "https://picsum.photos/seed/checkout-item/300/300",
         price: item.product.salePrice ?? item.product.price,
         quantity: item.quantity,
     };
@@ -166,6 +168,7 @@ export function CheckoutContent() {
                 if (cancelled) return;
                 setMe(res.me);
                 const [firstName, ...rest] = res.me.fullName.split(" ");
+                // Flow: Prefill checkout fields from authenticated user profile and saved address
                 setShipping((prev) => ({
                     ...prev,
                     firstName: firstName ?? "",
@@ -174,6 +177,7 @@ export function CheckoutContent() {
                     phone: res.me.phone ?? "",
                     streetAddress: res.me.shippingAddress?.line1 ?? "",
                     city: res.me.shippingAddress?.city ?? "",
+                    state: res.me.shippingAddress?.state ?? "",
                     postalCode: res.me.shippingAddress?.postal ?? "",
                     country: res.me.shippingAddress?.country ?? "",
                 }));
@@ -213,6 +217,7 @@ export function CheckoutContent() {
         }
     }
 
+    // Flow: Execute placeOrder mutation sending the required AddressInput fields
     function handlePlaceOrder() {
         if (!items || items.length === 0 || !payment) return;
         setIsPlacingOrder(true);
@@ -224,9 +229,7 @@ export function CheckoutContent() {
                     line1: shipping.streetAddress,
                     line2: undefined,
                     city: shipping.city,
-                    // ShippingStep doesn't collect a state/region field, and
-                    // AddressInput.state is required — sent blank for now.
-                    state: "",
+                    state: shipping.state,
                     postal: shipping.postalCode,
                     country: shipping.country,
                 },
@@ -244,6 +247,7 @@ export function CheckoutContent() {
             .finally(() => setIsPlacingOrder(false));
     }
 
+    // Flow: Update user profile with shipping address for future checkouts
     function handleSaveInformation() {
         gqlRequest(UPDATE_PROFILE_MUTATION, {
             input: {
@@ -254,7 +258,7 @@ export function CheckoutContent() {
                     line1: shipping.streetAddress,
                     line2: undefined,
                     city: shipping.city,
-                    state: "",
+                    state: shipping.state,
                     postal: shipping.postalCode,
                     country: shipping.country,
                 },

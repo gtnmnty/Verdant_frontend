@@ -64,15 +64,16 @@ export default async function OrderDetailsPage({
                         <div className="min-w-0 space-y-5">
                             <DetailCard title="Order Summary">
                                 <dl>
-                                    <DetailRow label="Reference" value={<span className="font-mono">{order.id}</span>}/>
-                                    <DetailRow label="Customer" value={order.customer}/>
-                                    <DetailRow label="Email" value={order.email}/>
-                                    <DetailRow label="Phone" value={order.phone}/>
+                                    <DetailRow label="Reference" value={<span className="font-mono">{order.orderCode || order.id}</span>}/>
+                                    {/* Flow: Customer contact info mapped from backend user relation */}
+                                    <DetailRow label="Customer" value={order.user?.fullName || order.customer || "—"}/>
+                                    <DetailRow label="Email" value={order.user?.email || order.email || "—"}/>
+                                    <DetailRow label="Phone" value={order.user?.phone || order.phone || "—"}/>
                                     <DetailRow label="Items" value={
                                         order.items.reduce((s, i) =>
                                         s + i.quantity, 0)}/>
                                     <DetailRow label="Subtotal"
-                                               value={`$${orderSubtotal(order).toFixed(2)}`}/>
+                                               value={`$${(order.subtotal ?? orderSubtotal(order)).toFixed(2)}`}/>
                                     <DetailRow label="Delivery"
                                                value={`$${(order.deliveryFee ?? 0).toFixed(2)}`}/>
                                     <DetailRow
@@ -81,16 +82,25 @@ export default async function OrderDetailsPage({
                                                     ${order.total.toFixed(2)}
                                                </span>}
                                     />
-                                    <DetailRow label="Payment" value={order.paymentMethod}/>
+                                    <DetailRow label="Payment" value={order.paymentMethod || "—"}/>
                                     <DetailRow
                                         label="Delivery Method"
-                                        value={<span className="capitalize">{order.deliveryMethod}</span>}
+                                        value={<span className="capitalize">{order.deliveryMethod || "Delivery"}</span>}
                                     />
+                                    {/* Flow: Shipping destination formatted from Address relation */}
                                     <DetailRow
                                         label={order.deliveryMethod === "pickup" ?
                                             "Pickup Branch" : "Shipping Address"}
                                         value={order.deliveryMethod === "pickup" ?
-                                            order.branch : order.shippingAddress}
+                                            (order.branch || "—") :
+                                            (order.address ?
+                                                [
+                                                    order.address.line1, order.address.line2,
+                                                    order.address.city, order.address.state,
+                                                    order.address.postal, order.address.country
+                                                ].filter(Boolean).join(", ") :
+                                                (order.shippingAddress || "—"))
+                                        }
                                     />
                                     {order.courier ? <DetailRow label="Courier"
                                                                 value={order.courier}/> : null}
@@ -106,20 +116,25 @@ export default async function OrderDetailsPage({
 
                             <DetailCard title="Ordered Items">
                                 <ul className="divide-y divide-blush/30">
+                                    {/* Flow: Render canonical OrderItem fields: productName, productImage, quantity, unitPrice */}
                                     {order.items.map((it) => (
                                         <li key={it.id} className="flex items-center gap-3 py-3">
                                             <div className="relative h-14 w-14
                                                  shrink-0 overflow-hidden
                                                  rounded-md">
-                                                <Image src={it.productImage} alt={it.productName} fill sizes="56px"
-                                                       className="object-cover"/>
+                                                <Image
+                                                    src={it.productImage || "https://picsum.photos/seed/product/56/56"}
+                                                    alt={it.productName}
+                                                    fill
+                                                    sizes="56px"
+                                                    className="object-cover"
+                                                />
                                             </div>
                                             <div className="min-w-0 flex-1">
                                                 <p className="truncate text-sm
                                                    font-medium text-on-surface">{it.productName}</p>
                                                 <p className="text-xs text-on-surface-variant">
-                                                    {/*{it.category}*/} · Qty {it.quantity} ×
-                                                    ${it.unitPrice.toFixed(2)}
+                                                    Qty {it.quantity} × ${it.unitPrice.toFixed(2)}
                                                 </p>
                                             </div>
                                             <p className="shrink-0 text-sm font-semibold text-primary">

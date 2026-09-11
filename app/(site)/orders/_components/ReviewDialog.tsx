@@ -33,6 +33,7 @@ export function ReviewDialog({
             <DialogContent>
                 <DialogHeader>
                     <DialogTitle>Write a Review</DialogTitle>
+                    {/* Display the canonical productName from the backend OrderItem schema */}
                     <DialogDescription>{item?.productName}</DialogDescription>
                 </DialogHeader>
                 <div className="space-y-4">

@@ -2,6 +2,7 @@ export type OrderStatus = "PROCESSING" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED
 
 export interface OrderItem {
     id: string;
+    product?: { id: string } | null;
     productName: string;
     productImage: string;
     quantity: number;
