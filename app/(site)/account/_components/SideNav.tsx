@@ -26,6 +26,7 @@ import {
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import type {SectionId} from "@/app/(site)/account/_components/AccountContent";
+import {apiRequest} from "@/utils/apiClient";
 
 type NavEntry =
     | { kind: "section"; id: SectionId; label: string; icon: typeof User }
@@ -58,9 +59,15 @@ export function SideNav({
     };
 
     // No deleteAccount mutation exists on the backend yet — kept as a demo action.
-    const deleteAccount = () => {
-        setConfirmDelete(false);
-        toast.success("Account deletion requested. This is a demo action.");
+    const deleteAccount = async () => {
+        try {
+            await apiRequest("/v1/users", {method: "DELETE"});
+            await logout();
+            toast.success("Your account has been deleted.");
+            router.push("/auth");
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to delete account.");
+        }
     };
 
     return (
