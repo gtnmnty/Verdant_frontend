@@ -1,6 +1,7 @@
 "use client";
 
 import {useState} from "react";
+import Image from "next/image";
 import {Reveal} from "@/utils/Reveal";
 import {SectionLabel} from "@/utils/SectionLabel";
 
@@ -68,12 +69,13 @@ export default function CollectionSection() {
                                 active === p.id ? "shadow-xl -translate-y-1" : "shadow-sm"
                             }`}
                         >
-                            <div className="overflow-hidden rounded-xl aspect-square mb-6
+                            <div className="relative overflow-hidden rounded-xl aspect-square mb-6
                  bg-stone-100">
-                                <img
+                                <Image
                                     src={p.image}
                                     alt={p.name}
-                                    loading="lazy"
+                                    fill
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                     className="h-full w-full object-cover
                                                     transition-transform duration-700
                                                     hover:scale-105"

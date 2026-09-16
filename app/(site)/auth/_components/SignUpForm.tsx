@@ -68,7 +68,7 @@ export function SignUpForm({
                 body: JSON.stringify({
                     fullName: form.fullName,
                     email: form.email,
-                    phone: form.phone,
+                    phoneNumber: form.phone,
                     password: form.password,
                 })
             })

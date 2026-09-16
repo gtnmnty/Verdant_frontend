@@ -1,10 +1,10 @@
-export type OrderStatus = "PROCESSING" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+export type OrderStatus = "PLACED" | "PROCESSING" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
 
 export interface OrderItem {
     id: string;
     product?: { id: string } | null;
     productName: string;
-    productImage: string;
+    productImage: string | null;
     quantity: number;
     unitPrice: number;
 }
@@ -31,6 +31,7 @@ export interface Order {
 }
 
 export const STATUS_LABELS: Record<OrderStatus, { label: string; chip: string }> = {
+    PLACED: {       label: "Placed",       chip: "text-primary" },
     PROCESSING: {   label: "Processing",   chip: "text-amber-700" },
     IN_TRANSIT: {   label: "In Transit",   chip: "text-soft-rose" },
     DELIVERED: {    label: "Delivered",    chip: "text-emerald-700" },

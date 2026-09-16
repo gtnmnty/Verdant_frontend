@@ -2,6 +2,7 @@
 
 import {smoothScrollTo} from "@/utils/smoothScrollTo";
 import {SectionLabel} from "@/utils/SectionLabel";
+import Image from "next/image";
 
 export default function HeroSection() {
     return (
@@ -55,9 +56,12 @@ export default function HeroSection() {
                          className="absolute inset-0 rounded-full bg-rose-300/30
                                          blur-3xl translate-y-6"
                     />
-                    <img
+                    <Image
                         src="https://images.unsplash.com/photo-1605497788044-5a32c7078486?auto=format&fit=crop&w=900&q=80"
                         alt="Salon model with pink hair, side profile"
+                        width={900}
+                        height={1200}
+                        priority
                         className="relative z-10 h-full w-auto max-w-full
                                         object-cover rounded-[2rem] shadow-2xl
                                         animate-[float_6s_ease-in-out_infinite]

@@ -27,7 +27,7 @@ export function AccountContent() {
             </header>
 
             <div className="grid gap-8 lg:grid-cols-[240px_minmax(0,1fr)]">
-                <SideNav active={section} onChange={setSection}/>
+                <SideNav active={section} onSectionChange={setSection}/>
                 <div className="min-w-0">
                     {section === "profile" && <ProfileSection/>}
                     {section === "gift-cards" && <GiftCardsSection/>}

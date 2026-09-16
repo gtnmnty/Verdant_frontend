@@ -2,9 +2,14 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 type TokenGetter = () => string | null;
 type TokenSetter = (token: string | null) => void;
+type ApiRequestOptions = RequestInit & {
+    retryOnUnauthorized?: boolean;
+    redirectOnUnauthorized?: boolean;
+};
 
 let getToken: TokenGetter = () => null;
 let setToken: TokenSetter = () => {};
+let refreshInFlight: Promise<string | null> | null = null;
 
 export function configureApiClient(getter: TokenGetter, setter: TokenSetter) {
     getToken = getter;
@@ -15,13 +20,24 @@ export function configureApiClient(getter: TokenGetter, setter: TokenSetter) {
 // to get a new token in case the current one has expired
 // or user refresh the pages
 async function refreshAccessToken(): Promise<string | null> {
+    if (refreshInFlight) return refreshInFlight;
+
+    refreshInFlight = refreshAccessTokenOnce();
+    try {
+        return await refreshInFlight;
+    } finally {
+        refreshInFlight = null;
+    }
+}
+
+async function refreshAccessTokenOnce(): Promise<string | null> {
     try {
         const response = await fetch(`${BASE_URL}/auth/refresh`, {
             method: "POST",
             credentials: "include"
         });
 
-        if (!response) return null;
+        if (!response.ok) return null;
         const data = await response.json();
         return data.accessToken ?? null;
     } catch {
@@ -38,16 +54,21 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 // Central fetch wrapper for all authenticated API requests
 // Automatically attaches the access token and retries once on 401
 // using the refresh token before redirecting to log in.
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: ApiRequestOptions = {}): Promise<T> {
+    const {
+        retryOnUnauthorized = true,
+        redirectOnUnauthorized = false,
+        ...requestOptions
+    } = options;
     const token = getToken();
 
     // Check if body is FormData (e.g., avatar upload).
     // For FormData, the browser must set the multipart boundary header automatically.
-    const isFormData = typeof FormData !== "undefined" && options.body instanceof FormData;
+    const isFormData = typeof FormData !== "undefined" && requestOptions.body instanceof FormData;
 
     const headers: Record<string, string> = {
         ...(isFormData ? {} : { "Content-Type": "application/json" }),
-        ...(options.headers as Record<string, string> ?? {}),
+        ...(requestOptions.headers as Record<string, string> ?? {}),
     };
 
     if (token) {
@@ -55,26 +76,26 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     }
 
     const response = await fetch(`${BASE_URL}${path}`, {
-        ...options,
+        ...requestOptions,
         headers,
         credentials: "include",
     });
 
-    if (response.status === 401) {
+    if (response.status === 401 && retryOnUnauthorized && !path.startsWith("/auth/")) {
         const newToken = await refreshAccessToken();
 
         if (newToken) {
             setToken(newToken)
             headers["Authorization"] = `Bearer ${newToken}`;
             const retry = await fetch(`${BASE_URL}${path}`, {
-                ...options,
+                ...requestOptions,
                 headers,
                 credentials: "include",
             })
 
             if (retry.status === 401) {
                 setToken(null);
-                window.location.href = "/auth";
+                redirectToLogin(redirectOnUnauthorized);
                 throw new Error("Session expired");
             }
 
@@ -83,9 +104,15 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
         }
 
         setToken(null);
-        window.location.href = "/auth";
+        redirectToLogin(redirectOnUnauthorized);
         throw new Error("Session expired");
     }
     if (!response.ok) throw new Error(await response.text());
     return parseJsonResponse<T>(response);
+}
+
+function redirectToLogin(shouldRedirect: boolean) {
+    if (shouldRedirect && typeof window !== "undefined") {
+        window.location.assign("/auth");
+    }
 }

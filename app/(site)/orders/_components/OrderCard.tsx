@@ -76,7 +76,13 @@ export function OrderCard({
                     <li key={it.id} className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden
                              rounded-xl">
-                            <Image src={it.productImage} alt={it.productName} fill sizes="80px" className="object-cover"/>
+                            <Image
+                                src={it.productImage ?? "https://picsum.photos/seed/order-item/80/80"}
+                                alt={it.productName}
+                                fill
+                                sizes="80px"
+                                className="object-cover"
+                            />
                         </div>
                         <div className="min-w-0 flex-1">
                             {/*<p className="text-[10px] font-semibold uppercase*/}
@@ -89,10 +95,10 @@ export function OrderCard({
                             </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <Button onClick={() => onBuyAgain(it)} size="sm" className="text-xs">
+                            <Button onClick={() => onBuyAgain(it)} size="sm" className="text-xs" disabled={!it.product?.id}>
                                 Buy Again
                             </Button>
-                            {o.orderStatus === "DELIVERED" && (
+                            {o.orderStatus === "DELIVERED" && it.product?.id && (
                                 <Button
                                     onClick={() => onReview(it)}
                                     size="sm"

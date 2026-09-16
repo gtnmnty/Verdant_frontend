@@ -70,7 +70,11 @@ export function OrdersFeed() {
 
     // "Buy Again" action sends GraphQL mutation to backend cart
     const buyAgain = (it: OrderItem) => {
-        const productId = it.product?.id || it.id;
+        const productId = it.product?.id;
+        if (!productId) {
+            toast.error("This item is no longer available.");
+            return;
+        }
         gqlRequest(ADD_TO_CART_MUTATION, {
             input: {
                 productId,
@@ -158,8 +162,11 @@ export function OrdersFeed() {
                             onBuyAgain={buyAgain}
                             onReview={(it: OrderItem) => {
                                 // Flow: Navigate to collection product page anchoring to reviews section
-                                const productId = it.product?.id || it.id;
-                                router.push(`/collections/${productId}#reviews`);
+                                if (!it.product?.id) {
+                                    toast.error("This item is no longer available.");
+                                    return;
+                                }
+                                router.push(`/collections/${it.product.id}#reviews`);
                             }}
                             onDownloadInvoice={downloadInvoice}
                         />

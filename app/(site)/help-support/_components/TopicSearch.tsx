@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {useMemo, useState} from "react";
+import {useState} from "react";
 import {
     ArrowRight,
     BadgeCheck,
@@ -92,10 +92,7 @@ export function TopicSearch() {
 
     const showFeatured = match(FEATURED);
     const showSecondary = match(SECONDARY);
-    const visibleTiles = useMemo(
-        () => TILES.filter(match),
-        [q],
-    );
+    const visibleTiles = TILES.filter(match);
     const nothing = !showFeatured && !showSecondary && visibleTiles.length === 0;
 
     return (

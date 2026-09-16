@@ -42,17 +42,17 @@ export const NAV: NavEntry[] = [
 
 export function SideNav({
     active,
-    onChange,
+    onSectionChange,
 }: {
     active: SectionId;
-    onChange: (s: SectionId) => void;
+    onSectionChange: (s: SectionId) => void;
 }) {
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const {setToken} = useAuth();
+    const {logout} = useAuth();
     const router = useRouter();
 
-    const signOut = () => {
-        setToken(null);
+    const signOut = async () => {
+        await logout();
         toast.success("Signed out.");
         router.push("/auth");
     };
@@ -96,7 +96,7 @@ export function SideNav({
                         );
                     }
                     return (
-                        <button key={entry.id} onClick={() => onChange(entry.id)} className={classes}>
+                        <button key={entry.id} onClick={() => onSectionChange(entry.id)} className={classes}>
                             <Icon className="h-4 w-4 shrink-0"/>
                             <span className="whitespace-nowrap">{label}</span>
                         </button>

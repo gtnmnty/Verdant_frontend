@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { AdminProvider } from "@/lib/admin/store";
 import { AdminShellClient } from "@/app/admin/_components/AdminShellClient";
+import { AdminRoleBridge } from "@/app/admin/AdminRoleBridge";
+import React from "react";
 
 export const metadata: Metadata = {
     title: "Admin — Verdant Salon",
@@ -15,7 +17,9 @@ export default function AdminLayout({
 }) {
     return (
         <AdminProvider>
-            <AdminShellClient>{children}</AdminShellClient>
+            <AdminRoleBridge>
+                <AdminShellClient>{children}</AdminShellClient>
+            </AdminRoleBridge>
         </AdminProvider>
     );
 }

@@ -79,7 +79,7 @@ export function OrderDetailContent({id}: { id: string }) {
     const clientOrder: Order = {
         id: order.id,
         orderCode: order.orderCode,
-        orderStatus: order.orderStatus === "PLACED" ? "PROCESSING" : order.orderStatus,
+        orderStatus: order.orderStatus,
         total: Number(order.total),
         createdAt: order.createdAt,
         paymentMethod: order.paymentMethod,
@@ -87,7 +87,7 @@ export function OrderDetailContent({id}: { id: string }) {
         items: order.items.map((i) => ({
             id: i.id,
             productName: i.productName,
-            productImage: i.productImage ?? "", // Converts null to empty string ""
+            productImage: i.productImage,
             quantity: i.quantity,
             unitPrice: Number(i.unitPrice),
         })),
