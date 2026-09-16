@@ -28,7 +28,7 @@ export function NewPasswordForm({ email, code, onDone }: { email: string; code: 
         try {
             await apiRequest("/auth/reset-password", {
                 method: "POST",
-                body: JSON.stringify({ email, verificationCode: code, newPassword: password })
+                body: JSON.stringify({ email, code, newPassword: password })
             });
             setSuccess(true);
         } catch (error) {

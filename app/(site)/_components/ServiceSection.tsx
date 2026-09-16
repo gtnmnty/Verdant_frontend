@@ -1,5 +1,6 @@
 import {Reveal} from "@/utils/Reveal";
 import {SectionLabel} from "@/utils/SectionLabel";
+import Image from "next/image";
 
 type Service = {
     id: string;
@@ -59,11 +60,12 @@ export default function ServicesSection() {
                 {SERVICES.map((s, i) => (
                     <Reveal key={s.id} delay={i * 120} className={i === 1 ? "lg:mt-16" : ""}>
                         <article className="group cursor-pointer">
-                            <div className="overflow-hidden rounded-2xl aspect-[4/5] mb-5">
-                                <img
+                            <div className="relative overflow-hidden rounded-2xl aspect-[4/5] mb-5">
+                                <Image
                                     src={s.image}
                                     alt={s.title}
-                                    loading="lazy"
+                                    fill
+                                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                                     className="h-full w-full object-cover
                                                     transition-transform duration-[1200ms]
                                                     ease-out group-hover:scale-110"

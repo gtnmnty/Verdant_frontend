@@ -3,6 +3,7 @@
 import {Reveal} from "@/utils/Reveal";
 import {SectionLabel} from "@/utils/SectionLabel";
 import {smoothScrollTo} from "@/utils/smoothScrollTo";
+import Image from "next/image";
 
 export default function PromoBanner() {
     return (
@@ -13,9 +14,11 @@ export default function PromoBanner() {
                                 text-rose-50 px-[clamp(1.5rem,5vw,4rem)]
                                 py-[clamp(2.5rem,6vw,5rem)] my-10">
                 <div className="absolute inset-0 opacity-20">
-                    <img
+                    <Image
                         src="https://images.unsplash.com/photo-1522337660859-02fbefca4702?auto=format&fit=crop&w=1600&q=80"
                         alt=""
+                        fill
+                        sizes="100vw"
                         className="h-full w-full object-cover"
                     />
                 </div>

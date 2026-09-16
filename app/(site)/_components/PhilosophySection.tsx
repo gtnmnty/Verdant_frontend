@@ -1,5 +1,6 @@
 import {Reveal} from "@/utils/Reveal";
 import {SectionLabel} from "@/utils/SectionLabel";
+import Image from "next/image";
 
 export default function PhilosophySection() {
     return (
@@ -7,11 +8,12 @@ export default function PhilosophySection() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-10
                  md:gap-16 items-center">
                 <Reveal>
-                    <div className="overflow-hidden rounded-2xl aspect-[4/5]">
-                        <img
+                    <div className="relative overflow-hidden rounded-2xl aspect-[4/5]">
+                        <Image
                             src="https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80"
                             alt="Close-up of refined makeup artistry"
-                            loading="lazy"
+                            fill
+                            sizes="(max-width: 768px) 100vw, 50vw"
                             className="h-full w-full object-cover
                                             transition-transform duration-[1500ms]
                                             hover:scale-105"

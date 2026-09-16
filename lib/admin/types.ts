@@ -1,13 +1,3 @@
-// This file was imported everywhere under `@/lib/admin/types` but never
-// existed in the repo, so the entire /admin section failed to build. Branch
-// below is the real, deliberate shape used by the now-connected `branches`
-// route. Everything else is a loose placeholder — just enough for the
-// still-unconnected admin routes (products, services, orders, stylists,
-// accounts, reviews, appointments, pages) to type-check against their
-// existing mock UI. Tighten each one up to match its real GraphQL DTO as
-// that route gets wired, the same way Branch should eventually be replaced
-// entirely once nothing needs a client-side mirror of it anymore.
-
 export interface Branch {
   id: string;
   name: string;
@@ -22,13 +12,54 @@ export interface Branch {
 }
 
 // --- placeholders below (not yet wired to the backend) ---
-export type Stylist = { id: string; [key: string]: unknown };
-export type Product = { id: string; [key: string]: unknown };
-export type Service = { id: string; [key: string]: unknown };
+export interface Stylist {
+  id: string;
+  fullName: string;
+  branchId?: string;
+  photo?: string;
+  workingHours?: string;
+  [key: string]: unknown;
+}
+
+export interface Product {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
+
+export interface Service {
+  id: string;
+  name: string;
+  [key: string]: unknown;
+}
 export type Order = { id: string; [key: string]: unknown };
 export type OrderStatus = string;
 export type Account = { id: string; [key: string]: unknown };
-export type Review = { id: string; [key: string]: unknown };
+export interface Review {
+  id: string;
+  customer: string;
+  customerAvatar: string;
+  rating: number;
+  content: string;
+  itemType: "service" | "product";
+  itemId: string;
+  itemName: string;
+  serviceName: string;
+  featured: boolean;
+  approval: string;
+  reviewDate: string;
+  createdAt: string;
+  [key: string]: unknown;
+}
 export type Appointment = { id: string; [key: string]: unknown };
 export type AppointmentStatus = string;
-export type PageRecord = { id: string; [key: string]: unknown };
+export interface PageRecord {
+  id: string;
+  title: string;
+  slug: string;
+  status: "draft" | "published";
+  metaTitle: string;
+  metaDescription: string;
+  content: string;
+  updatedAt: string;
+}

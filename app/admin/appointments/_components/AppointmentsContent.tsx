@@ -85,6 +85,9 @@ const CANCEL_APPOINTMENT_MUTATION = `
 `;
 
 const FALLBACK_AVATAR = "https://picsum.photos/seed/appointment-admin/100/100";
+const STATUS_TO_BACKEND: Record<AppointmentStatus, string> = {
+  pending: "PENDING", upcoming: "UPCOMING", completed: "COMPLETED", cancelled: "CANCELLED",
+};
 
 function toAdminAppointment(a: BackendAdminAppointmentDto): AdminAppointment {
   return {
@@ -123,10 +126,6 @@ export function AppointmentsContent() {
   const [branchOptions, setBranchOptions] = useState<string[]>([]);
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState<AdminAppointment | null>(null);
-
-  const STATUS_TO_BACKEND: Record<AppointmentStatus, string> = {
-    pending: "PENDING", upcoming: "UPCOMING", completed: "COMPLETED", cancelled: "CANCELLED",
-  };
 
   const fetchAppointments = () => {
     setLoading(true);
@@ -274,7 +273,7 @@ export function AppointmentsContent() {
         columns={columns}
         emptyTitle={loading ? "Loading…" : "No appointments found"}
         emptyDescription={loading ? "Fetching appointments from the server." : "Try a different search, status, or branch filter."}
-        rowActions={(row) => [
+        rowActions={() => [
           {
             label: "View details",
             onSelect: (r: AdminAppointment) => router.push(`/admin/appointments/${r.id}`),

@@ -1,6 +1,5 @@
 "use client";
 
-import {toast} from "sonner";
 import {Button} from "@/app/(site)/auth/_components/ui/Button";
 import {GoogleIcon, AppleIcon} from "@/app/(site)/auth/_components/ui/Icons";
 

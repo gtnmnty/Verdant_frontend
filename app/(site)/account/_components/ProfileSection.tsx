@@ -1,7 +1,7 @@
 "use client";
 
 import {useRouter} from "next/navigation";
-import React, {useRef, useState, type SubmitEvent} from "react";
+import React, {useEffect, useRef, useState, type SubmitEvent} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {toast} from "sonner";
@@ -21,7 +21,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import {SectionCard, SectionTitle} from "@/app/(site)/account/_components/shared";
-import {SEED as APPT_SEED, formatDateTime} from "@/app/(site)/appointments/_components/data";
+import {formatDateTime} from "@/app/(site)/appointments/_components/data";
 import {
     STATUS_LABELS as ORDER_STATUS_LABELS,
     formatDate as formatOrderDate,
@@ -84,6 +84,24 @@ interface ProfileData {
     country: string;
 }
 
+interface UpcomingAppointment {
+    id: string;
+    serviceName: string;
+    scheduledAt: string;
+}
+
+const UPCOMING_APPOINTMENT_QUERY = `
+    query ProfileUpcomingAppointment {
+        myAppointments(status: UPCOMING, page: 1, pageSize: 1) {
+            items {
+                id
+                serviceName
+                scheduledAt
+            }
+        }
+    }
+`;
+
 const FIELD_KEYS = [
     ["fullName", "Full Name"],
     ["email", "Email"],
@@ -111,6 +129,7 @@ export function ProfileSection() {
     const [draft, setDraft] = useState(data);
     const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
+    const [upcoming, setUpcoming] = useState<UpcomingAppointment | null>(null);
     const [memberSince, setMemberSince] = useState("2024");
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -173,6 +192,14 @@ export function ProfileSection() {
                 // Orders loading failed
             });
 
+        gqlRequest<{ myAppointments: { items: UpcomingAppointment[] } }>(UPCOMING_APPOINTMENT_QUERY)
+            .then((res) => {
+                if (!cancelled) setUpcoming(res.myAppointments.items[0] ?? null);
+            })
+            .catch(() => {
+                if (!cancelled) setUpcoming(null);
+            });
+
         return () => { cancelled = true; };
     }, []);
 
@@ -232,8 +259,6 @@ export function ProfileSection() {
             toast.error(err instanceof Error ? err.message : "Failed to upload photo.");
         }
     };
-
-    const upcoming = APPT_SEED.find((a) => a.status === "upcoming");
 
     return (
         <div className="space-y-10">
@@ -348,7 +373,7 @@ export function ProfileSection() {
                         <div className="grid gap-6 md:grid-cols-[200px_1fr]">
                             <div className="relative aspect-square w-full overflow-hidden
                                  rounded-xl">
-                                <Image src={upcoming.image} alt={upcoming.service} fill sizes="200px"
+                                <Image src="https://picsum.photos/seed/appointment-profile/400/400" alt={upcoming.serviceName} fill sizes="200px"
                                        className="object-cover"/>
                             </div>
                             <div className="min-w-0">
@@ -362,11 +387,10 @@ export function ProfileSection() {
                                 <h3 className="mt-3 font-display
                                     text-[clamp(1.35rem,2.4vw,1.85rem)]
                                     text-primary">
-                                    {upcoming.service}
+                                    {upcoming.serviceName}
                                 </h3>
-                                <p className="mt-1 text-sm text-on-surface-variant">with {upcoming.stylist}</p>
                                 <p className="mt-3 text-sm text-on-surface-variant">
-                                    {formatDateTime(upcoming.date)}
+                                    {formatDateTime(upcoming.scheduledAt)}
                                 </p>
                             </div>
                         </div>
