@@ -1,6 +1,6 @@
 "use client";
 
-import {useMemo, useState} from "react";
+import {useEffect, useState} from "react";
 import {Search} from "lucide-react";
 import {toast} from "sonner";
 import {Input} from "@/components/ui/input";
@@ -19,77 +19,115 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
-import {CATEGORIES, PRODUCTS, type Category} from "@/app/(site)/collections/_components/data";
+import {gqlRequest} from "@/utils/graphqlClient";
 import {ProductCard} from "@/app/(site)/collections/_components/ProductCard";
+import {
+    PRODUCTS_QUERY,
+    TOGGLE_FAVORITE_PRODUCT_MUTATION,
+    CATEGORY_LABELS,
+    type BackendProductSummary,
+} from "@/app/(site)/collections/_components/query";
 
 const PAGE_SIZE = 6;
+
+// Backend only supports filtering by a single category at a time
+// (ProductSpec.hasCategory does an equality check, not an IN clause),
+// so this is a single-select toggle rather than the multi-select the
+// old mock UI had.
+const CATEGORIES = ["SKIN_CARE", "HAIR_CARE", "MAKE_UP"] as const;
+type Category = (typeof CATEGORIES)[number];
+
 type SortKey = "newest" | "oldest" | "price-low" | "price-high";
 
+const SORT_TO_BACKEND: Record<SortKey, string> = {
+    "newest": "NEWEST",
+    "oldest": "OLDEST",
+    "price-low": "PRICE_LOW_TO_HIGH",
+    "price-high": "PRICE_HIGH_TO_LOW",
+};
+
 export function CollectionsExplorer() {
-    const [activeFilters, setActiveFilters] = useState<Set<Category>>(new Set());
+    const [activeCategory, setActiveCategory] = useState<Category | null>(null);
     const [query, setQuery] = useState("");
     const [sort, setSort] = useState<SortKey>("newest");
     const [page, setPage] = useState(1);
-    const [wishlist, setWishlist] = useState<Set<string>>(new Set());
 
-    const toggleFilter = (cat: Category) => {
-        setActiveFilters((prev) => {
-            const next = new Set(prev);
-            if (next.has(cat)) next.delete(cat);
-            else next.add(cat);
-            return next;
-        });
+    const [products, setProducts] = useState<BackendProductSummary[]>([]);
+    const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(true);
+
+    const toggleCategory = (cat: Category) => {
+        setActiveCategory((prev) => (prev === cat ? null : cat));
         setPage(1);
     };
 
+    // Debounce search input so we're not firing a request on every keystroke.
+    const [debouncedQuery, setDebouncedQuery] = useState("");
+    useEffect(() => {
+        const t = setTimeout(() => setDebouncedQuery(query), 300);
+        return () => clearTimeout(t);
+    }, [query]);
+
+    useEffect(() => {
+        setPage(1);
+    }, [debouncedQuery, activeCategory, sort]);
+
+    useEffect(() => {
+        let cancelled = false;
+        setLoading(true);
+
+        gqlRequest<{ products: {
+            items: BackendProductSummary[];
+            totalPages: number;
+        } }>(PRODUCTS_QUERY, {
+            category: activeCategory ?? undefined,
+            search: debouncedQuery.trim() || undefined,
+            sort: SORT_TO_BACKEND[sort],
+            page,
+            pageSize: PAGE_SIZE,
+        })
+            .then((res) => {
+                if (cancelled) return;
+                setProducts(res.products.items);
+                setTotalPages(Math.max(1, res.products.totalPages));
+                setWishlist(new Set(res.products.items.filter((p) => p.isFavorited).map((p) => p.id)));
+            })
+            .catch((err) => {
+                if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load products.");
+            })
+            .finally(() => { if (!cancelled) setLoading(false); });
+
+        return () => { cancelled = true; };
+    }, [activeCategory, debouncedQuery, sort, page]);
+
     const toggleWishlist = (id: string, name: string) => {
+        const wasWished = wishlist.has(id);
+
         setWishlist((prev) => {
             const next = new Set(prev);
-            if (next.has(id)) {
-                next.delete(id);
-                toast(`Removed "${name}" from wishlist`);
-            } else {
-                next.add(id);
-                toast.success(`Added "${name}" to wishlist`);
-            }
+            if (wasWished) next.delete(id); else next.add(id);
             return next;
         });
+
+        gqlRequest(TOGGLE_FAVORITE_PRODUCT_MUTATION, {targetId: id})
+            .then(() => {
+                if (wasWished) {
+                    toast(`Removed "${name}" from wishlist`);
+                } else {
+                    toast.success(`Added "${name}" to wishlist`);
+                }
+            })
+            .catch((err) => {
+                // Roll back on failure.
+                setWishlist((prev) => {
+                    const next = new Set(prev);
+                    if (wasWished) next.add(id); else next.delete(id);
+                    return next;
+                });
+                toast.error(err instanceof Error ? err.message : "Failed to update wishlist.");
+            });
     };
-
-    const filtered = useMemo(() => {
-        let list = PRODUCTS.filter((p) =>
-            activeFilters.size === 0 ? true : activeFilters.has(p.category),
-        );
-        if (query.trim()) {
-            const q = query.toLowerCase();
-            list = list.filter(
-                (p) =>
-                    p.name.toLowerCase().includes(q) ||
-                    p.category.toLowerCase().includes(q) ||
-                    p.subLabel.toLowerCase().includes(q),
-            );
-        }
-        list = [...list].sort((a, b) => {
-            switch (sort) {
-                case "oldest":
-                    return a.createdAt - b.createdAt;
-                case "price-low":
-                    return a.price - b.price;
-                case "price-high":
-                    return b.price - a.price;
-                default:
-                    return b.createdAt - a.createdAt;
-            }
-        });
-        return list;
-    }, [activeFilters, query, sort]);
-
-    const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-    const currentPage = Math.min(page, totalPages);
-    const paged = filtered.slice(
-        (currentPage - 1) * PAGE_SIZE,
-        currentPage * PAGE_SIZE,
-    );
 
     return (
         <>
@@ -101,12 +139,12 @@ export function CollectionsExplorer() {
                 <div className="flex min-w-0 flex-wrap items-center
                  justify-center gap-2 md:justify-start">
                     {CATEGORIES.map((cat) => {
-                        const active = activeFilters.has(cat);
+                        const active = activeCategory === cat;
                         return (
                             <button
                                 key={cat}
                                 type="button"
-                                onClick={() => toggleFilter(cat)}
+                                onClick={() => toggleCategory(cat)}
                                 aria-pressed={active}
                                 className={`rounded-full border px-4 py-1.5 text-xs font-medium tracking-wide transition-colors duration-200 ${
                                     active
@@ -114,7 +152,7 @@ export function CollectionsExplorer() {
                                         : "border-border bg-transparent text-on-surface hover:border-primary hover:text-primary"
                                 }`}
                             >
-                                {cat}
+                                {CATEGORY_LABELS[cat]}
                             </button>
                         );
                     })}
@@ -130,10 +168,7 @@ export function CollectionsExplorer() {
                         type="search"
                         placeholder="Search the edit…"
                         value={query}
-                        onChange={(e) => {
-                            setQuery(e.target.value);
-                            setPage(1);
-                        }}
+                        onChange={(e) => setQuery(e.target.value)}
                         className="pl-10"
                     />
                 </div>
@@ -160,7 +195,9 @@ export function CollectionsExplorer() {
             </div>
 
             {/* Grid */}
-            {paged.length === 0 ? (
+            {loading ? (
+                <p className="mt-20 text-center text-sm text-on-surface-variant">Loading products…</p>
+            ) : products.length === 0 ? (
                 <div className="mt-20 flex flex-col items-center
                  justify-center text-center">
                     <p className="font-display text-2xl text-primary">No products found</p>
@@ -171,7 +208,7 @@ export function CollectionsExplorer() {
             ) : (
                 <ul className="mt-10 grid grid-cols-1 gap-x-6 gap-y-12
                  sm:grid-cols-2 lg:grid-cols-3">
-                    {paged.map((p) => (
+                    {products.map((p) => (
                         <li key={p.id}>
                             <ProductCard
                                 product={p}
@@ -195,7 +232,7 @@ export function CollectionsExplorer() {
                                         e.preventDefault();
                                         setPage((p) => Math.max(1, p - 1));
                                     }}
-                                    className={currentPage === 1 ? "pointer-events-none opacity-40" : ""}
+                                    className={page === 1 ? "pointer-events-none opacity-40" : ""}
                                 />
                             </PaginationItem>
                             {Array.from({length: totalPages}).map((_, i) => {
@@ -204,7 +241,7 @@ export function CollectionsExplorer() {
                                     <PaginationItem key={n}>
                                         <PaginationLink
                                             href="#"
-                                            isActive={n === currentPage}
+                                            isActive={n === page}
                                             onClick={(e) => {
                                                 e.preventDefault();
                                                 setPage(n);
@@ -223,7 +260,7 @@ export function CollectionsExplorer() {
                                         setPage((p) => Math.min(totalPages, p + 1));
                                     }}
                                     className={
-                                        currentPage === totalPages ? "pointer-events-none opacity-40" : ""
+                                        page === totalPages ? "pointer-events-none opacity-40" : ""
                                     }
                                 />
                             </PaginationItem>

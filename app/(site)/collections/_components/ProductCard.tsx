@@ -1,17 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import {Heart} from "lucide-react";
-import type {Product} from "@/app/(site)/collections/_components/data";
+import {CATEGORY_LABELS, type BackendProductSummary} from "@/app/(site)/collections/_components/query";
+
+const FALLBACK_IMAGE = "https://picsum.photos/seed/collections-product/900/1125";
 
 export function ProductCard({
     product,
     wished,
     onWish,
 }: {
-    product: Product;
+    product: BackendProductSummary;
     wished: boolean;
     onWish: () => void;
 }) {
+    const displayPrice = product.salePrice ?? product.price;
+
     return (
         <article className="group flex flex-col">
             <Link
@@ -21,7 +25,7 @@ export function ProductCard({
             >
                 <div className="relative aspect-4/5 w-full">
                     <Image
-                        src={product.image}
+                        src={product.primaryImage?.url ?? FALLBACK_IMAGE}
                         alt={product.name}
                         fill
                         sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
@@ -59,11 +63,11 @@ export function ProductCard({
                     </h3>
                     <p className="mt-2 text-[11px] uppercase tracking-[0.18em]
                        text-soft-rose">
-                        {product.category} / {product.subLabel}
+                        {CATEGORY_LABELS[product.catalog] ?? product.catalog}
                     </p>
                 </div>
                 <span className="shrink-0 font-display text-base text-primary">
-          ${product.price}
+          ${displayPrice}
         </span>
             </Link>
         </article>
