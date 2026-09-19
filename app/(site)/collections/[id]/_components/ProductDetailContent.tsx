@@ -11,50 +11,11 @@ import {ProductTabs} from "@/app/(site)/collections/[id]/_components/ProductTabs
 import {ReviewsSection} from "@/app/(site)/collections/[id]/_components/ReviewsSection";
 import {RelatedProducts} from "@/app/(site)/collections/[id]/_components/RelatedProducts";
 import {FaqSection} from "@/app/(site)/collections/[id]/_components/FaqSection";
-
-const CATEGORY_LABELS: Record<string, string> = {
-    SKIN_CARE: "Skin Care",
-    HAIR_CARE: "Hair Care",
-    MAKE_UP: "Make Up",
-};
-
-interface BackendProduct {
-    id: string;
-    name: string;
-    catalog: string;
-    price: number;
-    salePrice: number | null;
-    description: string | null;
-    reviewCount: number;
-    averageRating: number;
-    tags: string[];
-    info: string[];
-    images: {url: string}[];
-    primaryImage: {url: string} | null;
-    isFavorited: boolean;
-    inStock: boolean;
-}
-
-const PRODUCT_QUERY = `
-    query ProductDetail($id: ID!) {
-        product(id: $id) {
-            id
-            name
-            catalog
-            price
-            salePrice
-            description
-            reviewCount
-            averageRating
-            tags
-            info
-            images { url }
-            primaryImage { url }
-            isFavorited
-            inStock
-        }
-    }
-`;
+import {
+    PRODUCT_BY_ID_QUERY,
+    CATEGORY_LABELS,
+    type BackendProduct,
+} from "@/app/(site)/collections/_components/query";
 
 export function ProductDetailContent({id}: { id: string }) {
     const [product, setProduct] = useState<BackendProduct | null>(null);
@@ -64,7 +25,7 @@ export function ProductDetailContent({id}: { id: string }) {
         let cancelled = false;
         setLoading(true);
 
-        gqlRequest<{ product: BackendProduct | null }>(PRODUCT_QUERY, {id})
+        gqlRequest<{ product: BackendProduct | null }>(PRODUCT_BY_ID_QUERY, {id})
             .then((res) => { if (!cancelled) setProduct(res.product); })
             .catch((err) => {
                 if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load product.");

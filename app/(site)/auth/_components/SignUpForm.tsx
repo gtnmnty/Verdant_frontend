@@ -33,7 +33,7 @@ export function SignUpForm({
    onSuccess,
 }: {
     onSwitchToLogin: () => void;
-    onSuccess: () => void;
+    onSuccess: (email: string) => void;
 }) {
     const [form, setForm] = useState<FormState>(INITIAL);
     const [errors, setErrors] = useState<Errors>({});
@@ -68,12 +68,12 @@ export function SignUpForm({
                 body: JSON.stringify({
                     fullName: form.fullName,
                     email: form.email,
-                    phoneNumber: form.phone,
+                    phone: form.phone,
                     password: form.password,
                 })
             })
             toast.success("Account created! Check your email to verify.");
-            onSuccess(); // takes user to login
+            onSuccess(form.email); // takes user to the verification step
         }
         catch (e) {
             toast.error(e instanceof Error ? e.message : "Account creation failed.");

@@ -51,6 +51,22 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
     return text ? JSON.parse(text) as T : undefined as T;
 }
 
+// REST errors always come back as ErrorResponse { timestamp, status, error, message, path }
+// (see GlobalExceptionHandler). Extract just the human-readable `message` for the thrown
+// Error, falling back to the raw text if the body isn't JSON (e.g. a proxy/502 page).
+async function errorFromResponse(response: Response): Promise<Error> {
+    const text = await response.text();
+    try {
+        const parsed = JSON.parse(text);
+        if (parsed && typeof parsed.message === "string") {
+            return new Error(parsed.message);
+        }
+    } catch {
+        // not JSON — fall through to raw text below
+    }
+    return new Error(text || `Request failed with status ${response.status}`);
+}
+
 // Central fetch wrapper for all authenticated API requests
 // Automatically attaches the access token and retries once on 401
 // using the refresh token before redirecting to log in.
@@ -99,7 +115,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
                 throw new Error("Session expired");
             }
 
-            if (!retry.ok) throw new Error(await retry.text());
+            if (!retry.ok) throw await errorFromResponse(retry);
             return parseJsonResponse<T>(retry);
         }
 
@@ -107,7 +123,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
         redirectToLogin(redirectOnUnauthorized);
         throw new Error("Session expired");
     }
-    if (!response.ok) throw new Error(await response.text());
+    if (!response.ok) throw await errorFromResponse(response);
     return parseJsonResponse<T>(response);
 }
 
