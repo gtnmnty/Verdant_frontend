@@ -1,6 +1,8 @@
 "use client";
 
-import {useState} from "react";
+import {useEffect, useState} from "react";
+import {useRouter} from "next/navigation";
+import {useAuth} from "@/context/AuthContext";
 import {SideNav} from "@/app/(site)/account/_components/SideNav";
 import {ProfileSection} from "@/app/(site)/account/_components/ProfileSection";
 import {GiftCardsSection} from "@/app/(site)/account/_components/GiftCardsSection";
@@ -11,6 +13,26 @@ export type SectionId = "profile" | "gift-cards" | "favourites" | "support";
 
 export function AccountContent() {
     const [section, setSection] = useState<SectionId>("profile");
+    const {token, loading} = useAuth();
+    const router = useRouter();
+
+    useEffect(() => {
+        if (!loading && token === null) {
+            router.replace("/auth");
+        }
+    }, [loading, token, router]);
+
+    // Still checking for an existing session — render nothing rather than a
+    // flash of "you're logged out" or an empty account page.
+    if (loading) {
+        return null;
+    }
+
+    // Confirmed logged out — redirect above is in flight; render nothing
+    // instead of any account content while that navigation happens.
+    if (token === null) {
+        return null;
+    }
 
     return (
         <div className="mx-auto w-[min(90vw,1400px)] pb-16">
