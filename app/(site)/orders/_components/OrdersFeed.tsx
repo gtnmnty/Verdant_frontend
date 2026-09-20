@@ -15,6 +15,7 @@ import type { Order, OrderItem } from "@/app/(site)/orders/_components/data";
 import { formatDate } from "@/app/(site)/orders/_components/data";
 import { useRouter } from "next/navigation";
 import { MY_ORDERS_QUERY } from "@/app/(site)/orders/_components/query";
+import {useAuth} from "@/context/AuthContext";
 
 const PER_PAGE = 6;
 
@@ -36,7 +37,15 @@ export function OrdersFeed() {
     const [sort, setSort] = useState<OrderSort>("date-desc");
     const [page, setPage] = useState(1);
 
+    const {token, loading: authLoading} = useAuth();
     const router = useRouter();
+
+    // checks if signed in first
+    useEffect(() => {
+        if(!authLoading && token === null){
+            router.replace("/auth");
+        }
+    }, [authLoading, token, router]);
 
     // Fetch paginated orders from GraphQL backend when filters, sort, or page changes
     useEffect(() => {
@@ -118,6 +127,10 @@ export function OrdersFeed() {
         URL.revokeObjectURL(url);
         toast.success(`Invoice ${o.orderCode || o.id} downloaded.`);
     };
+
+    if (authLoading || token === null) {
+        return null;
+    }
 
     return (
         <div className="mx-auto w-[min(90vw,1400px)] pb-16">
