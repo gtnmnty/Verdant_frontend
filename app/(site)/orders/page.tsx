@@ -1,5 +1,5 @@
 import type {Metadata} from "next";
-import {OrderDetailContent} from "@/app/(site)/orders/[id]/_components/OrderDetailContent";
+import {OrdersFeed} from "@/app/(site)/orders/_components/OrdersFeed";
 
 export const metadata: Metadata = {
     title: "Order Details — Verdant Luxe",
@@ -16,7 +16,6 @@ export const metadata: Metadata = {
     twitter: {card: "summary"},
 };
 
-export default async function OrderDetailsPage({params,}: { params: Promise<{ id: string }>; }) {
-    const {id} = await params;
-    return <OrderDetailContent id={id}/>;
+export default function OrdersPage() {
+    return <OrdersFeed/>;
 }

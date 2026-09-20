@@ -20,8 +20,9 @@ import {
     RescheduleDialog,
 } from "@/app/(site)/appointments/_components/AppointmentDialogs";
 import type {Appointment} from "@/app/(site)/appointments/_components/data";
+import {useAuth} from "@/context/AuthContext";
 
-const PER_PAGE = 4;
+const PER_PAGE = 6;
 const FALLBACK_IMAGE = "https://picsum.photos/seed/appointment/400/400";
 
 interface BackendAppointment {
@@ -157,6 +158,14 @@ export function AppointmentsFeed() {
     const [newDate, setNewDate] = useState("");
     const [newTime, setNewTime] = useState("");
 
+    const {token, loading: authLoading} = useAuth();
+
+    useEffect(() => {
+        if(!authLoading && token === null){
+            router.replace("/auth");
+        }
+    }, [authLoading, token, router]);
+
     useEffect(() => {
         gqlRequest<{ appointmentStatusCounts: StatusCounts }>(STATUS_COUNTS_QUERY)
             .then((res) => setCounts(res.appointmentStatusCounts))
@@ -234,6 +243,10 @@ export function AppointmentsFeed() {
     const bookAgain = (a: Appointment) => {
         router.push(`/book?service=${encodeURIComponent(a.service)}`);
     };
+
+    if (authLoading || token === null) {
+        return null;
+    }
 
     return (
         <div className="mx-auto w-[min(90vw,1400px)]">
