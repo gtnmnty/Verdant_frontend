@@ -21,6 +21,8 @@ import {
     type DeliveryOption,
     type RecommendedProduct,
 } from "@/app/(site)/cart/_components/data";
+import {useAuth} from "@/context/AuthContext";
+import Link from "next/link";
 
 // --- backend <-> frontend delivery option mapping ---
 // Backend enum (common.graphql): STANDARD | EXPRESS | SAME_DAY
@@ -146,6 +148,8 @@ export function CartContent() {
     const [items, setItems] = useState<CartProduct[]>([]);
     const [loading, setLoading] = useState(true);
     const [giftPackaging, setGiftPackaging] = useState(false);
+
+    const {token, loading: authLoading} = useAuth();
 
     function applyCart(cart: BackendCart, prevItems: CartProduct[] = items) {
         const previouslySelected = Object.fromEntries(prevItems.map((i) => [i.id, i.selected]));
@@ -281,6 +285,22 @@ export function CartContent() {
             JSON.stringify(selectedItems.map((item) => item.id)),
         );
         router.push("/checkout");
+    }
+
+    if (authLoading) { return null; }
+
+    if (token === null) {
+        return (
+            <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+                <p className="font-display text-2xl text-primary">Sign in required</p>
+                <p className="max-w-sm text-sm text-on-surface-variant">
+                    Please sign in to view your {/* "shopping bag" or "notifications" */}.
+                </p>
+                <Link href="/auth">
+                    <Button size="lg">Sign In</Button>
+                </Link>
+            </div>
+        );
     }
 
     return (
