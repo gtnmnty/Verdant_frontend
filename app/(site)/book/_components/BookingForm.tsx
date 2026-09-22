@@ -11,7 +11,8 @@ import {
     FloatingTextarea,
 } from "@/app/(site)/book/_components/FloatingField";
 import {BookingSection} from "@/app/(site)/book/_components/BookingSection";
-import {BRANCHES, SERVICES, TIME_SLOTS} from "@/app/(site)/book/_components/data";
+import { useBranches } from "@/hooks/useBranches";
+import {SERVICES, TIME_SLOTS} from "@/app/(site)/book/_components/data";
 
 type ServiceType = "in-salon" | "home";
 
@@ -52,6 +53,7 @@ const INITIAL: FormState = {
 };
 
 export function BookingForm() {
+    const {branches, loading: branchesLoading} = useBranches();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -162,7 +164,7 @@ export function BookingForm() {
                                 label="Preferred Branch"
                                 value={form.branch}
                                 onChange={(v) => set("branch", v)}
-                                options={BRANCHES}
+                                options={branchesLoading ? ["Loading…"] : branches.map(b => b.name)}
                                 error={errors.branch}
                             />
                         </div>

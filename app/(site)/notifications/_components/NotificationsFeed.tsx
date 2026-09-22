@@ -39,6 +39,7 @@ import {
     type GqlNotification,
     type NotifCategory,
 } from "@/app/(site)/notifications/_components/data";
+import {useAuth} from "@/context/AuthContext";
 
 type StatusFilter = "all" | "read" | "unread";
 type CategoryFilter = "all" | NotifCategory;
@@ -122,6 +123,8 @@ export function NotificationsFeed() {
     const [to, setTo] = useState("");
     const [visible, setVisible] = useState(PAGE);
     const sentinel = useRef<HTMLDivElement>(null);
+
+    const {token, loading} = useAuth();
 
     // Initial load from the notification backend.
     useEffect(() => {
@@ -265,6 +268,24 @@ export function NotificationsFeed() {
     const filtersActive = Boolean(
         query || from || to || status !== "all" || category !== "all" || importantOnly,
     );
+
+    if (loading) {
+        return null;
+    }
+
+    if (token === null) {
+        return (
+            <div className="flex flex-col items-center justify-center gap-4 py-24 text-center">
+                <p className="font-display text-2xl text-primary">Sign in required</p>
+                <p className="max-w-sm text-sm text-on-surface-variant">
+                    Please sign in to view your {/* "shopping bag" or "notifications" */}.
+                </p>
+                <Link href="/auth">
+                    <Button size="lg">Sign In</Button>
+                </Link>
+            </div>
+        );
+    }
 
     return (
         <div

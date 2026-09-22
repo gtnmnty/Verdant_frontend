@@ -38,9 +38,15 @@ type BaseProps = {
     error?: string;
 };
 
+// Shared box height/shape for every field in the form, text inputs included.
+const FIELD_BASE =
+    "w-full h-[56px] rounded-xl border bg-white px-4 pb-2.5 pt-5 text-sm text-on-surface outline-none transition-colors";
+const FIELD_BORDER = (error?: string) =>
+    error ? "border-rose-400 focus:border-rose-500" : "border-border focus:border-primary";
+
 /** Single-line text / email input with a label that floats to the top-left on focus or value. */
 export function FloatingInput({
-    label, value, error, onChange, type = "text",}: BaseProps & {
+                                  label, value, error, onChange, type = "text",}: BaseProps & {
     onChange: (value: string) => void; type?: "text" | "email" | "tel";
 }) {
     const [focused, setFocused] = useState(false);
@@ -55,13 +61,7 @@ export function FloatingInput({
                     onChange={(e) => onChange(e.target.value)}
                     onFocus={() => setFocused(true)}
                     onBlur={() => setFocused(false)}
-                    className={`w-full rounded-xl border bg-white px-4 
-                    pb-2.5 pt-5 text-sm text-on-surface outline-none 
-                    transition-colors ${
-                        error ? "border-rose-400 " +
-                            "focus:border-rose-500" : 
-                            "border-border focus:border-primary"
-                    }`}
+                    className={`${FIELD_BASE} ${FIELD_BORDER(error)}`}
                 />
                 <FloatingLabel label={label} active={active}/>
             </div>
@@ -69,44 +69,41 @@ export function FloatingInput({
     );
 }
 
-/** Multi-line textarea with the same floating-label behavior. */
+/**
+ * Multi-line textarea. Like the date field, the label stays floated at
+ * top-left always — a vertically-centered label looks wrong once the box
+ * is tall (rows=5+), so there's no "resting center" state here.
+ */
 export function FloatingTextarea({
-     label, value, error, onChange, rows = 5,
-}: BaseProps & { onChange: (value: string) => void; rows?: number
+                                     label, value, error, onChange, rows = 5,
+                                 }: BaseProps & { onChange: (value: string) => void; rows?: number
 }) {
-    const [focused, setFocused] = useState(false);
-    const active = focused || value.length > 0;
-
     return (
         <FieldShell error={error}>
             <div className="relative">
         <textarea
             value={value}
             onChange={(e) => onChange(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={() => setFocused(false)}
             rows={rows}
             className={`w-full resize-none rounded-xl border 
             bg-white px-4 pb-3 pt-6 text-sm text-on-surface 
-            outline-none transition-colors ${
-                error ? "border-rose-400 " +
-                    "focus:border-rose-500" : 
-                    "border-border focus:border-primary"
-            }`}
+            outline-none transition-colors ${FIELD_BORDER(error)}`}
         />
-                <FloatingLabel label={label} active={active}/>
+                <FloatingLabel label={label} active={true}/>
             </div>
         </FieldShell>
     );
 }
 
-/** Date input — the label floats up on focus or once a date is picked, since native date inputs render their own placeholder. */
+/**
+ * Date input. Native date inputs always render a locale placeholder
+ * (dd/mm/yyyy) that JS can't detect, so there's no real "empty" state to
+ * protect — the label stays floated permanently, same final position as
+ * an active FloatingInput, so it lines up with the rest of the form.
+ */
 export function FloatingDateInput({
-    label, value, error, onChange,
-}: BaseProps & { onChange: (value: string) => void }) {
-    const [focused, setFocused] = useState(false);
-    const active = focused || value.length > 0;
-
+                                      label, value, error, onChange,
+                                  }: BaseProps & { onChange: (value: string) => void }) {
     return (
         <FieldShell error={error}>
             <div className="relative">
@@ -114,27 +111,18 @@ export function FloatingDateInput({
                     type="date"
                     value={value}
                     onChange={(e) => onChange(e.target.value)}
-                    onFocus={() => setFocused(true)}
-                    onBlur={() => setFocused(false)}
-                    className={`w-full rounded-xl border 
-                    bg-white px-4 pb-2.5 pt-5 
-                    text-sm text-on-surface 
-                    outline-none transition-colors ${
-                        error ? "border-rose-400 " +
-                            "focus:border-rose-500" : 
-                            "border-border focus:border-primary"
-                    }`}
+                    className={`${FIELD_BASE} ${FIELD_BORDER(error)}`}
                 />
-                <FloatingLabel label={label} active={active}/>
+                <FloatingLabel label={label} active={true}/>
             </div>
         </FieldShell>
     );
 }
 
-/** shadcn Select — the label floats up once the dropdown opens or a value is chosen. */
+// shadcn Select — the label floats up once the dropdown opens or a value is chosen. */
 export function FloatingSelect({
-   label, value, error, onChange, options,
-}: BaseProps & { onChange: (value: string) => void; options: readonly string[]
+                                   label, value, error, onChange, options,
+                               }: BaseProps & { onChange: (value: string) => void; options: readonly string[]
 }) {
     const [open, setOpen] = useState(false);
     const active = open || value.length > 0;
@@ -144,9 +132,12 @@ export function FloatingSelect({
             <div className="relative">
                 <Select value={value} onValueChange={onChange} onOpenChange={setOpen}>
                     <SelectTrigger
-                        className={`w-full pb-2.5 pt-5 ${
-                            error ? "border-rose-400" : ""
-                        }`}
+                        className={`
+                            flex! h-14! w-full! items-end! justify-between! gap-2!
+                            rounded-xl! border! bg-white! px-4! pb-2.5! pt-5!
+                            text-sm! text-on-surface! shadow-none!
+                            ${error ? "border-rose-400!" : "border-border!"}
+                        `}
                     >
                         <SelectValue placeholder=""/>
                     </SelectTrigger>
