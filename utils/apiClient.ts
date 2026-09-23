@@ -39,7 +39,7 @@ async function refreshAccessTokenOnce(): Promise<string | null> {
 
         if (!response.ok) return null;
         const data = await response.json();
-        return data.accessToken ?? null;
+        return data.token ?? null;
     } catch {
         return null;
     }

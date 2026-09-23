@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, type SubmitEvent} from "react";
+import {useState, type SubmitEvent, useEffect} from "react";
 import {useRouter, useSearchParams} from "next/navigation";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
@@ -13,47 +13,13 @@ import {
 import {BookingSection} from "@/app/(site)/book/_components/BookingSection";
 import { useBranches } from "@/hooks/useBranches";
 import {SERVICES, TIME_SLOTS} from "@/app/(site)/book/_components/data";
-
-type ServiceType = "in-salon" | "home";
-
-interface FormState {
-    name: string;
-    phone: string;
-    email: string;
-    service: string;
-    serviceType: ServiceType;
-    branch: string;
-    address: string;
-    suite: string;
-    city: string;
-    postal: string;
-    region: string;
-    date: string;
-    time: string;
-    notes: string;
-}
-
-type Errors = Partial<Record<keyof FormState, string>>;
-
-const INITIAL: FormState = {
-    name: "",
-    phone: "",
-    email: "",
-    service: "",
-    serviceType: "in-salon",
-    branch: "",
-    address: "",
-    suite: "",
-    city: "",
-    postal: "",
-    region: "",
-    date: "",
-    time: "",
-    notes: "",
-};
+import {Errors, FormState, INITIAL, PROFILE_ME_QUERY, ServiceType} from "@/app/(site)/book/_components/query";
+import {gqlRequest} from "@/utils/graphqlClient";
+import {useAuth} from "@/context/AuthContext";
 
 export function BookingForm() {
     const {branches, loading: branchesLoading} = useBranches();
+    const {loading: authLoading} = useAuth();
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -73,6 +39,50 @@ export function BookingForm() {
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
 
+    useEffect(() => {
+        // Wait for AuthProvider's initial /auth/refresh check to resolve.
+        // Firing this before that finishes means the request goes out with
+        // no token yet, even though the user IS logged in — it just hasn't
+        // been confirmed/restored into React state yet on a fresh page load.
+        if (authLoading) return;
+        let cancelled = false
+
+        gqlRequest<{
+            me: {
+                fullName: string;
+                email: string;
+                phone: string | null;
+                shippingAddress: {
+                    line1: string;
+                    line2: string | null;
+                    city: string;
+                    state: string;
+                    postal: string;
+                } | null;
+            }
+        }>(PROFILE_ME_QUERY)
+            .then((res) => {
+                if (cancelled || !res) return;
+
+                setForm((f) => ({
+                    ...f,
+                    name: f.name || res.me.fullName,
+                    email: f.email || res.me.email,
+                    phone: f.phone || (res.me.phone ?? ""),
+
+                    address: f.address || (res.me.shippingAddress?.line1 ?? ""),
+                    suite: f.suite || (res.me.shippingAddress?.line2 ?? ""),
+                    city: f.city || (res.me.shippingAddress?.city ?? ""),
+                    postal: f.postal || (res.me.shippingAddress?.postal ?? ""),
+                    region: f.region || (res.me.shippingAddress?.state ?? ""),
+                }))
+            })
+            .catch(() => {
+
+            })
+        return () => { cancelled = true; };
+    }, [authLoading])
+
     const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
         setForm((f) => ({...f, [key]: value}));
         setErrors((e) => ({...e, [key]: undefined}));
@@ -84,8 +94,8 @@ export function BookingForm() {
         if (!/^\+?[\d\s()-]{7,}$/.test(form.phone)) e.phone = "Invalid phone";
         if (!/^\S+@\S+\.\S+$/.test(form.email)) e.email = "Invalid email";
         if (!form.service) e.service = "Select a service";
-        if (form.serviceType === "in-salon" && !form.branch) e.branch = "Select a branch";
-        if (form.serviceType === "home") {
+        if (form.serviceType === "In Salon" && !form.branch) e.branch = "Select a branch";
+        if (form.serviceType === "Home") {
             if (!form.address.trim()) e.address = "Required";
             if (!form.city.trim()) e.city = "Required";
             if (!form.postal.trim()) e.postal = "Required";
@@ -155,10 +165,10 @@ export function BookingForm() {
                         label="Service Type"
                         value={form.serviceType}
                         onChange={(v) => set("serviceType", v as ServiceType)}
-                        options={["in-salon", "home"]}
+                        options={["In Salon", "Home"]}
                     />
 
-                    {form.serviceType === "in-salon" ? (
+                    {form.serviceType === "In Salon" ? (
                         <div className="sm:col-span-2">
                             <FloatingSelect
                                 label="Preferred Branch"
