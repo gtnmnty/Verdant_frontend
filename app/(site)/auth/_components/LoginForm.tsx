@@ -14,9 +14,9 @@ type Errors = { email?: string; password?: string };
 
 
 export function LoginForm({
-  onSwitchToSignup,
-  onForgotPassword,
-  onSuccess,
+    onSwitchToSignup,
+    onForgotPassword,
+    onSuccess,
 }: {
     onSwitchToSignup: () => void;
     onForgotPassword: () => void;
@@ -47,11 +47,12 @@ export function LoginForm({
         setLoading(true);
 
         try{
-            const data = await apiRequest<{ accessToken: string }>("/auth/login", {
-                method: "POST",
-                body: JSON.stringify( { email, password } )
+            const data =
+                await apiRequest<{ token: string; expiresAt: number }>("/auth/login", {
+                    method: "POST",
+                    body: JSON.stringify( { email, password } )
             })
-            setToken(data.accessToken)
+            setToken(data.token)
             toast.success("Welcome back to Verdant Luxe.");
             onSuccess();
         } catch (e) {

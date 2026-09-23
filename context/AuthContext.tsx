@@ -35,11 +35,11 @@ export function AuthProvider({ children } :  { children: React.ReactNode }) {
     // Sends the HTTP-only refresh cookie to the /auth/refresh endpoint.
     // If valid, receives a fresh short-lived JWT access token and updates React state.
     useEffect(() => {
-        apiRequest<{accessToken: string}>("/auth/refresh", {
+        apiRequest<{token: string; expiresAt: number}>("/auth/refresh", {
             method: "POST",
             retryOnUnauthorized: false,
         })
-            .then((d) => setToken(d.accessToken))
+            .then((d) => setToken(d.token))
             .catch(() => {
                 // Not authenticated or refresh token expired; user stays logged out.
             })

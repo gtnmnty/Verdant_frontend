@@ -73,7 +73,7 @@ export function ServiceCard({
                 <div className="mt-5 flex flex-col gap-2 pt-2
                  min-[420px]:flex-row">
                     <Button asChild className="flex-1 text-[10px] uppercase tracking-[0.12em]">
-                        <Link href={`/services/${service.id}`}>
+                        <Link href={`/book?service=${encodeURIComponent(service.name)}`}>
                             <Calendar className="h-3.5 w-3.5"/>
                             Book Now
                         </Link>
