@@ -57,8 +57,7 @@ export function SideNav({
         toast.success("Signed out.");
         router.push("/auth");
     };
-
-    // No deleteAccount mutation exists on the backend yet — kept as a demo action.
+    
     const deleteAccount = async () => {
         try {
             await apiRequest("/v1/users", {method: "DELETE"});
