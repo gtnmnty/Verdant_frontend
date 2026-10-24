@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { KeyRound } from "lucide-react";
+import { KeyRound, MailCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,23 +10,25 @@ import { ImageUploader } from "@/app/admin/_components/ImageUploader";
 import { SettingsCard } from "@/app/admin/settings/_components/SettingsCard";
 import { gqlRequest } from "@/utils/graphqlClient";
 import { apiRequest } from "@/utils/apiClient";
+import { ConfirmEmailChangeDialog, isEmailChanged } from "@/components/account/ConfirmEmailChangeDialog";
 
 interface Me {
   fullName: string;
   email: string;
+  pendingEmail: string | null;
   phone: string | null;
   avatarUrl: string | null;
 }
 
 const ME_QUERY = `
     query SettingsMe {
-        me { fullName email phone avatarUrl }
+        me { fullName email pendingEmail phone avatarUrl }
     }
 `;
 
 const UPDATE_PROFILE_MUTATION = `
     mutation SettingsUpdateProfile($input: UpdateProfileInput!) {
-        updateProfile(input: $input) { id }
+        updateProfile(input: $input) { id pendingEmail }
     }
 `;
 
@@ -36,6 +38,12 @@ export function PersonalTab() {
   const [saving, setSaving] = useState(false);
   const [pw, setPw] = useState({ old: "", n: "", c: "" });
   const [pwSaving, setPwSaving] = useState(false);
+  // Email change: the saved address only switches after the emailed code is confirmed.
+  const [savedEmail, setSavedEmail] = useState("");
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+  const [emailPassword, setEmailPassword] = useState("");
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const emailChanging = !loading && isEmailChanged(savedEmail, profile.email);
 
   useEffect(() => {
     gqlRequest<{ me: Me }>(ME_QUERY)
@@ -46,21 +54,39 @@ export function PersonalTab() {
           phone: res.me.phone ?? "",
           avatar: res.me.avatarUrl ?? "",
         });
+        setSavedEmail(res.me.email);
+        setPendingEmail(res.me.pendingEmail ?? null);
       })
       .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load your profile."))
       .finally(() => setLoading(false));
   }, []);
 
   const saveProfile = () => {
+    if (emailChanging && !emailPassword) {
+      toast.error("Enter your current password to change your email");
+      return;
+    }
     setSaving(true);
-    gqlRequest(UPDATE_PROFILE_MUTATION, {
+    gqlRequest<{ updateProfile: { pendingEmail: string | null } }>(UPDATE_PROFILE_MUTATION, {
       input: {
         fullName: profile.name,
         email: profile.email,
+        currentPassword: emailChanging ? emailPassword : undefined,
         phone: profile.phone || undefined,
       },
     })
-      .then(() => toast.success("Profile saved"))
+      .then((res) => {
+        setEmailPassword("");
+        if (emailChanging && res.updateProfile.pendingEmail) {
+          // Field goes back to the live address; the new one shows as pending below.
+          setPendingEmail(res.updateProfile.pendingEmail);
+          setProfile((p) => ({ ...p, email: savedEmail }));
+          setConfirmOpen(true);
+          toast.success("Profile saved. Check your new inbox for a verification code.");
+        } else {
+          toast.success("Profile saved");
+        }
+      })
       .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to save profile."))
       .finally(() => setSaving(false));
   };
@@ -109,6 +135,21 @@ export function PersonalTab() {
                 onChange={(e) => setProfile({ ...profile, email: e.target.value })}
                 className="mt-1.5"
               />
+              {emailChanging && (
+                <div className="mt-3">
+                  <Label>Current password</Label>
+                  <Input
+                    type="password"
+                    autoComplete="current-password"
+                    value={emailPassword}
+                    onChange={(e) => setEmailPassword(e.target.value)}
+                    className="mt-1.5"
+                  />
+                  <p className="mt-1.5 text-xs text-admin-muted">
+                    Required to change your email. A code will be sent to the new address.
+                  </p>
+                </div>
+              )}
             </div>
             <div>
               <Label>Phone</Label>
@@ -131,6 +172,17 @@ export function PersonalTab() {
             {/* "Bio" had no backing field — `User` only has
                 fullName/email/phone/shippingAddress/avatarUrl/
                 savedPaymentMethod/createdAt/cart. Dropped. */}
+          </div>
+        )}
+        {pendingEmail && (
+          <div className="mt-4 flex flex-col gap-3 rounded-lg border border-admin-line p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm text-admin-muted">
+              Pending email change to <span className="font-semibold text-foreground">{pendingEmail}</span>.
+              Enter the code we sent there to finish.
+            </p>
+            <Button variant="outline" onClick={() => setConfirmOpen(true)} className="shrink-0 border-admin-line">
+              <MailCheck className="size-4" /> Enter code
+            </Button>
           </div>
         )}
         <div className="mt-4 flex justify-end">
@@ -165,6 +217,18 @@ export function PersonalTab() {
           </Button>
         </div>
       </SettingsCard>
+
+      <ConfirmEmailChangeDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        pendingEmail={pendingEmail ?? ""}
+        submitClassName="bg-admin-sidebar text-white hover:bg-admin-sidebar/90"
+        onConfirmed={(newEmail) => {
+          setSavedEmail(newEmail);
+          setProfile((p) => ({ ...p, email: newEmail }));
+          setPendingEmail(null);
+        }}
+      />
 
       {/* "Security & notifications" (2FA, email/SMS/push toggles, digest
           frequency) had no backend field of any kind on `User` — dropped

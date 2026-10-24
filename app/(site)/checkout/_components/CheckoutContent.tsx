@@ -253,7 +253,8 @@ export function CheckoutContent() {
             input: {
                 fullName: `${shipping.firstName} ${shipping.lastName}`.trim(),
                 phone: shipping.phone,
-                email: shipping.email,
+                // Email left out on purpose: the checkout contact email isn't an account email change,
+                // and changing that now needs the current password plus a confirmation code.
                 shippingAddress: {
                     line1: shipping.streetAddress,
                     line2: undefined,

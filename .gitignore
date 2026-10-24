@@ -2,8 +2,21 @@
 /.next/
 /out/
 /build
+/coverage
+.vercel
 .env*.local
 .DS_Store
 *.pem
 npm-debug.log*
 next-env.d.ts
+*.tsbuildinfo
+
+# Environment files hold secrets (NEXTAUTH_SECRET). Only the template is committed.
+.env
+.env.*
+!.env.example
+
+# IDE settings, including JetBrains data sources that can store DB passwords
+.idea/
+.vscode/
+
