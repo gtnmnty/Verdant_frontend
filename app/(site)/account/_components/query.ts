@@ -5,6 +5,7 @@ export const PROFILE_ME_QUERY = `
             id
             fullName
             email
+            pendingEmail
             phone
             avatarUrl
             createdAt
@@ -27,6 +28,7 @@ export const UPDATE_PROFILE_MUTATION = `
             id
             fullName
             email
+            pendingEmail
             phone
             shippingAddress {
                 line1

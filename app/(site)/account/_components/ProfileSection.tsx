@@ -5,7 +5,7 @@ import React, {useEffect, useRef, useState, type SubmitEvent} from "react";
 import Link from "next/link";
 import Image from "next/image";
 import {toast} from "sonner";
-import {Camera, ChevronRight, KeyRound, Pencil} from "lucide-react";
+import {Camera, ChevronRight, KeyRound, MailCheck, Pencil} from "lucide-react";
 import {Avatar, AvatarFallback, AvatarImage} from "@/components/ui/avatar";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
@@ -32,12 +32,13 @@ import { apiRequest } from "@/utils/apiClient";
 import { MY_ORDERS_QUERY } from "@/app/(site)/orders/_components/query";
 import {
     FIELD_KEYS,
+    PROFILE_ME_QUERY,
     ProfileData,
     UPCOMING_APPOINTMENT_QUERY,
     UpcomingAppointment,
     UPDATE_PROFILE_MUTATION
 } from "@/app/(site)/account/_components/query";
-import {PROFILE_ME_QUERY} from "@/app/(site)/book/_components/query";
+import {ConfirmEmailChangeDialog, isEmailChanged} from "@/components/account/ConfirmEmailChangeDialog";
 import {useAuth} from "@/context/AuthContext";
 
 export function ProfileSection() {
@@ -58,6 +59,10 @@ export function ProfileSection() {
     const [recentOrders, setRecentOrders] = useState<Order[]>([]);
     const [upcoming, setUpcoming] = useState<UpcomingAppointment | null>(null);
     const [memberSince, setMemberSince] = useState("2024");
+    // Email change: the new address waits here until its emailed code is confirmed.
+    const [pendingEmail, setPendingEmail] = useState<string | null>(null);
+    const [currentPassword, setCurrentPassword] = useState("");
+    const [confirmOpen, setConfirmOpen] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const {loading: authLoading} = useAuth();
 
@@ -72,6 +77,7 @@ export function ProfileSection() {
                 id: string;
                 fullName: string;
                 email: string;
+                pendingEmail: string | null;
                 phone: string | null;
                 avatarUrl: string | null;
                 createdAt: string;
@@ -99,6 +105,7 @@ export function ProfileSection() {
                 };
                 setData(profile);
                 setDraft(profile);
+                setPendingEmail(me.pendingEmail ?? null);
                 if (me.avatarUrl) setAvatarUrl(me.avatarUrl);
                 if (me.createdAt) {
                     setMemberSince(new Date(me.createdAt).getFullYear().toString());
@@ -134,17 +141,22 @@ export function ProfileSection() {
 
     const openEdit = () => {
         setDraft(data);
+        setCurrentPassword("");
         setEditing(true);
     };
+
+    // The backend asks for the current password only when the email actually changes.
+    const emailChanging = isEmailChanged(data.email, draft.email);
 
     // Flow Step 2: Persist edited profile details to database via GraphQL mutation
     const save = async (e: SubmitEvent) => {
         e.preventDefault();
         try {
-            await gqlRequest(UPDATE_PROFILE_MUTATION, {
+            const res = await gqlRequest<{ updateProfile: { pendingEmail: string | null } }>(UPDATE_PROFILE_MUTATION, {
                 input: {
                     fullName: draft.fullName,
                     email: draft.email,
+                    currentPassword: emailChanging ? currentPassword : undefined,
                     phone: draft.phone,
                     shippingAddress: {
                         line1: draft.street,
@@ -155,9 +167,17 @@ export function ProfileSection() {
                     },
                 },
             });
-            setData(draft);
+            // The saved email doesn't change yet: it only switches once the code is confirmed.
+            setData({...draft, email: data.email});
             setEditing(false);
-            toast.success("Profile updated.");
+            setCurrentPassword("");
+            if (emailChanging && res.updateProfile.pendingEmail) {
+                setPendingEmail(res.updateProfile.pendingEmail);
+                setConfirmOpen(true);
+                toast.success("Profile updated. Check your new inbox for a verification code.");
+            } else {
+                toast.success("Profile updated.");
+            }
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to update profile.");
         }
@@ -278,6 +298,30 @@ export function ProfileSection() {
                         }
                     />
                 </dl>
+                {pendingEmail && (
+                    <div className="mt-6 flex flex-col gap-3 rounded-2xl border
+                         border-blush/60 bg-blush/20 p-5 sm:flex-row sm:items-center
+                         sm:justify-between">
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-semibold uppercase
+                                tracking-[0.18em] text-soft-rose">
+                                Pending Email Change
+                            </p>
+                            <p className="mt-1 truncate text-sm text-on-surface">
+                                Confirm <span className="font-semibold">{pendingEmail}</span> with
+                                the code we emailed to it.
+                            </p>
+                        </div>
+                        <Button
+                            variant="outline"
+                            onClick={() => setConfirmOpen(true)}
+                            className="shrink-0 border-primary text-primary hover:bg-primary
+                                            hover:text-primary-foreground"
+                        >
+                            <MailCheck className="mr-2 h-4 w-4"/> Enter Code
+                        </Button>
+                    </div>
+                )}
             </SectionCard>
 
             {/* Upcoming appointment preview */}
@@ -443,6 +487,25 @@ export function ProfileSection() {
                                 />
                             </div>
                         ))}
+                        {emailChanging && (
+                            <div className="grid gap-1.5 rounded-xl border border-blush/60
+                                 bg-blush/20 p-4">
+                                <Label htmlFor="currentPassword">Current Password</Label>
+                                <Input
+                                    id="currentPassword"
+                                    type="password"
+                                    autoComplete="current-password"
+                                    value={currentPassword}
+                                    onChange={(e) => setCurrentPassword(e.target.value)}
+                                    required
+                                />
+                                <p className="text-xs text-on-surface-variant">
+                                    Required to change your email. We&apos;ll send a code to the
+                                    new address, and your current email stays active until you
+                                    confirm it.
+                                </p>
+                            </div>
+                        )}
                         <DialogFooter className="mt-2">
                             <Button type="button" variant="outline" onClick={() => setEditing(false)}>
                                 Cancel
@@ -452,6 +515,16 @@ export function ProfileSection() {
                     </form>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmEmailChangeDialog
+                open={confirmOpen}
+                onOpenChange={setConfirmOpen}
+                pendingEmail={pendingEmail ?? ""}
+                onConfirmed={(newEmail) => {
+                    setData((prev) => ({...prev, email: newEmail}));
+                    setPendingEmail(null);
+                }}
+            />
         </div>
     );
 }
