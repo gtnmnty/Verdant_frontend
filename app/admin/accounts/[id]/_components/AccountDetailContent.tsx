@@ -37,6 +37,8 @@ interface BackendAccountDetail {
     role: string;
     status: string;
     createdAt: string;
+    resetLinkStatus: "PENDING" | "SENT" | "FAILED" | null;
+    resetLinkStatusAt: string | null;
 }
 
 const ACCOUNT_DETAIL_QUERY = `
@@ -51,6 +53,8 @@ const ACCOUNT_DETAIL_QUERY = `
             role
             status
             createdAt
+            resetLinkStatus
+            resetLinkStatusAt
         }
     }
 `;
@@ -118,15 +122,32 @@ function formatAddress(addr: AdminAccount["address"]): string {
 
 const INTERNAL_ROLES: Role[] = ["manager", "admin", "receptionist", "stylist"];
 
+// Last reset / set-password link: PENDING until the background send finishes, then SENT or FAILED.
+// SENT means the mail server accepted it, not that it reached the inbox.
+function ResetLinkStatusText({status, at}: { status: string | null; at: string | null }) {
+    if (!status) return <span>Not sent</span>;
+    const when = at ? ` · ${new Date(at).toLocaleString()}` : "";
+    if (status === "FAILED") {
+        return <span className="font-semibold text-red-600">Failed to send{when} — press Reset password to retry</span>;
+    }
+    if (status === "PENDING") return <span>Sending…{when}</span>;
+    return <span>Sent{when}</span>;
+}
+
 export function AccountDetailContent() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
     const [account, setAccount] = useState<AdminAccount | null | undefined>(undefined);
     const [audit, setAudit] = useState<BackendAuditEntry[]>([]);
+    // Delivery of the last reset / set-password link (H-9). Kept beside the account, not inside AdminAccount.
+    const [resetLink, setResetLink] = useState<{ status: string | null; at: string | null }>({status: null, at: null});
 
     const fetchAccount = () => {
         gqlRequest<{ account: BackendAccountDetail }>(ACCOUNT_DETAIL_QUERY, {id: params.id})
-            .then((res) => setAccount(toAdminAccount(res.account)))
+            .then((res) => {
+                setAccount(toAdminAccount(res.account));
+                setResetLink({status: res.account.resetLinkStatus, at: res.account.resetLinkStatusAt});
+            })
             .catch((err) => {
                 toast.error(err instanceof Error ? err.message : "Failed to load account.");
                 setAccount(null);
@@ -176,7 +197,12 @@ export function AccountDetailContent() {
 
     const resetPassword = () => {
         gqlRequest(SEND_PASSWORD_RESET_MUTATION, {id: account.id})
-            .then(() => toast.success("Reset link sent"))
+            .then(() => {
+                toast.success("Reset link issued");
+                // The email is sent in the background; refetch shows PENDING, then SENT or FAILED.
+                fetchAccount();
+                window.setTimeout(fetchAccount, 4000);
+            })
             .catch((err) =>
                 toast.error(err instanceof Error ? err.message : "Failed to send reset link."));
     };
@@ -230,6 +256,7 @@ export function AccountDetailContent() {
                                 label="Created"
                                 value={account.createdAt ? new Date(account.createdAt).toLocaleDateString() : "—"}
                             />
+                            <FieldRow label="Reset link" value={<ResetLinkStatusText {...resetLink}/>}/>
                         </dl>
                     </DetailCard>
 

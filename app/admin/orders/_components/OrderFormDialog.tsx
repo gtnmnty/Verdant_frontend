@@ -23,7 +23,9 @@ import {
 import {gqlRequest} from "@/utils/graphqlClient";
 
 const ORDER_STATUSES = ["PLACED", "PROCESSING", "IN_TRANSIT", "DELIVERED", "CANCELLED"] as const;
-const PAYMENT_STATUSES = ["PROCESSED", "PAID", "FAILED", "REFUNDED", "CANCELLED"] as const;
+// Mirrors the backend PaymentStatus enum. PENDING is where every order starts, so without it an
+// unpaid order opened here showed no payment status at all.
+const PAYMENT_STATUSES = ["PENDING", "REQUIRES_ACTION", "PROCESSED", "PAID", "FAILED", "REFUNDED", "CANCELLED"] as const;
 const DELIVERY_OPTIONS = ["STANDARD", "EXPRESS", "SAME_DAY"] as const;
 
 interface Draft {
