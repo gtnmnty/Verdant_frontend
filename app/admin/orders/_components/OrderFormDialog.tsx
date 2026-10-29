@@ -21,12 +21,30 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {showSaveError} from "@/lib/admin/save-error";
 
 const ORDER_STATUSES = ["PLACED", "PROCESSING", "IN_TRANSIT", "DELIVERED", "CANCELLED"] as const;
 // Mirrors the backend PaymentStatus enum. PENDING is where every order starts, so without it an
 // unpaid order opened here showed no payment status at all.
-const PAYMENT_STATUSES = ["PENDING", "REQUIRES_ACTION", "PROCESSED", "PAID", "FAILED", "REFUNDED", "CANCELLED"] as const;
+// PARTIALLY_REFUNDED (M-14): set by the Stripe webhook when only part of a charge is refunded.
+const PAYMENT_STATUSES = [
+    "PENDING", "REQUIRES_ACTION", "PROCESSED", "PAID", "FAILED", "PARTIALLY_REFUNDED", "REFUNDED", "CANCELLED",
+] as const;
 const DELIVERY_OPTIONS = ["STANDARD", "EXPRESS", "SAME_DAY"] as const;
+// M-16: the backend refuses item changes once money was collected or returned for the current total
+// (OrderService.ITEM_EDIT_LOCKED_PAYMENT_STATUSES), and on cancelled orders.
+const ITEM_LOCKED_PAYMENT_STATUSES = new Set(["PROCESSED", "PAID", "PARTIALLY_REFUNDED", "REFUNDED"]);
+
+type DraftItem = Draft["items"][number];
+
+// Only quantity and delivery option are editable per line.
+function itemsChanged(before: DraftItem[], after: DraftItem[]): boolean {
+    const byId = new Map(before.map((it) => [it.id, it]));
+    return after.some((it) => {
+        const was = byId.get(it.id);
+        return !was || was.quantity !== it.quantity || was.deliveryOption !== it.deliveryOption;
+    });
+}
 
 interface Draft {
     fullName: string;
@@ -143,20 +161,29 @@ export function OrderFormDialog({
     onSaved: () => void;
 }) {
     const [draft, setDraft] = useState<Draft | null>(null);
+    // The order as loaded, to tell which fields the admin actually changed.
+    const [original, setOriginal] = useState<Draft | null>(null);
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
+    // Bumped by "Reload" after a concurrent-edit conflict, to refetch the order in place.
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
         if (!open || !orderId) {
             setDraft(null);
+            setOriginal(null);
             return;
         }
         setLoading(true);
         gqlRequest<{ adminOrder: BackendAdminOrderFull }>(ADMIN_ORDER_QUERY, {id: orderId})
-            .then((res) => setDraft(toDraft(res.adminOrder)))
+            .then((res) => {
+                const loaded = toDraft(res.adminOrder);
+                setDraft(loaded);
+                setOriginal(loaded);
+            })
             .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load order."))
             .finally(() => setLoading(false));
-    }, [open, orderId]);
+    }, [open, orderId, reloadKey]);
 
     const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
         setDraft((d) => (d ? {...d, [key]: value} : d));
@@ -172,12 +199,24 @@ export function OrderFormDialog({
         );
     };
 
+    // Items are read-only once paid/refunded or when the order is (or is being set to) cancelled.
+    const itemsLocked = !!original && (
+        ITEM_LOCKED_PAYMENT_STATUSES.has(original.paymentStatus)
+        || original.orderStatus === "CANCELLED"
+        || draft?.orderStatus === "CANCELLED"
+    );
+
     const handleSave = () => {
-        if (!draft || !orderId) return;
+        if (!draft || !orderId || !original) return;
+
+        // `items` is sent only when a line actually changed. The backend treats any `items` as an item
+        // edit and refuses it on paid or cancelled orders, so always sending them blocked every other
+        // change (status, address, cancelling).
+        const sendItems = !itemsLocked && itemsChanged(original.items, draft.items);
 
         // Every line needs a real productId — an item with none (data
         // inconsistency on an old order) can't be resent to adminUpdateOrder.
-        if (draft.items.some((it) => !it.productId)) {
+        if (sendItems && draft.items.some((it) => !it.productId)) {
             toast.error("One or more items on this order have no linked product and can't be saved.");
             return;
         }
@@ -200,11 +239,13 @@ export function OrderFormDialog({
                     postal: draft.postal,
                     country: draft.country || undefined,
                 },
-                items: draft.items.map((it) => ({
-                    productId: it.productId,
-                    quantity: it.quantity,
-                    deliveryOption: it.deliveryOption,
-                })),
+                items: sendItems
+                    ? draft.items.map((it) => ({
+                        productId: it.productId,
+                        quantity: it.quantity,
+                        deliveryOption: it.deliveryOption,
+                    }))
+                    : undefined,
             },
         })
             .then(() => {
@@ -212,7 +253,7 @@ export function OrderFormDialog({
                 onOpenChange(false);
                 onSaved();
             })
-            .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to save order."))
+            .catch((err) => showSaveError(err, "Failed to save order.", () => setReloadKey((k) => k + 1)))
             .finally(() => setSaving(false));
     };
 
@@ -326,6 +367,13 @@ export function OrderFormDialog({
                   are actual per-line fields on the backend. There's also no
                   UI yet to add or remove a line item. */}
                             <Label>Ordered items</Label>
+                            {itemsLocked && (
+                                <p className="mt-1 text-xs text-admin-muted">
+                                    {draft.orderStatus === "CANCELLED" || original?.orderStatus === "CANCELLED"
+                                        ? "Items of a cancelled order can't be changed. Re-open the order first."
+                                        : "Items can't be changed after payment. Refund the order in Stripe and create a new one instead."}
+                                </p>
+                            )}
                             <div className="mt-2 space-y-2">
                                 {draft.items.map((it, i) => (
                                     <div
@@ -348,10 +396,12 @@ export function OrderFormDialog({
                                             type="number"
                                             min={1}
                                             value={it.quantity}
+                                            disabled={itemsLocked}
                                             onChange={(e) =>
                                                 setItem(i, {quantity: Number(e.target.value)})}
                                         />
                                         <Select value={it.deliveryOption}
+                                                disabled={itemsLocked}
                                                 onValueChange={(v) => setItem(i, {deliveryOption: v})}>
                                             <SelectTrigger><SelectValue/></SelectTrigger>
                                             <SelectContent>

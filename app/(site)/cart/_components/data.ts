@@ -6,11 +6,13 @@ export const DELIVERY_OPTION_LABELS: Record<DeliveryOption, string> = {
   "next-day": "Next-Day Delivery",
 };
 
-// Additional cost each delivery speed adds on top of the base shipping fee.
+// What the backend charges per delivery speed (shipping.fee.* in the backend's application.properties).
+// An order pays the HIGHEST fee among its items' options, once, not per item. Keep these in sync: the cart
+// and checkout show them, but the backend computes the order total itself.
 export const DELIVERY_OPTION_FEES: Record<DeliveryOption, number> = {
   standard: 0,
-  express: 15,
-  "next-day": 25,
+  express: 5,
+  "next-day": 10,
 };
 
 export interface CartProduct {
@@ -106,7 +108,9 @@ export const RECOMMENDED_PRODUCTS: RecommendedProduct[] = [
   },
 ];
 
-export const FREE_SHIPPING_THRESHOLD = 150;
-export const BASE_SHIPPING_FEE = 12;
-export const TAX_RATE = 0.08;
-export const GIFT_PACKAGING_FEE = 10;
+// The backend charges no base shipping, no tax and no gift-packaging fee, so neither does the display.
+// (Showing them made the cart and checkout total differ from what the order actually costs.)
+export const FREE_SHIPPING_THRESHOLD = 0;
+export const BASE_SHIPPING_FEE = 0;
+export const TAX_RATE = 0;
+export const GIFT_PACKAGING_FEE = 0;

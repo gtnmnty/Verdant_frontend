@@ -30,7 +30,7 @@ interface BackendAppointment {
     serviceName: string;
     priceSnapshot: number;
     stylist: {name: string} | null;
-    branch: string | null;
+    branch: { name: string } | null;
     scheduledAt: string;
     durationMinutes: number;
     status: "PENDING" | "UPCOMING" | "COMPLETED" | "CANCELLED";
@@ -87,7 +87,7 @@ const MY_APPOINTMENTS_QUERY = `
                 serviceName
                 priceSnapshot
                 stylist { name }
-                branch
+                branch { name }
                 scheduledAt
                 durationMinutes
                 status
@@ -129,7 +129,7 @@ function toAppointment(a: BackendAppointment): Appointment {
         id: a.id,
         service: a.serviceName,
         stylist: a.stylist?.name ?? "Unassigned",
-        branch: a.branch ?? "—",
+        branch: a.branch?.name ?? "—",
         date: a.scheduledAt,
         durationMin: a.durationMinutes,
         price: a.priceSnapshot,

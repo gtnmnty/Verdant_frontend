@@ -13,7 +13,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {COUNTRY_OPTIONS} from "@/app/(site)/checkout/_components/data";
-import {DELIVERY_OPTION_LABELS, type DeliveryOption} from "@/app/(site)/cart/_components/data";
 import type {ShippingDetails} from "@/app/(site)/checkout/_components/data";
 
 interface ShippingStepProps {
@@ -25,8 +24,6 @@ interface ShippingStepProps {
 }
 
 type FieldErrors = Partial<Record<keyof ShippingDetails, string>>;
-
-const DELIVERY_OPTIONS = Object.keys(DELIVERY_OPTION_LABELS) as DeliveryOption[];
 
 function validate(details: ShippingDetails): FieldErrors {
     const errors: FieldErrors = {};
@@ -150,27 +147,8 @@ export function ShippingStep({
                     </Select>
                 </FormField>
 
-                <FormField
-                    label="Delivery Option"
-                    htmlFor="deliveryOption"
-                    className="sm:col-span-2"
-                >
-                    <Select
-                        value={value.deliveryOption}
-                        onValueChange={(v) => onChange({deliveryOption: v as DeliveryOption})}
-                    >
-                        <SelectTrigger id="deliveryOption">
-                            <SelectValue/>
-                        </SelectTrigger>
-                        <SelectContent>
-                            {DELIVERY_OPTIONS.map((option) => (
-                                <SelectItem key={option} value={option}>
-                                    {DELIVERY_OPTION_LABELS[option]}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                </FormField>
+                {/* No delivery selector here: each item's delivery speed is chosen in the cart, and the
+                    backend charges the fastest one. A selector here only changed the on-screen estimate. */}
             </div>
 
             <div className="mt-10 flex flex-wrap items-center

@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { gqlRequest } from "@/utils/graphqlClient";
+import { showSaveError } from "@/lib/admin/save-error";
 import {
   SERVICE_TYPE_TO_BACKEND,
   type AdminAppointment,
@@ -204,7 +205,11 @@ export function AppointmentFormDialog({
         onOpenChange(false);
         onSaved();
       })
-      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to save appointment."))
+      .catch((err) =>
+        showSaveError(err, "Failed to save appointment.", () => {
+          onOpenChange(false);
+          onSaved();
+        }))
       .finally(() => setSaving(false));
   };
 

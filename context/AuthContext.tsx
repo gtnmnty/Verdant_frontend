@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useState, useEffect } from "react";
-import { configureApiClient, apiRequest } from "@/utils/apiClient";
+import { configureApiClient, apiRequest, refreshAccessToken } from "@/utils/apiClient";
 
 type AuthCtx = {
     token: string | null;
@@ -34,14 +34,13 @@ export function AuthProvider({ children } :  { children: React.ReactNode }) {
     // Attempt silent session restoration on initial mount.
     // Sends the HTTP-only refresh cookie to the /auth/refresh endpoint.
     // If valid, receives a fresh short-lived JWT access token and updates React state.
+    // Goes through refreshAccessToken (shared with apiRequest's 401 retry) so a request failing with 401
+    // during page load can't send a second refresh with the same, already rotated cookie.
     useEffect(() => {
-        apiRequest<{token: string; expiresAt: number}>("/auth/refresh", {
-            method: "POST",
-            retryOnUnauthorized: false,
-        })
-            .then((d) => setToken(d.token))
-            .catch(() => {
-                // Not authenticated or refresh token expired; user stays logged out.
+        refreshAccessToken()
+            .then((t) => {
+                // null: not authenticated or refresh token expired; user stays logged out.
+                if (t) setToken(t);
             })
             .finally(() => setLoading(false));
     }, []);

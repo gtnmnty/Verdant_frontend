@@ -4,24 +4,25 @@ import Image from "next/image";
 import {ArrowLeft, Loader2} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Separator} from "@/components/ui/separator";
-import {DELIVERY_OPTION_LABELS} from "@/app/(site)/cart/_components/data";
 import type {
     CheckoutOrderItem,
     CheckoutStep,
-    PaymentSummary,
     ShippingDetails,
 } from "@/app/(site)/checkout/_components/data";
 import React from "react";
 
 interface ReviewStepProps {
     shipping: ShippingDetails;
-    payment: PaymentSummary;
+    // Label of the fastest delivery speed among the items: the one the delivery fee is charged for.
+    deliveryLabel: string;
     items: CheckoutOrderItem[];
     subtotal: number;
     shippingFee: number;
-    tax: number;
     discount: number;
     total: number;
+    // Gift-card balance that will be used (an estimate; the backend applies up to the order total).
+    walletApplied: number;
+    amountDue: number;
     isPlacingOrder: boolean;
     onEditStep: (step: CheckoutStep) => void;
     onBack: () => void;
@@ -30,13 +31,14 @@ interface ReviewStepProps {
 
 export function ReviewStep({
     shipping,
-    payment,
+    deliveryLabel,
     items,
     subtotal,
     shippingFee,
-    tax,
     discount,
     total,
+    walletApplied,
+    amountDue,
     isPlacingOrder,
     onEditStep,
     onBack,
@@ -66,24 +68,7 @@ export function ReviewStep({
                         {shipping.streetAddress}, {shipping.city} {shipping.postalCode}
                     </p>
                     <p className="text-sm text-on-surface-variant">{shipping.country}</p>
-                    <p className="mt-1 text-sm text-champagne-gold">
-                        {DELIVERY_OPTION_LABELS[shipping.deliveryOption]}
-                    </p>
-                </ReviewSection>
-
-                <ReviewSection title="Payment" onEdit={() => onEditStep("payment")}>
-                    <p className="text-sm text-on-surface">
-                        {payment.brand} •••• •••• •••• {payment.last4}
-                    </p>
-                    <p className="text-sm text-on-surface-variant">
-                        {payment.cardholderName}
-                    </p>
-                    <p className="text-sm text-on-surface-variant">
-                        Billing:{" "}
-                        {payment.billingSameAsShipping
-                            ? "Same as shipping"
-                            : `${payment.billingAddress?.streetAddress}, ${payment.billingAddress?.city}`}
-                    </p>
+                    <p className="mt-1 text-sm text-champagne-gold">{deliveryLabel}</p>
                 </ReviewSection>
 
                 <div>
@@ -131,10 +116,6 @@ export function ReviewStep({
                                 {shippingFee === 0 ? "Complimentary" : `$${shippingFee.toFixed(2)}`}
                             </dd>
                         </div>
-                        <div className="flex items-center justify-between">
-                            <dt className="text-on-surface-variant">Tax</dt>
-                            <dd className="text-on-surface">${tax.toFixed(2)}</dd>
-                        </div>
                         {discount > 0 ? (
                             <div className="flex items-center justify-between">
                                 <dt className="text-champagne-gold">Promo Discount</dt>
@@ -153,6 +134,23 @@ export function ReviewStep({
                           ${total.toFixed(2)}
                         </span>
                     </div>
+                    {walletApplied > 0 ? (
+                        <dl className="mt-3 space-y-2 text-sm">
+                            <div className="flex items-center justify-between">
+                                <dt className="text-champagne-gold">Gift card balance</dt>
+                                <dd className="text-champagne-gold">−${walletApplied.toFixed(2)}</dd>
+                            </div>
+                            <div className="flex items-center justify-between">
+                                <dt className="font-medium text-on-surface">Due now</dt>
+                                <dd className="font-medium text-on-surface">${amountDue.toFixed(2)}</dd>
+                            </div>
+                        </dl>
+                    ) : null}
+                    <p className="mt-4 text-xs text-on-surface-variant">
+                        {amountDue > 0
+                            ? "Placing the order reserves your items; you'll pay securely with Stripe on the next step."
+                            : "Your gift card balance covers this order, so there's nothing to pay by card."}
+                    </p>
                 </div>
             </div>
 
@@ -168,7 +166,7 @@ export function ReviewStep({
                           hover:text-primary disabled:opacity-50"
                 >
                     <ArrowLeft className="h-3.5 w-3.5"/>
-                    Return to Payment
+                    Return to Shipping
                 </button>
 
                 <Button
@@ -183,6 +181,8 @@ export function ReviewStep({
                             <Loader2 className="h-4 w-4 animate-spin"/>
                             Placing Order…
                         </>
+                    ) : amountDue > 0 ? (
+                        "Place Order & Pay"
                     ) : (
                         "Place Order"
                     )}
