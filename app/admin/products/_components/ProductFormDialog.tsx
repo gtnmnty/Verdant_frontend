@@ -24,6 +24,7 @@ import {
 import {ChipInput} from "@/app/admin/_components/ChipInput";
 import {ImageUploader} from "@/app/admin/_components/ImageUploader";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {showSaveError} from "@/lib/admin/save-error";
 import type {AdminProduct} from "@/app/admin/products/_components/types";
 
 const CATEGORIES = ["Shampoo", "Conditioner", "Skincare", "Styling", "Fragrance"];
@@ -159,9 +160,15 @@ export function ProductFormDialog({
             status: draft.status === "active" ? "ACTIVE" : "INACTIVE",
         };
 
+        // M-15: on edit, send stockQuantity only if the admin changed it. Orders keep moving stock while
+        // this dialog is open, so re-sending the number loaded when it opened would undo those sales.
+        // Leaving it out lets the backend keep the live value (Product is @DynamicUpdate).
+        // undefined is dropped from the JSON body, so the field is simply absent.
+        const updateInput = draft.stock !== product?.stock ? shared : {...shared, stockQuantity: undefined};
+
         setSaving(true);
         const request = product
-            ? gqlRequest(UPDATE_PRODUCT_MUTATION, {input: {id: product.id, ...shared}})
+            ? gqlRequest(UPDATE_PRODUCT_MUTATION, {input: {id: product.id, ...updateInput}})
             : gqlRequest(CREATE_PRODUCT_MUTATION, {input: {...shared, sku: draft.sku}});
 
         request
@@ -171,7 +178,10 @@ export function ProductFormDialog({
                 onSaved();
             })
             .catch((err) =>
-                toast.error(err instanceof Error ? err.message : "Failed to save product."))
+                showSaveError(err, "Failed to save product.", () => {
+                    onOpenChange(false);
+                    onSaved();
+                }))
             .finally(() => setSaving(false));
     };
 

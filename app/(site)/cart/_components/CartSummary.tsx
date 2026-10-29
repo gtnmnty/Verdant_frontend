@@ -51,15 +51,19 @@ export function CartSummary({
                         )}
                     </dd>
                 </div>
-                <div className="flex items-center justify-between">
-                    <dt className="text-on-surface-variant">Tax (Estimated)</dt>
-                    <dd className="font-medium text-on-surface">${tax.toFixed(2)}</dd>
-                </div>
+                {tax > 0 ? (
+                    <div className="flex items-center justify-between">
+                        <dt className="text-on-surface-variant">Tax (Estimated)</dt>
+                        <dd className="font-medium text-on-surface">${tax.toFixed(2)}</dd>
+                    </div>
+                ) : null}
                 {giftPackaging ? (
                     <div className="flex items-center justify-between">
                         <dt className="text-on-surface-variant">Gift Packaging</dt>
                         <dd className="font-medium text-on-surface">
-                            ${giftPackagingFee.toFixed(2)}
+                            {giftPackagingFee > 0 ? `$${giftPackagingFee.toFixed(2)}` : (
+                                <span className="text-champagne-gold">Complimentary</span>
+                            )}
                         </dd>
                     </div>
                 ) : null}
@@ -111,7 +115,7 @@ export function CartSummary({
                         Add Gift Packaging
                     </span>
                     <span className="text-xs text-on-surface-variant">
-                        Cotton wrap &amp; luxury box (+${giftPackagingFee.toFixed(2)})
+                        Cotton wrap &amp; luxury box ({giftPackagingFee > 0 ? `+$${giftPackagingFee.toFixed(2)}` : "complimentary"})
                     </span>
                 </span>
             </label>

@@ -34,7 +34,7 @@ interface BackendAdminAppointmentDto {
   serviceName: string;
   serviceType: string;
   stylist: { id: string; name: string } | null;
-  branch: string | null;
+  branch: { name: string } | null;
   scheduledAt: string;
   durationMinutes: number;
   status: string;
@@ -59,7 +59,7 @@ const ADMIN_APPOINTMENTS_QUERY = `
                 serviceName
                 serviceType
                 stylist { id name }
-                branch
+                branch { name }
                 scheduledAt
                 durationMinutes
                 status
@@ -104,7 +104,7 @@ function toAdminAppointment(a: BackendAdminAppointmentDto): AdminAppointment {
     serviceName: a.serviceName,
     stylistId: a.stylist?.id ?? null,
     stylistName: a.stylist?.name ?? "Unassigned",
-    branchName: a.branch ?? "",
+    branchName: a.branch?.name ?? "",
     startsAt: a.scheduledAt,
     durationMin: a.durationMinutes,
     guests: a.guests,

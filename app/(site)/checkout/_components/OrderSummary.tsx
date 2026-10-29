@@ -4,6 +4,7 @@ import {ChevronDown} from "lucide-react";
 import {useState} from "react";
 import Image from "next/image";
 import {Button} from "@/components/ui/button";
+import {Checkbox} from "@/components/ui/checkbox";
 import {Input} from "@/components/ui/input";
 import {Separator} from "@/components/ui/separator";
 import type {CheckoutOrderItem} from "@/app/(site)/checkout/_components/data";
@@ -17,9 +18,18 @@ interface OrderSummaryProps {
     total: number;
     promoCode: string;
     promoApplied: boolean;
+    promoChecking: boolean;
     promoError: string | null;
     onPromoCodeChange: (value: string) => void;
     onApplyPromoCode: () => void;
+    // Spendable gift-card balance (myWalletBalance); the option is hidden when it's 0.
+    walletBalance: number;
+    useWallet: boolean;
+    onUseWalletChange: (use: boolean) => void;
+    walletApplied: number;
+    amountDue: number;
+    // Once the order is placed its promo and wallet are fixed, so the controls are disabled.
+    locked: boolean;
 }
 
 export function OrderSummary({
@@ -31,9 +41,16 @@ export function OrderSummary({
      total,
      promoCode,
      promoApplied,
+     promoChecking,
      promoError,
      onPromoCodeChange,
      onApplyPromoCode,
+     walletBalance,
+     useWallet,
+     onUseWalletChange,
+     walletApplied,
+     amountDue,
+     locked,
 }: OrderSummaryProps) {
     const [promoOpen, setPromoOpen] = useState(false);
 
@@ -89,10 +106,12 @@ export function OrderSummary({
                         )}
                     </dd>
                 </div>
-                <div className="flex items-center justify-between">
-                    <dt className="text-on-surface-variant">Taxes</dt>
-                    <dd className="font-medium text-on-surface">${tax.toFixed(2)}</dd>
-                </div>
+                {tax > 0 ? (
+                    <div className="flex items-center justify-between">
+                        <dt className="text-on-surface-variant">Taxes</dt>
+                        <dd className="font-medium text-on-surface">${tax.toFixed(2)}</dd>
+                    </div>
+                ) : null}
                 {discount > 0 ? (
                     <div className="flex items-center justify-between">
                         <dt className="text-champagne-gold">Promo Discount</dt>
@@ -111,6 +130,36 @@ export function OrderSummary({
           ${total.toFixed(2)}
         </span>
             </div>
+
+            {walletApplied > 0 ? (
+                <dl className="mt-3 space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                        <dt className="text-champagne-gold">Gift card balance</dt>
+                        <dd className="font-medium text-champagne-gold">−${walletApplied.toFixed(2)}</dd>
+                    </div>
+                    <div className="flex items-center justify-between">
+                        <dt className="font-medium text-on-surface">Due now</dt>
+                        <dd className="font-medium text-on-surface">${amountDue.toFixed(2)}</dd>
+                    </div>
+                </dl>
+            ) : null}
+
+            {walletBalance > 0 ? (
+                <label className="mt-5 flex cursor-pointer items-start gap-3">
+                    <Checkbox
+                        checked={useWallet}
+                        disabled={locked}
+                        onCheckedChange={(checked: boolean | "indeterminate") => onUseWalletChange(checked === true)}
+                        className="mt-0.5"
+                    />
+                    <span className="text-sm text-on-surface">
+                        Use my gift card balance
+                        <span className="block text-xs text-on-surface-variant">
+                            ${walletBalance.toFixed(2)} available
+                        </span>
+                    </span>
+                </label>
+            ) : null}
 
             <Separator className="my-5 bg-blush/40"/>
 
@@ -136,7 +185,7 @@ export function OrderSummary({
                                 value={promoCode}
                                 onChange={(e) => onPromoCodeChange(e.target.value)}
                                 placeholder="Enter code"
-                                disabled={promoApplied}
+                                disabled={promoApplied || locked}
                                 className="bg-surface-lowest"
                             />
                             {promoError ? (
@@ -151,9 +200,9 @@ export function OrderSummary({
                             type="button"
                             variant="outline"
                             onClick={onApplyPromoCode}
-                            disabled={promoApplied || promoCode.trim().length === 0}
+                            disabled={promoApplied || locked || promoChecking || promoCode.trim().length === 0}
                         >
-                            Apply
+                            {promoChecking ? "Checking…" : "Apply"}
                         </Button>
                     </div>
                 ) : null}

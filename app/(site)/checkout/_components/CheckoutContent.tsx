@@ -13,25 +13,30 @@ import {PaymentStep} from "@/app/(site)/checkout/_components/PaymentStep";
 import {ReviewStep} from "@/app/(site)/checkout/_components/ReviewStep";
 import {OrderConfirmationDialog} from "@/app/(site)/checkout/_components/OrderConfirmationDialog";
 import {
-    BASE_SHIPPING_FEE,
     DELIVERY_OPTION_FEES,
-    FREE_SHIPPING_THRESHOLD,
-    TAX_RATE,
+    DELIVERY_OPTION_LABELS,
+    type DeliveryOption,
 } from "@/app/(site)/cart/_components/data";
 import {
     EMPTY_SHIPPING_DETAILS,
     type CheckoutOrderItem,
     type CheckoutStep,
-    type PaymentSummary,
     type ShippingDetails,
 } from "@/app/(site)/checkout/_components/data";
 
 const SESSION_STORAGE_KEY = "verdant-luxe-checkout-items";
-const PROMO_CODES: Record<string, number> = {WELCOME10: 0.1};
+
+// Backend enum (common.graphql) -> the cart's option keys, for the fee and label tables.
+const DELIVERY_FROM_BACKEND: Record<string, DeliveryOption> = {
+    STANDARD: "standard",
+    EXPRESS: "express",
+    SAME_DAY: "next-day",
+};
 
 interface BackendCartItem {
     id: string;
     quantity: number;
+    deliveryOption: string;
     product: {
         name: string;
         itemCatalog: string;
@@ -56,6 +61,15 @@ interface BackendMe {
     } | null;
 }
 
+// What the backend says the placed order costs; used instead of the page's estimate from here on.
+interface PlacedOrder {
+    id: string;
+    orderCode: string;
+    total: number;
+    walletAmountApplied: number | null;
+    paymentStatus: string;
+}
+
 const CATEGORY_LABELS: Record<string, string> = {
     SKIN_CARE: "Skincare",
     HAIR_CARE: "Haircare",
@@ -69,6 +83,7 @@ const MY_CART_QUERY = `
             items {
                 id
                 quantity
+                deliveryOption
                 product {
                     name
                     itemCatalog
@@ -93,6 +108,20 @@ const ME_QUERY = `
     }
 `;
 
+const WALLET_QUERY = `
+    query CheckoutWallet {
+        myWalletBalance
+    }
+`;
+
+const PREVIEW_PROMO_QUERY = `
+    query PreviewPromoCode($code: String!, $subtotal: BigDecimal!) {
+        previewPromoCode(code: $code, subtotal: $subtotal) {
+            discountAmount
+        }
+    }
+`;
+
 const UPDATE_PROFILE_MUTATION = `
     mutation SaveCheckoutInfo($input: UpdateProfileInput!) {
         updateProfile(input: $input) { id }
@@ -104,6 +133,18 @@ const PLACE_ORDER_MUTATION = `
         placeOrder(input: $input) {
             id
             orderCode
+            total
+            walletAmountApplied
+            paymentStatus
+        }
+    }
+`;
+
+const CREATE_PAYMENT_INTENT_MUTATION = `
+    mutation CreatePaymentIntent($input: CreatePaymentInput!) {
+        createPaymentIntent(input: $input) {
+            clientSecret
+            amount
         }
     }
 `;
@@ -117,6 +158,7 @@ function toOrderItem(item: BackendCartItem): CheckoutOrderItem {
         image: item.product.image ?? "https://picsum.photos/seed/checkout-item/300/300",
         price: item.product.salePrice ?? item.product.price,
         quantity: item.quantity,
+        deliveryOption: item.deliveryOption,
     };
 }
 
@@ -128,14 +170,20 @@ export function CheckoutContent() {
     const [me, setMe] = useState<BackendMe | null>(null);
 
     const [shipping, setShipping] = useState<ShippingDetails>(EMPTY_SHIPPING_DETAILS);
-    const [payment, setPayment] = useState<PaymentSummary | null>(null);
 
     const [promoCode, setPromoCode] = useState("");
-    const [promoApplied, setPromoApplied] = useState(false);
+    // Set only after the backend accepted the code (previewPromoCode); sent with placeOrder.
+    const [appliedPromo, setAppliedPromo] = useState<{code: string; discount: number} | null>(null);
+    const [promoChecking, setPromoChecking] = useState(false);
     const [promoError, setPromoError] = useState<string | null>(null);
 
+    const [walletBalance, setWalletBalance] = useState(0);
+    const [useWallet, setUseWallet] = useState(false);
+
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-    const [placedOrder, setPlacedOrder] = useState<{id: string; orderCode: string} | null>(null);
+    const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
+    const [payment, setPayment] = useState<{clientSecret: string; amount: number} | null>(null);
+    const [completed, setCompleted] = useState(false);
     const [hasSavedInfo, setHasSavedInfo] = useState(false);
     const [hasRespondedToSavePrompt, setHasRespondedToSavePrompt] = useState(false);
 
@@ -185,44 +233,79 @@ export function CheckoutContent() {
             })
             .catch(() => { /* not logged in — leave the form empty */ });
 
+        gqlRequest<{ myWalletBalance: number }>(WALLET_QUERY)
+            .then((res) => { if (!cancelled) setWalletBalance(Number(res.myWalletBalance) || 0); })
+            .catch(() => { /* no wallet: the option simply isn't shown */ });
+
         return () => { cancelled = true; };
     }, []);
 
+    // Same rules as the backend (OrderService): total = subtotal - promo discount + delivery fee, where the
+    // fee is the highest among the items' delivery options. No tax. The backend's own figures replace this
+    // estimate once the order is placed.
     const subtotal = useMemo(
         () => (items ?? []).reduce((sum, item) =>
             sum + item.price * item.quantity, 0),
         [items],
     );
-    // This dropdown only drives the frontend's shipping-fee *estimate* — the
-    // backend derives each order item's real deliveryOption from what was
-    // already chosen in the cart, and placeOrder has no field to override it.
-    const deliverySurcharge = DELIVERY_OPTION_FEES[shipping.deliveryOption];
-    const shippingFee =
-        (items?.length ?? 0) === 0
-            ? 0
-            : deliverySurcharge + (subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : BASE_SHIPPING_FEE);
-    const tax = subtotal * TAX_RATE;
-    const discount = promoApplied ? subtotal * (PROMO_CODES[promoCode.toUpperCase()] ?? 0) : 0;
-    const total = subtotal + shippingFee + tax - discount;
+    const fastestDelivery: DeliveryOption = useMemo(() => {
+        let fastest: DeliveryOption = "standard";
+        for (const item of items ?? []) {
+            const option = DELIVERY_FROM_BACKEND[item.deliveryOption] ?? "standard";
+            if (DELIVERY_OPTION_FEES[option] > DELIVERY_OPTION_FEES[fastest]) fastest = option;
+        }
+        return fastest;
+    }, [items]);
+    const shippingFee = (items?.length ?? 0) === 0 ? 0 : DELIVERY_OPTION_FEES[fastestDelivery];
+    const discount = appliedPromo?.discount ?? 0;
+    const estimatedTotal = Math.max(0, subtotal - discount + shippingFee);
+    const total = placedOrder ? Number(placedOrder.total) : estimatedTotal;
+    const walletApplied = placedOrder
+        ? Number(placedOrder.walletAmountApplied ?? 0)
+        : useWallet ? Math.min(walletBalance, estimatedTotal) : 0;
+    const amountDue = payment ? Number(payment.amount) : Math.max(0, total - walletApplied);
 
     function applyPromoCode() {
-        // No backend concept of promo codes — this stays a frontend-only demo.
-        const rate = PROMO_CODES[promoCode.trim().toUpperCase()];
-        if (rate) {
-            setPromoApplied(true);
-            setPromoError(null);
-            toast.success("Promotional code applied.");
-        } else {
-            setPromoError("That code isn't valid.");
-        }
+        const code = promoCode.trim().toUpperCase();
+        if (!code) return;
+        setPromoChecking(true);
+        setPromoError(null);
+        gqlRequest<{ previewPromoCode: {discountAmount: number} }>(PREVIEW_PROMO_QUERY, {code, subtotal})
+            .then((res) => {
+                setAppliedPromo({code, discount: Number(res.previewPromoCode.discountAmount)});
+                toast.success("Promotional code applied.");
+            })
+            .catch((err) => setPromoError(err instanceof Error ? err.message : "That code isn't valid."))
+            .finally(() => setPromoChecking(false));
     }
 
-    // Flow: Execute placeOrder mutation sending the required AddressInput fields
+    // Starts (or resumes) the Stripe payment for a placed order. createPaymentIntent hands back the same
+    // intent if one exists, so retrying after a failure is safe.
+    function startPayment(order: PlacedOrder) {
+        setIsPlacingOrder(true);
+        gqlRequest<{ createPaymentIntent: {clientSecret: string; amount: number} }>(
+            CREATE_PAYMENT_INTENT_MUTATION, {input: {orderId: order.id}})
+            .then((res) => {
+                setPayment(res.createPaymentIntent);
+                setStep("payment");
+            })
+            .catch((err) => toast.error(
+                `Order ${order.orderCode} is placed, but payment couldn't start: ` +
+                (err instanceof Error ? err.message : "please try again.")))
+            .finally(() => setIsPlacingOrder(false));
+    }
+
+    // Flow: placeOrder (reserves stock, applies promo + wallet) -> fully covered by the wallet? done ->
+    // otherwise createPaymentIntent -> Stripe payment step.
     function handlePlaceOrder() {
-        if (!items || items.length === 0 || !payment) return;
+        if (!items || items.length === 0) return;
+        if (placedOrder) {
+            startPayment(placedOrder);  // order already placed: only the payment needs retrying
+            return;
+        }
         setIsPlacingOrder(true);
 
-        gqlRequest<{ placeOrder: {id: string; orderCode: string} }>(PLACE_ORDER_MUTATION, {
+        gqlRequest<{ placeOrder: PlacedOrder }>(PLACE_ORDER_MUTATION, {
             input: {
                 cartItemIds: items.map((i) => i.id),
                 shippingAddress: {
@@ -233,18 +316,26 @@ export function CheckoutContent() {
                     postal: shipping.postalCode,
                     country: shipping.country,
                 },
-                paymentMethod: `${payment.brand} •••• ${payment.last4}`,
+                paymentMethod: "card",
+                promoCode: appliedPromo?.code,
+                useWalletBalance: useWallet,
             },
         })
             .then((res) => {
-                setPlacedOrder(res.placeOrder);
+                const order = res.placeOrder;
+                setPlacedOrder(order);
                 sessionStorage.removeItem(SESSION_STORAGE_KEY);
+                if (order.paymentStatus === "PAID") {
+                    setIsPlacingOrder(false);
+                    setCompleted(true);
+                    return;
+                }
+                startPayment(order);
             })
             .catch((err) => {
-                toast.error(err instanceof Error ? err.message :
-                    "Failed to place order.");
-            })
-            .finally(() => setIsPlacingOrder(false));
+                setIsPlacingOrder(false);
+                toast.error(err instanceof Error ? err.message : "Failed to place order.");
+            });
     }
 
     // Flow: Update user profile with shipping address for future checkouts
@@ -282,7 +373,7 @@ export function CheckoutContent() {
         return <div className="mx-auto w-[min(92vw,1400px)] pb-24"/>;
     }
 
-    if (items.length === 0) {
+    if (items.length === 0 && !placedOrder) {
         return (
             <div className="mx-auto w-[min(92vw,1400px)] pb-24">
                 <div className="flex flex-col items-center rounded-xl
@@ -331,37 +422,38 @@ export function CheckoutContent() {
                             value={shipping}
                             onChange={(patch) => setShipping(
                                 (prev) => ({...prev, ...patch}))}
-                            onContinue={() => setStep("payment")}
+                            onContinue={() => setStep("review")}
                             onReturnToCart={() => router.push("/cart")}
                             wasPrefilled={Boolean(me?.shippingAddress)}
                         />
                     ) : null}
 
-                    {step === "payment" ? (
-                        <PaymentStep
-                            defaultCardholderName={`${shipping.firstName} ${shipping.lastName}`.trim()}
-                            onBack={() => setStep("shipping")}
-                            onContinue={(summary) => {
-                                setPayment(summary);
-                                setStep("review");
-                            }}
-                        />
-                    ) : null}
-
-                    {step === "review" && payment ? (
+                    {step === "review" ? (
                         <ReviewStep
                             shipping={shipping}
-                            payment={payment}
+                            deliveryLabel={DELIVERY_OPTION_LABELS[fastestDelivery]}
                             items={items}
                             subtotal={subtotal}
                             shippingFee={shippingFee}
-                            tax={tax}
                             discount={discount}
                             total={total}
+                            walletApplied={walletApplied}
+                            amountDue={amountDue}
                             isPlacingOrder={isPlacingOrder}
-                            onEditStep={setStep}
-                            onBack={() => setStep("payment")}
+                            // The order is fixed once placed; only its payment can still be retried.
+                            onEditStep={(s) => { if (!placedOrder) setStep(s); }}
+                            onBack={() => { if (!placedOrder) setStep("shipping"); }}
                             onPlaceOrder={handlePlaceOrder}
+                        />
+                    ) : null}
+
+                    {step === "payment" && placedOrder && payment ? (
+                        <PaymentStep
+                            clientSecret={payment.clientSecret}
+                            orderId={placedOrder.id}
+                            orderCode={placedOrder.orderCode}
+                            amountDue={Number(payment.amount)}
+                            onPaid={() => setCompleted(true)}
                         />
                     ) : null}
                 </div>
@@ -370,24 +462,31 @@ export function CheckoutContent() {
                     items={items}
                     subtotal={subtotal}
                     shipping={shippingFee}
-                    tax={tax}
+                    tax={0}
                     discount={discount}
                     total={total}
                     promoCode={promoCode}
-                    promoApplied={promoApplied}
+                    promoApplied={appliedPromo !== null}
+                    promoChecking={promoChecking}
                     promoError={promoError}
                     onPromoCodeChange={(value) => {
                         setPromoCode(value);
                         setPromoError(null);
                     }}
                     onApplyPromoCode={applyPromoCode}
+                    walletBalance={walletBalance}
+                    useWallet={useWallet}
+                    onUseWalletChange={setUseWallet}
+                    walletApplied={walletApplied}
+                    amountDue={amountDue}
+                    locked={placedOrder !== null}
                 />
             </div>
 
             <OrderConfirmationDialog
-                open={placedOrder !== null}
+                open={completed && placedOrder !== null}
                 onOpenChange={(open) => {
-                    if (!open) setPlacedOrder(null);
+                    if (!open) router.push(`/orders/${placedOrder?.id}`);
                 }}
                 orderNumber={placedOrder?.orderCode ?? ""}
                 email={shipping.email}

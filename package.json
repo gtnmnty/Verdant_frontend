@@ -7,7 +7,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "check:graphql": "node scripts/check-graphql.mjs"
   },
   "dependencies": {
     "@radix-ui/react-accordion": "^1.2.12",
@@ -21,6 +22,8 @@
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-tabs": "^1.1.13",
+    "@stripe/react-stripe-js": "3.7.0",
+    "@stripe/stripe-js": "7.3.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cn": "^0.2.6",
@@ -42,6 +45,7 @@
     "@types/react-dom": "^19.2.0",
     "eslint": "^9.32.0",
     "eslint-config-next": "^15.4.0",
+    "graphql": "^16.9.0",
     "tailwindcss": "^4.2.1",
     "tw-animate-css": "^1.3.4",
     "typescript": "^5.8.3"

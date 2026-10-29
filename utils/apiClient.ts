@@ -18,11 +18,20 @@ export function configureApiClient(getter: TokenGetter, setter: TokenSetter) {
 
 // Calls the /auth/refresh endpoint in the backend
 // to get a new token in case the current one has expired
-// or user refresh the pages
-async function refreshAccessToken(): Promise<string | null> {
+// or user refresh the pages.
+// Every refresh in this tab must go through here (AuthContext's session restore too): refresh tokens rotate
+// (M-37), so two refreshes sent with the same cookie make the backend refuse the second one.
+export async function refreshAccessToken(): Promise<string | null> {
     if (refreshInFlight) return refreshInFlight;
 
-    refreshInFlight = refreshAccessTokenOnce();
+    refreshInFlight = refreshAccessTokenOnce().then(async (token) => {
+        if (token) return token;
+        // Another tab sharing this cookie may have rotated it a moment ago: the backend then refuses the
+        // old one, but that tab's response has already set the new cookie. One retry after a short pause
+        // picks it up instead of signing this tab out.
+        await new Promise((resolve) => setTimeout(resolve, 600));
+        return refreshAccessTokenOnce();
+    });
     try {
         return await refreshInFlight;
     } finally {

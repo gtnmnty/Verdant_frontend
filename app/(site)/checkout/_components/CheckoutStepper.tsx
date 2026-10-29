@@ -3,8 +3,8 @@ import type {CheckoutStep} from "@/app/(site)/checkout/_components/data";
 
 const STEPS: { id: CheckoutStep; label: string }[] = [
     {id: "shipping", label: "Shipping"},
-    {id: "payment", label: "Payment"},
     {id: "review", label: "Review"},
+    {id: "payment", label: "Payment"},
 ];
 
 export function CheckoutStepper({current}: { current: CheckoutStep }) {

@@ -1,6 +1,6 @@
-import type {DeliveryOption} from "@/app/(site)/cart/_components/data";
-
-export type CheckoutStep = "shipping" | "payment" | "review";
+// Order of the steps: the order is placed at "review", then paid at "payment" (Stripe needs the order's
+// PaymentIntent before it can show the payment form).
+export type CheckoutStep = "shipping" | "review" | "payment";
 
 export interface ShippingDetails {
     firstName: string;
@@ -12,7 +12,6 @@ export interface ShippingDetails {
     state: string;
     postalCode: string;
     country: string;
-    deliveryOption: DeliveryOption;
 }
 
 export const EMPTY_SHIPPING_DETAILS: ShippingDetails = {
@@ -25,28 +24,7 @@ export const EMPTY_SHIPPING_DETAILS: ShippingDetails = {
     state: "",
     postalCode: "",
     country: "",
-    deliveryOption: "standard",
 };
-
-export interface BillingAddress {
-    streetAddress: string;
-    city: string;
-    postalCode: string;
-    country: string;
-}
-
-// What the app is allowed to hold onto after the payment step. Deliberately
-// excludes the PAN, expiry, and CVC — those live only inside the Payment
-// step's local form state and are discarded once this summary is derived.
-// A real integration swaps the whole step for Stripe Elements so raw card
-// data never touches app code at all.
-export interface PaymentSummary {
-    cardholderName: string;
-    brand: "Visa" | "Mastercard" | "Amex" | "Card";
-    last4: string;
-    billingSameAsShipping: boolean;
-    billingAddress: BillingAddress | null;
-}
 
 export interface CheckoutOrderItem {
     id: string;
@@ -55,6 +33,8 @@ export interface CheckoutOrderItem {
     image: string;
     price: number;
     quantity: number;
+    // Delivery speed chosen in the cart (backend enum: STANDARD | EXPRESS | SAME_DAY).
+    deliveryOption: string;
 }
 
 export const COUNTRY_OPTIONS = [
