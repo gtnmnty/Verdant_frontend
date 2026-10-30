@@ -6,6 +6,7 @@ import {Checkbox} from "@/app/(site)/auth/_components/ui/Checkbox";
 import {SocialButtons} from "@/app/(site)/auth/_components/SocialButtons";
 import {useAuth} from "@/context/AuthContext";
 import {apiRequest} from "@/utils/apiClient";
+import {useCooldown} from "@/hooks/useCooldown";
 
 import {toast} from "sonner";
 import {Field} from "@/app/(site)/auth/_components/ui/Field";
@@ -27,6 +28,8 @@ export function LoginForm({
     const [remember, setRemember] = useState(true);
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
+    // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
+    const cooldown = useCooldown();
 
     const { setToken } = useAuth();
 
@@ -56,6 +59,7 @@ export function LoginForm({
             toast.success("Welcome back to Verdant Luxe.");
             onSuccess();
         } catch (e) {
+            cooldown.startFrom(e);
             toast.error(e instanceof Error ? e.message : "Login failed.");
         } finally {
             setLoading(false)
@@ -102,8 +106,8 @@ export function LoginForm({
                 </button>
             </div>
 
-            <Button type="submit" disabled={loading} size="lg" className="w-full">
-                {loading ? "Logging In…" : "Log In"}
+            <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
+                {loading ? "Logging In…" : cooldown.active ? cooldown.label : "Log In"}
             </Button>
 
             <SocialButtons/>

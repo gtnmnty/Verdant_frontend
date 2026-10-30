@@ -8,17 +8,24 @@ import {
     type Order,
     type OrderItem,
 } from "@/app/(site)/orders/_components/data";
+import {
+    CompletePaymentButton,
+    PaymentStatusBadge,
+    isAwaitingPayment,
+} from "@/app/(site)/orders/_components/PaymentStatus";
 
 export function OrderCard({
     order: o,
     onBuyAgain,
     onReview,
     onDownloadInvoice,
+    onPaid,
 }: {
     order: Order;
     onBuyAgain: (item: OrderItem) => void;
     onReview: (item: OrderItem) => void;
     onDownloadInvoice: (order: Order) => void;
+    onPaid: () => void;
 }) {
     const trackable = o.orderStatus === "IN_TRANSIT" || o.orderStatus === "PROCESSING";
 
@@ -36,8 +43,9 @@ export function OrderCard({
                         <span className="mx-2 text-on-surface-variant">·</span>
                         <span className="text-primary">Order #{o.id}</span>
                     </p>
-                    <p className="mt-1 text-xs text-on-surface-variant">
+                    <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
                         Placed on {formatDate(o.createdAt)}
+                        <PaymentStatusBadge orderStatus={o.orderStatus} paymentStatus={o.paymentStatus}/>
                     </p>
                 </div>
                 <span className="font-display text-2xl text-primary">
@@ -115,6 +123,9 @@ export function OrderCard({
 
             <footer className="mt-5 flex flex-wrap items-center justify-end
                  gap-3 border-t border-blush/40 pt-4">
+                {isAwaitingPayment(o.orderStatus, o.paymentStatus) ? (
+                    <CompletePaymentButton orderId={o.id} orderCode={o.orderCode} onPaid={onPaid}/>
+                ) : null}
                 <Button asChild size="sm" variant="ghost" className="text-primary">
                     <Link href={`/orders/${o.id}`}>
                         <FileText className="mr-1.5 h-4 w-4"/> Order Details

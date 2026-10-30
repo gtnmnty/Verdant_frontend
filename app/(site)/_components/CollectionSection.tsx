@@ -51,7 +51,7 @@ export default function CollectionSection() {
                             py-[clamp(3rem,8vw,6rem)]
                             rounded-[clamp(1rem,3vw,2rem)]"
         >
-            <div className="text-center mb-12 space-y-3">
+            <div className="text-center mb-[clamp(2rem,5vw,4rem)] space-y-[clamp(0.5rem,1vw,0.875rem)]">
                 <SectionLabel>The Shop</SectionLabel>
                 <h2 className="font-serif text-[clamp(2rem,4vw,3rem)]
                  text-stone-800">
@@ -60,17 +60,18 @@ export default function CollectionSection() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2
-                 lg:grid-cols-3 gap-6">
+                 lg:grid-cols-3 gap-[clamp(1rem,2vw,2rem)]">
                 {PRODUCTS.map((p, i) => (
                     <Reveal key={p.id} delay={i * 100}>
                         <article
                             onMouseEnter={() => setActive(p.id)}
-                            className={`bg-white rounded-2xl p-5 transition-all duration-500 ${
+                            className={`bg-white rounded-[clamp(1rem,1.6vw,1.5rem)]
+                            p-[clamp(1rem,1.6vw,1.5rem)] transition-all duration-500 ${
                                 active === p.id ? "shadow-xl -translate-y-1" : "shadow-sm"
                             }`}
                         >
-                            <div className="relative overflow-hidden rounded-xl aspect-square mb-6
-                 bg-stone-100">
+                            <div className="relative overflow-hidden rounded-[clamp(0.75rem,1.2vw,1rem)]
+                 aspect-square mb-[clamp(1rem,2vw,1.75rem)] bg-stone-100">
                                 <Image
                                     src={p.image}
                                     alt={p.name}
@@ -81,17 +82,17 @@ export default function CollectionSection() {
                                                     hover:scale-105"
                                 />
                             </div>
-                            <div className="text-center space-y-2">
-                                <p className="text-[0.65rem] tracking-[0.3em] uppercase
+                            <div className="text-center space-y-[clamp(0.375rem,0.7vw,0.625rem)]">
+                                <p className="text-fluid-2xs tracking-[0.3em] uppercase
                  text-rose-400">
                                     {p.category}
                                 </p>
-                                <h3 className="font-serif text-lg text-stone-800">{p.name}</h3>
-                                <p className="text-xs text-stone-500 leading-relaxed pb-3">
+                                <h3 className="font-serif text-fluid-lg text-stone-800">{p.name}</h3>
+                                <p className="text-fluid-xs text-stone-500 leading-relaxed pb-[0.75em]">
                                     {p.description}
                                 </p>
                                 <button
-                                    className="text-[0.7rem] tracking-[0.3em] uppercase
+                                    className="text-fluid-2xs tracking-[0.3em] uppercase
                                                     text-stone-700 border-b border-stone-300 pb-1
                                                     transition-colors hover:border-stone-700">
                                     Shop Now

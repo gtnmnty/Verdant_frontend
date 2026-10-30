@@ -1,25 +1,29 @@
-const SKELETON_HEIGHTS = [
-    "h-64",
-    "h-80",
-    "h-56",
-    "h-96",
-    "h-72",
-    "h-60",
-    "h-88",
-    "h-68",
+import {MASONRY_LAYOUT} from "@/app/(site)/journal/_components/JournalMasonryGrid";
+
+// Aspect ratios rather than fixed heights, so placeholders scale with the column width.
+const SKELETON_RATIOS = [
+    "aspect-4/5",
+    "aspect-3/4",
+    "aspect-square",
+    "aspect-2/3",
+    "aspect-4/5",
+    "aspect-5/6",
+    "aspect-3/5",
+    "aspect-3/4",
 ];
 
 export function JournalLoadingState() {
     return (
         <div
-            className="mt-10 columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4 [&>*]:mb-4"
+            className={MASONRY_LAYOUT}
             aria-busy="true"
             aria-live="polite"
         >
-            {SKELETON_HEIGHTS.map((height, i) => (
+            {SKELETON_RATIOS.map((ratio, i) => (
                 <div
                     key={i}
-                    className={`w-full animate-pulse break-inside-avoid rounded-2xl bg-surface-low ${height}`}
+                    className={`w-full animate-pulse break-inside-avoid
+                    rounded-[clamp(0.75rem,1.4vw,1.25rem)] bg-surface-low ${ratio}`}
                 />
             ))}
         </div>

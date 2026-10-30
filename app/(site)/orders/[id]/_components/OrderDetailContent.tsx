@@ -13,6 +13,11 @@ import {OrderDetailsHeader} from "@/app/(site)/orders/[id]/_components/OrderDeta
 import {OrderDetailsFooter} from "@/app/(site)/orders/[id]/_components/OrderDetailsFooter";
 import {OrderTimeline} from "@/app/(site)/orders/[id]/_components/OrderTimeline";
 import {
+    CompletePaymentButton,
+    PaymentStatusBadge,
+    isAwaitingPayment,
+} from "@/app/(site)/orders/_components/PaymentStatus";
+import {
     ORDER_BY_ID_QUERY,
     type BackendOrder,
 } from "@/app/(site)/orders/_components/query";
@@ -27,6 +32,8 @@ function formatAddress(addr?: BackendOrder["address"]) {
 export function OrderDetailContent({id}: { id: string }) {
     const [order, setOrder] = useState<BackendOrder | null>(null);
     const [loading, setLoading] = useState(true);
+    // Bumped to refetch after a payment, so the webhook's PAID shows up.
+    const [reloadKey, setReloadKey] = useState(0);
 
     useEffect(() => {
         let cancelled = false;
@@ -50,7 +57,7 @@ export function OrderDetailContent({id}: { id: string }) {
         return () => {
             cancelled = true;
         };
-    }, [id]);
+    }, [id, reloadKey]);
 
     if (loading) {
         return (
@@ -80,6 +87,7 @@ export function OrderDetailContent({id}: { id: string }) {
         id: order.id,
         orderCode: order.orderCode,
         orderStatus: order.orderStatus,
+        paymentStatus: order.paymentStatus,
         total: Number(order.total),
         createdAt: order.createdAt,
         paymentMethod: order.paymentMethod,
@@ -109,6 +117,29 @@ export function OrderDetailContent({id}: { id: string }) {
 
             <OrderDetailsHeader order={clientOrder}/>
 
+            {isAwaitingPayment(order.orderStatus, order.paymentStatus) ? (
+                <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl
+                    border border-amber-500/30 bg-amber-500/5 px-5 py-4">
+                    <p className="text-sm text-on-surface">
+                        {order.paymentStatus === "FAILED"
+                            ? "The last payment attempt didn't go through."
+                            : "This order hasn't been paid yet."}{" "}
+                        <span className="text-on-surface-variant">
+                            Unpaid orders are cancelled automatically after an hour.
+                        </span>
+                    </p>
+                    <CompletePaymentButton
+                        orderId={order.id}
+                        orderCode={order.orderCode}
+                        size="default"
+                        onPaid={() => {
+                            setOrder((prev) => (prev ? {...prev, paymentStatus: "PROCESSED"} : prev));
+                            setTimeout(() => setReloadKey((k) => k + 1), 4000);
+                        }}
+                    />
+                </div>
+            ) : null}
+
             <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
                 <div className="min-w-0 space-y-5">
                     <DetailCard title="Order Summary">
@@ -127,7 +158,18 @@ export function OrderDetailContent({id}: { id: string }) {
                                 label="Total"
                                 value={<span className="font-semibold">${Number(order.total).toFixed(2)}</span>}
                             />
-                            <DetailRow label="Payment" value={order.paymentMethod}/>
+                            <DetailRow
+                                label="Payment"
+                                value={
+                                    <span className="inline-flex flex-wrap items-center justify-end gap-2">
+                                        {order.paymentMethod}
+                                        <PaymentStatusBadge
+                                            orderStatus={order.orderStatus}
+                                            paymentStatus={order.paymentStatus}
+                                        />
+                                    </span>
+                                }
+                            />
                             <DetailRow label="Shipping Address" value={formatAddress(order.address)}/>
                         </dl>
                     </DetailCard>

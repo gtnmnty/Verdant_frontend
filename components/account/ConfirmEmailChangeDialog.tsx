@@ -14,6 +14,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {useCooldown} from "@/hooks/useCooldown";
 
 // Step 2 of a self-service email change: the code mailed to the new address.
 export const CONFIRM_EMAIL_CHANGE_MUTATION = `
@@ -51,6 +52,8 @@ export function ConfirmEmailChangeDialog({
 }: ConfirmEmailChangeDialogProps) {
     const [code, setCode] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
+    const cooldown = useCooldown();
 
     // Start empty each time the dialog opens, so an old attempt isn't resubmitted.
     useEffect(() => {
@@ -69,6 +72,7 @@ export function ConfirmEmailChangeDialog({
             onOpenChange(false);
             toast.success("Your email address has been updated.");
         } catch (err) {
+            cooldown.startFrom(err);
             toast.error(err instanceof Error ? err.message : "Failed to confirm your email.");
         } finally {
             setSubmitting(false);
@@ -110,10 +114,10 @@ export function ConfirmEmailChangeDialog({
                         </Button>
                         <Button
                             type="submit"
-                            disabled={submitting || code.length !== 6}
+                            disabled={submitting || cooldown.active || code.length !== 6}
                             className={submitClassName}
                         >
-                            {submitting ? "Confirming…" : "Confirm Email"}
+                            {submitting ? "Confirming…" : cooldown.active ? cooldown.label : "Confirm Email"}
                         </Button>
                     </DialogFooter>
                 </form>

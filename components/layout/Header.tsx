@@ -53,14 +53,14 @@ export function Header() {
         >
             <div className="flex h-[clamp(56px,8vw,76px)] w-full
                  items-center justify-between gap-4 px-[5vw]
-                 sm:px-[6vw] lg:grid
-                 lg:grid-cols-[1fr_auto_1fr] lg:gap-0
-                 lg:px-[10vw]">
+                 sm:px-[6vw] xl:grid
+                 xl:grid-cols-[1fr_auto_1fr] xl:gap-0
+                 xl:px-[5vw] 2xl:px-[10vw]">
                 {/* Desktop primary nav */}
                 <nav
                     aria-label="Primary"
                     className="hidden items-center
-                                    gap-[clamp(12px,2vw,32px)] lg:flex"
+                                    gap-[clamp(12px,2vw,32px)] xl:flex"
                 >
                     {NAV_LINKS.map((link) =>
                         link.href.startsWith("/") ? (
@@ -96,7 +96,7 @@ export function Header() {
                     className="min-w-0 truncate font-display
                                     text-[clamp(16px,3vw,30px)] leading-none
                                     tracking-tight text-primary
-                                    lg:justify-self-center"
+                                    xl:justify-self-center"
                 >
                     Verdant Luxe
                 </Link>
@@ -106,7 +106,7 @@ export function Header() {
                     role="toolbar"
                     aria-label="Actions"
                     className="hidden items-center justify-end
-                                    gap-[clamp(10px,1.6vw,22px)] lg:flex"
+                                    gap-[clamp(10px,1.6vw,22px)] xl:flex"
                 >
                     {ICON_ACTIONS.map(({label, icon: Icon, href}) =>
                         href ? (
@@ -171,7 +171,7 @@ export function Header() {
                             className="flex h-9 w-9 flex-shrink-0 items-center
                                             justify-center text-primary
                                             transition-opacity duration-200
-                                            hover:opacity-70 lg:hidden"
+                                            hover:opacity-70 xl:hidden"
                         >
                             <Menu className="h-5 w-5"/>
                         </button>

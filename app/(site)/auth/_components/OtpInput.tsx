@@ -47,7 +47,7 @@ export function OtpInput({
     };
 
     return (
-        <div className="flex justify-center gap-2 sm:gap-3">
+        <div className="flex w-full justify-center gap-[clamp(0.25rem,1.5vw,0.75rem)]">
             {digits.map((digit, i) => (
                 <input
                     key={i}
@@ -61,7 +61,8 @@ export function OtpInput({
                     inputMode="numeric"
                     maxLength={1}
                     aria-label={`Digit ${i + 1}`}
-                    className="h-12 w-10 rounded-xl border border-border bg-white text-center text-lg font-semibold text-on-surface outline-none transition-colors focus:border-primary sm:h-14 sm:w-12"
+                    // Boxes share the row (flex-1, min-w-0) so six always fit the card, capped at 3.25rem.
+                    className="aspect-5/6 min-w-0 max-w-[3.25rem] flex-1 rounded-xl border border-border bg-white text-center text-[clamp(1rem,calc(0.85rem+0.8vw),1.25rem)] font-semibold text-on-surface outline-none transition-colors focus:border-primary"
                 />
             ))}
         </div>

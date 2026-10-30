@@ -1,3 +1,5 @@
+import {ApiError} from "@/utils/apiError";
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL!;
 
 type TokenGetter = () => string | null;
@@ -55,25 +57,36 @@ async function refreshAccessTokenOnce(): Promise<string | null> {
 }
 
 // Parses the response from backend into a JSON format.
+// Some endpoints (e.g. /auth/forgot-password, /auth/verify) answer 200 with a plain-text message;
+// return that text rather than throwing, since the request itself succeeded.
 async function parseJsonResponse<T>(response: Response): Promise<T> {
     const text = await response.text();
-    return text ? JSON.parse(text) as T : undefined as T;
+    if (!text) return undefined as T;
+    try {
+        return JSON.parse(text) as T;
+    } catch {
+        return text as T;
+    }
 }
 
 // REST errors always come back as ErrorResponse { timestamp, status, error, message, path }
 // (see GlobalExceptionHandler). Extract just the human-readable `message` for the thrown
 // Error, falling back to the raw text if the body isn't JSON (e.g. a proxy/502 page).
+// Returns an ApiError carrying the HTTP status and, on a 429, the backend's Retry-After (seconds), so forms
+// can start a cooldown.
 async function errorFromResponse(response: Response): Promise<Error> {
     const text = await response.text();
+    const retryAfterHeader = Number(response.headers.get("Retry-After"));
+    const retryAfter = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0 ? retryAfterHeader : undefined;
     try {
         const parsed = JSON.parse(text);
         if (parsed && typeof parsed.message === "string") {
-            return new Error(parsed.message);
+            return new ApiError(parsed.message, undefined, response.status, retryAfter);
         }
     } catch {
         // not JSON — fall through to raw text below
     }
-    return new Error(text || `Request failed with status ${response.status}`);
+    return new ApiError(text || `Request failed with status ${response.status}`, undefined, response.status, retryAfter);
 }
 
 // Central fetch wrapper for all authenticated API requests

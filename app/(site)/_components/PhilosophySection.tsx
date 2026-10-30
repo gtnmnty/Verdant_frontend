@@ -5,10 +5,10 @@ import Image from "next/image";
 export default function PhilosophySection() {
     return (
         <section id="philosophy" className="py-[clamp(3rem,8vw,6rem)]">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-10
-                 md:gap-16 items-center">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-[clamp(2rem,5vw,5rem)]
+                 items-center">
                 <Reveal>
-                    <div className="relative overflow-hidden rounded-2xl aspect-[4/5]">
+                    <div className="relative overflow-hidden rounded-[clamp(1rem,1.6vw,1.5rem)] aspect-[4/5]">
                         <Image
                             src="https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?auto=format&fit=crop&w=900&q=80"
                             alt="Close-up of refined makeup artistry"
@@ -21,19 +21,19 @@ export default function PhilosophySection() {
                     </div>
                 </Reveal>
                 <Reveal delay={150}>
-                    <div className="space-y-6">
+                    <div className="space-y-[clamp(1rem,2vw,1.75rem)]">
                         <SectionLabel>Philosophy</SectionLabel>
                         <h2 className="font-serif text-[clamp(2rem,4.5vw,3.5rem)]
                  leading-[1.1] text-stone-800">
                             Elegance is the only beauty that never fades.
                         </h2>
-                        <p className="italic text-stone-600 leading-relaxed
-                 border-l-2 border-rose-300 pl-4">
+                        <p className="italic text-fluid-base text-stone-600 leading-relaxed
+                 border-l-2 border-rose-300 pl-[1em]">
                             We believe that true beauty resides in simplicity. Our approach is to
                             refine, not replace — to enhance the natural grace that exists in every
                             client.
                         </p>
-                        <p className="text-stone-500 leading-relaxed">
+                        <p className="text-fluid-base text-stone-500 leading-relaxed">
                             At Parfois, we don&apos;t just follow trends. We study your movement, your
                             features, and your lifestyle to craft a signature aesthetic that is
                             undeniably yours.

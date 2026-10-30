@@ -7,15 +7,9 @@ import {toast} from "sonner";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {ServiceGallery} from "@/app/(site)/services/[id]/_components/ServiceGallery";
 import {ServiceInfo, type ServiceInfoData} from "@/app/(site)/services/[id]/_components/ServiceInfo";
-import {ServiceTabs} from "@/app/(site)/services/[id]/_components/ServiceTabs";
 import {StylistsSection, type StylistData} from "@/app/(site)/services/[id]/_components/StylistsSection";
 import {BookingForm} from "@/app/(site)/services/[id]/_components/BookingForm";
 import {ServiceReviewsSection} from "@/app/(site)/services/[id]/_components/ServiceReviewsSection";
-import {
-    RecommendedProductsSection,
-    RelatedServicesSection,
-} from "@/app/(site)/services/[id]/_components/RelatedAndProducts";
-import {ServiceFaqSection} from "@/app/(site)/services/[id]/_components/ServiceFaqSection";
 
 const CATEGORY_LABELS: Record<string, string> = {
     SKIN_CARE: "Skin Care",
@@ -178,10 +172,6 @@ export function ServiceDetailContent({id}: { id: string }) {
                 <ServiceInfo service={serviceInfoData} qty={qty} onQtyChange={setQty}/>
             </section>
 
-            <section className="mt-[clamp(40px,6vw,80px)]">
-                <ServiceTabs description={service.description ?? ""} info={service.info}/>
-            </section>
-
             <StylistsSection stylists={stylists}/>
             <BookingForm
                 serviceId={service.id}
@@ -192,9 +182,6 @@ export function ServiceDetailContent({id}: { id: string }) {
                 qty={qty}
             />
             <ServiceReviewsSection serviceId={service.id}/>
-            <RelatedServicesSection excludeServiceId={service.id} category={service.catalog}/>
-            <RecommendedProductsSection/>
-            <ServiceFaqSection/>
         </div>
     );
 }

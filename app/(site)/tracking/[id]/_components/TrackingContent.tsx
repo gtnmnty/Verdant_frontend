@@ -10,6 +10,7 @@ import {TrackingItemCard} from "@/app/(site)/tracking/[id]/_components/TrackingI
 import {ShipmentDetails} from "@/app/(site)/tracking/[id]/_components/ShipmentDetails";
 import {TrackingActions} from "@/app/(site)/tracking/[id]/_components/TrackingActions";
 import {STAGES, type Stage, type TrackItem} from "@/app/(site)/tracking/[id]/_components/data";
+import {PaymentStatusBadge} from "@/app/(site)/orders/_components/PaymentStatus";
 
 interface BackendOrderItem {
     id: string;
@@ -32,6 +33,7 @@ interface BackendOrder {
     id: string;
     orderCode: string;
     orderStatus: "PLACED" | "PROCESSING" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
+    paymentStatus: string;
     paymentMethod: string;
     address: BackendAddress;
     total: number;
@@ -45,6 +47,7 @@ const ORDER_QUERY = `
             id
             orderCode
             orderStatus
+            paymentStatus
             paymentMethod
             address { line1 line2 city state postal country }
             total
@@ -143,6 +146,9 @@ export function TrackingContent({id}: { id: string }) {
                     Track Order
                 </h1>
                 <Sparkles className="mx-auto mt-2 h-5 w-5 text-champagne-gold"/>
+                <div className="mt-3">
+                    <PaymentStatusBadge orderStatus={order.orderStatus} paymentStatus={order.paymentStatus}/>
+                </div>
             </header>
 
             <TrackingSummary

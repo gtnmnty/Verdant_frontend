@@ -39,16 +39,16 @@ const SERVICES: Service[] = [
 export default function ServicesSection() {
     return (
         <section id="services" className="py-[clamp(3rem,8vw,6rem)]">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8
-                 items-start mb-12">
-                <div className="md:col-span-2 space-y-3">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-[clamp(1.25rem,3vw,2.5rem)]
+                 items-start mb-[clamp(2rem,5vw,4rem)]">
+                <div className="md:col-span-2 space-y-[clamp(0.5rem,1vw,0.875rem)]">
                     <SectionLabel>Our Expertise</SectionLabel>
                     <h2 className="font-serif text-[clamp(2rem,4.5vw,3.5rem)]
                  leading-tight text-stone-800">
                         Refined <br/> Transformations
                     </h2>
                 </div>
-                <p className="text-stone-500 text-sm md:text-base max-w-xs
+                <p className="text-stone-500 text-fluid-base max-w-[clamp(18rem,26vw,26rem)]
                  leading-relaxed">
                     A curated selection of treatments designed to enhance your natural beauty
                     with precision and grace.
@@ -56,11 +56,13 @@ export default function ServicesSection() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2
-                 lg:grid-cols-3 gap-6 md:gap-8">
+                 lg:grid-cols-3 gap-[clamp(1.25rem,2.5vw,2.5rem)]">
                 {SERVICES.map((s, i) => (
-                    <Reveal key={s.id} delay={i * 120} className={i === 1 ? "lg:mt-16" : ""}>
+                    <Reveal key={s.id} delay={i * 120}
+                            className={i === 1 ? "lg:mt-[clamp(2.5rem,5vw,5rem)]" : ""}>
                         <article className="group cursor-pointer">
-                            <div className="relative overflow-hidden rounded-2xl aspect-[4/5] mb-5">
+                            <div className="relative overflow-hidden rounded-[clamp(1rem,1.6vw,1.5rem)]
+                 aspect-[4/5] mb-[clamp(1rem,1.6vw,1.5rem)]">
                                 <Image
                                     src={s.image}
                                     alt={s.title}
@@ -71,12 +73,12 @@ export default function ServicesSection() {
                                                     ease-out group-hover:scale-110"
                                 />
                             </div>
-                            <h3 className="font-serif text-xl text-stone-800 mb-2">{s.title}</h3>
-                            <p className="text-sm text-stone-500 leading-relaxed mb-4">
+                            <h3 className="font-serif text-fluid-xl text-stone-800 mb-[0.4em]">{s.title}</h3>
+                            <p className="text-fluid-sm text-stone-500 leading-relaxed mb-[1em]">
                                 {s.description}
                             </p>
                             <button
-                                className="text-[0.7rem] tracking-[0.3em] uppercase
+                                className="text-fluid-2xs tracking-[0.3em] uppercase
                                                 text-stone-700 border-b border-stone-300 pb-1
                                                 transition-colors hover:border-stone-700">
                                 Discover

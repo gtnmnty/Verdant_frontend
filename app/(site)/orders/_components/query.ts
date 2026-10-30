@@ -23,6 +23,7 @@ export const MY_ORDERS_QUERY = `
                 id            
                 orderCode
                 orderStatus
+                paymentStatus
                 total
                 createdAt
                 items {

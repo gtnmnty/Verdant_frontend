@@ -12,5 +12,9 @@ export default async function ProductDetailPage({
     params: Promise<{ id: string }>;
 }) {
     const {id} = await params;
-    return <ProductDetailContent id={id}/>;
+    return (
+        <div className="w-full px-[clamp(12px,5vw,10vw)] sm:px-[6vw] lg:px-[10vw]">
+            <ProductDetailContent id={id}/>
+        </div>
+    );
 }

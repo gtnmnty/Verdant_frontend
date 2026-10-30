@@ -6,6 +6,7 @@ import {Field} from "@/app/(site)/auth/_components/ui/Field";
 import {PasswordStrengthMeter} from "@/app/(site)/auth/_components/PasswordStrengthMeter";
 import {CheckCircle2} from "@/app/(site)/auth/_components/ui/Icons";
 import {apiRequest} from "@/utils/apiClient";
+import {useCooldown} from "@/hooks/useCooldown";
 import {toast} from "sonner";
 
 type Errors = { password?: string; confirm?: string };
@@ -16,6 +17,8 @@ export function NewPasswordForm({ email, code, onDone }: { email: string; code: 
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
+    const cooldown = useCooldown();
 
     const onSubmit = async (ev: SubmitEvent) => {
         ev.preventDefault();
@@ -32,6 +35,7 @@ export function NewPasswordForm({ email, code, onDone }: { email: string; code: 
             });
             setSuccess(true);
         } catch (error) {
+            cooldown.startFrom(error);
             toast.error(error instanceof Error ? error.message : "Failed to reset password.");
         } finally {
             setLoading(false);
@@ -83,8 +87,8 @@ export function NewPasswordForm({ email, code, onDone }: { email: string; code: 
                 error={errors.confirm}
             />
 
-            <Button type="submit" disabled={loading} size="lg" className="w-full">
-                {loading ? "Updating…" : "Set New Password"}
+            <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
+                {loading ? "Updating…" : cooldown.active ? cooldown.label : "Set New Password"}
             </Button>
         </form>
     );
