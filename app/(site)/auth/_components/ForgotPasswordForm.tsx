@@ -5,6 +5,7 @@ import {toast} from "sonner";
 import {Button} from "@/app/(site)/auth/_components/ui/Button";
 import {Field} from "@/app/(site)/auth/_components/ui/Field";
 import {apiRequest} from "@/utils/apiClient";
+import {useCooldown} from "@/hooks/useCooldown";
 
 export function ForgotPasswordForm({
    onSwitchToLogin,
@@ -16,6 +17,8 @@ export function ForgotPasswordForm({
     const [email, setEmail] = useState("");
     const [error, setError] = useState<string>();
     const [loading, setLoading] = useState(false);
+    // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
+    const cooldown = useCooldown();
 
     const onSubmit = async (ev: SubmitEvent) => {
         ev.preventDefault();
@@ -41,6 +44,7 @@ export function ForgotPasswordForm({
             onCodeSent(email);
         } catch (e) {
             // Display failure toast if backend rejects request or network fails
+            cooldown.startFrom(e);
             toast.error(e instanceof Error ? e.message : "Failed to send code.");
         } finally {
             setLoading(false);
@@ -59,8 +63,8 @@ export function ForgotPasswordForm({
                 }}
                 error={error}
             />
-            <Button type="submit" disabled={loading} size="lg" className="w-full">
-                {loading ? "Sending…" : "Send Verification Code"}
+            <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
+                {loading ? "Sending…" : cooldown.active ? cooldown.label : "Send Verification Code"}
             </Button>
             <p className="pt-2 text-center text-sm text-on-surface-variant">
                 Remembered your password?{" "}

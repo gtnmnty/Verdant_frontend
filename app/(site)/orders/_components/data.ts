@@ -13,6 +13,8 @@ export interface Order {
     id: string;
     orderCode: string;
     orderStatus: OrderStatus;
+    // Backend PaymentStatus (PENDING, PAID, PARTIALLY_REFUNDED, ...); drives the payment badge.
+    paymentStatus?: string;
     total: number;
     createdAt: string;
     items: OrderItem[];

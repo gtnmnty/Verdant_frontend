@@ -23,81 +23,87 @@ export function JournalStoryDialog(
 ) {
     return (
         <Dialog open={!!story} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-3xl overflow-hidden p-0">
+            {/* sm:max-w-* is needed to override the base DialogContent's sm:max-w-sm. */}
+            <DialogContent className="max-h-[90vh] overflow-y-auto p-0
+            sm:max-w-[min(calc(100vw-4rem),52rem)]">
                 {story ? (
-                    <div className="grid grid-cols-1 lg:grid-cols-2">
+                    <div className="grid grid-cols-1 md:grid-cols-2">
                         <div className="relative min-w-0">
-                            <div className="relative aspect-4/5
-                            w-full overflow-hidden bg-surface-low">
+                            <div className="relative aspect-4/5 w-full
+                            overflow-hidden bg-surface-low md:aspect-auto
+                            md:h-full md:min-h-[clamp(22rem,40vw,32rem)]">
                                 <Image
                                     src={story.resultImage}
                                     alt={`${story.clientName} — ${story.service} result`}
                                     fill
-                                    sizes="(max-width: 1024px) 100vw, 50vw"
+                                    sizes="(max-width: 768px) 100vw, 416px"
                                     className="object-cover"
                                 />
                             </div>
                             <div
-                                className="absolute bottom-4
-                                right-4 h-24 w-24 overflow-hidden
-                                rounded-lg border-4 border-surface
-                                shadow-lg sm:h-28 sm:w-28">
+                                className="absolute bottom-[clamp(0.75rem,1.5vw,1.25rem)]
+                                right-[clamp(0.75rem,1.5vw,1.25rem)]
+                                size-[clamp(5rem,calc(4rem+4vw),7.5rem)] overflow-hidden
+                                rounded-[clamp(0.5rem,0.8vw,0.75rem)]
+                                border-[clamp(3px,0.4vw,5px)] border-surface shadow-lg">
                                 <Image
                                     src={story.productImage}
                                     alt={`Products used for ${story.clientName}'s ${story.service}`}
                                     fill
-                                    sizes="112px"
+                                    sizes="120px"
                                     className="object-cover"
                                 />
                             </div>
                         </div>
 
                         {/* Story content */}
-                        <div className="min-w-0 p-6 sm:p-8">
-                            <p className="text-[10px] font-semibold
+                        <div className="min-w-0 p-[clamp(1.25rem,3vw,2.25rem)]">
+                            <p className="text-fluid-2xs font-semibold
                             uppercase tracking-[0.24em] text-soft-rose">
                                 {story.category}
                             </p>
                             <DialogTitle
-                                className="mt-4 font-display text-xl
-                                italic leading-snug text-on-surface sm:text-2xl">
+                                className="mt-[0.75em] font-display text-fluid-xl
+                                italic leading-snug text-on-surface">
                                 &ldquo;{story.quote}&rdquo;
                             </DialogTitle>
-                            <p className="mt-3 text-sm text-on-surface-variant">
+                            <p className="mt-[0.75em] text-fluid-sm text-on-surface-variant">
                                 — {story.clientName}
                             </p>
 
-                            <dl className="mt-6 space-y-2 text-sm">
-                                <div className="flex gap-2">
-                                    <dt className="w-20 shrink-0
+                            {/* em-based widths/gaps scale with the fluid text size. */}
+                            <dl className="mt-[1.5em] space-y-[0.5em] text-fluid-sm">
+                                <div className="flex gap-[0.5em]">
+                                    <dt className="w-[5.5em] shrink-0
                                     font-semibold text-on-surface">
                                         Service
                                     </dt>
                                     <dd className="text-on-surface-variant">{story.service}</dd>
                                 </div>
-                                <div className="flex gap-2">
-                                    <dt className="w-20 shrink-0 font-semibold text-on-surface">
+                                <div className="flex gap-[0.5em]">
+                                    <dt className="w-[5.5em] shrink-0 font-semibold text-on-surface">
                                         Stylist
                                     </dt>
                                     <dd className="text-on-surface-variant">{story.stylist}</dd>
                                 </div>
                             </dl>
 
-                            <div className="mt-5">
-                                <p className="text-[10px] font-semibold
+                            <div className="mt-[clamp(1rem,2vw,1.5rem)]">
+                                <p className="text-fluid-2xs font-semibold
                                 uppercase tracking-[0.18em]
                                 text-on-surface-variant">
                                     Products Used
                                 </p>
-                                <ul className="mt-3 flex flex-wrap gap-2">
+                                <ul className="mt-[clamp(0.5rem,1vw,0.875rem)] flex flex-wrap
+                                gap-[clamp(0.375rem,0.8vw,0.625rem)]">
                                     {story.products.map((product) => (
                                         <li
                                             key={product.id}
                                             className="flex items-center
-                                            gap-2 rounded-full border
+                                            gap-[0.5em] rounded-full border
                                             border-blush/60 bg-surface
-                                             py-1.5 pl-3 pr-1.5
-                                             text-xs
+                                             py-[0.4em] pl-[0.9em] pr-[0.4em]
+                                             text-fluid-xs
                                              font-medium
                                              text-on-surface
                                              transition-colors
@@ -116,21 +122,24 @@ export function JournalStoryDialog(
                                                 type="button"
                                                 onClick={() => onAddProduct(product.id, product.name)}
                                                 aria-label={`Add ${product.name} to cart`}
-                                                className="grid h-5 w-5 shrink-0
+                                                className="grid size-[1.6em] shrink-0
                                                 place-items-center
                                                 rounded-full text-primary
                                                 transition-colors hover:bg-primary
                                                 hover:text-primary-foreground"
                                             >
-                                                <Plus className="h-3 w-3"/>
+                                                <Plus className="size-[60%]"/>
                                             </button>
                                         </li>
                                     ))}
                                 </ul>
                             </div>
 
-                            <div className="mt-8 flex flex-wrap gap-3">
-                                <Button asChild className="uppercase tracking-[0.12em]">
+                            <div className="mt-[clamp(1.5rem,3vw,2.25rem)] flex flex-wrap
+                            gap-[clamp(0.5rem,1vw,0.75rem)]">
+                                <Button asChild
+                                        className="h-auto px-[1.5em] py-[0.85em] text-fluid-xs
+                                        uppercase tracking-[0.12em]">
                                     <Link href={`/book?service=${encodeURIComponent(story.service)}`}>
                                         Book This Service
                                     </Link>
@@ -139,8 +148,8 @@ export function JournalStoryDialog(
                                     type="button"
                                     variant="outline"
                                     onClick={() => onAddRoutine(story)}
-                                    className="border-primary uppercase
-                                    tracking-[0.12em] text-primary
+                                    className="h-auto border-primary px-[1.5em] py-[0.85em]
+                                    text-fluid-xs uppercase tracking-[0.12em] text-primary
                                     hover:bg-primary
                                     hover:text-primary-foreground"
                                 >

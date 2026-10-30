@@ -9,6 +9,7 @@ import {Field} from "@/app/(site)/auth/_components/ui/Field";
 import {PasswordStrengthMeter} from "@/app/(site)/auth/_components/PasswordStrengthMeter";
 import {CheckCircle2} from "@/app/(site)/auth/_components/ui/Icons";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {useCooldown} from "@/hooks/useCooldown";
 
 // Page for the link staff trigger from the admin panel (new account invite or "Reset password"):
 //   /reset-password?token=<one-time token>
@@ -38,6 +39,8 @@ export function ResetPasswordFlow() {
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
+    const cooldown = useCooldown();
     const [linkInvalid, setLinkInvalid] = useState(false);
 
     useEffect(() => {
@@ -66,6 +69,7 @@ export function ResetPasswordFlow() {
             tokenRef.current = null; // single use: nothing left to retry with
             setSuccess(true);
         } catch (error) {
+            cooldown.startFrom(error);
             const message = error instanceof Error ? error.message : "Failed to set password.";
             if (/invalid or expired/i.test(message)) {
                 // Expired, already used, or never valid: the backend deliberately doesn't say which.
@@ -149,8 +153,8 @@ export function ResetPasswordFlow() {
                         error={errors.confirm}
                     />
 
-                    <Button type="submit" disabled={loading} size="lg" className="w-full">
-                        {loading ? "Saving…" : "Set Password"}
+                    <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
+                        {loading ? "Saving…" : cooldown.active ? cooldown.label : "Set Password"}
                     </Button>
                 </form>
             </AuthCard>

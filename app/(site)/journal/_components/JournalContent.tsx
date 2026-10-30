@@ -91,19 +91,21 @@ export function JournalContent() {
     }
 
     return (
-        <div className="mx-auto w-[min(92vw,1400px)] pb-24">
-            <div className="max-w-2xl">
-                <p className="text-[10px] font-semibold
+        // w-full, not a vw width: the page wrapper already pads, so 92vw would overflow it.
+        <div className="mx-auto w-full max-w-[1400px] pt-[clamp(1.5rem,4vw,3rem)]
+        pb-[clamp(3rem,8vw,6rem)]">
+            <div className="max-w-[clamp(20rem,50vw,42rem)]">
+                <p className="text-fluid-2xs font-semibold
                 uppercase tracking-[0.28em] text-soft-rose">
                     The Verdant Luxe Journal
                 </p>
-                <h1 className="mt-2 font-display
-                text-[clamp(2rem,5vw,3.25rem)]
+                <h1 className="mt-[0.25em] font-display
+                text-[clamp(2rem,calc(1.25rem+3vw),3.75rem)]
                 leading-tight text-primary">
                     Client Stories
                 </h1>
-                <p className="mt-3 text-sm
-                text-on-surface-variant sm:text-base">
+                <p className="mt-[0.75em] text-fluid-base
+                text-on-surface-variant">
                     Real rituals, real results — a look inside the transformations
                     our stylists craft every day.
                 </p>
@@ -120,7 +122,7 @@ export function JournalContent() {
             {isLoading ? (
                 <JournalLoadingState/>
             ) : filteredStories.length === 0 ? (
-                <div className="mt-10">
+                <div className="mt-[clamp(1.5rem,4vw,2.5rem)]">
                     <JournalEmptyState/>
                 </div>
             ) : (

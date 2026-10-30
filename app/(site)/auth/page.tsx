@@ -89,6 +89,7 @@ export default function AuthPage() {
                     {(mode === "verify-signup" || mode === "verify-reset") && (
                         <VerifyForm
                             email={pendingEmail}
+                            purpose={mode === "verify-reset" ? "reset" : "signup"}
                             onVerified={(code: string) => {
                                 if (mode === "verify-signup") {
                                     toast.success("Email verified — you can log in now.");

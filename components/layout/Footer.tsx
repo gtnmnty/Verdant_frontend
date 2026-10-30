@@ -7,6 +7,7 @@ import { FaFacebook, FaInstagram, FaTwitter, FaYoutube } from "react-icons/fa";
 import {ArrowUp, Mail, MapPin, Phone, Clock, MessageCircle } from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {PAGE_GUTTER} from "@/utils/pageGutter";
 
 type LinkItem = { label: string; href?: string };
 
@@ -37,6 +38,9 @@ const LEGAL_LINKS = [
     "Cookies Policy",
 ] as const;
 
+// Icons sized in em so they track the surrounding fluid text.
+const INLINE_ICON = "mt-[0.2em] h-[1.1em] w-[1.1em] shrink-0 text-champagne-gold";
+
 export function Footer() {
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
@@ -64,54 +68,58 @@ export function Footer() {
     };
 
     return (
-        <footer className="mt-24 border-t border-blush/40 bg-surface-low
-                 text-on-surface">
-            <div className="mx-auto w-[min(90vw,1400px)]
-                 py-[clamp(2.5rem,5vw,4rem)]">
+        <footer className="mt-[clamp(3rem,8vw,6rem)] w-full border-t border-blush/40
+                 bg-surface-low text-on-surface">
+            <div className={`w-full ${PAGE_GUTTER} py-[clamp(2.5rem,5vw,4.5rem)]`}>
                 {/* Top: brand -> divider -> socials -> newsletter */}
                 <div className="flex flex-col items-center text-center">
                     <Link
                         href="/"
-                        className="font-display text-[clamp(1.75rem,4vw,3rem)]
+                        className="font-display text-[clamp(1.75rem,calc(1rem+3vw),3.5rem)]
                                         leading-none tracking-[0.22em] text-primary"
                     >
                         VERDANT&nbsp;LUXE
                     </Link>
-                    <div className="mt-5 flex items-center gap-4">
-                        <span className="h-px w-12 bg-champagne-gold/70"/>
-                        <span className="text-[10px] font-semibold uppercase
+                    <div className="mt-[clamp(1rem,1.6vw,1.5rem)] flex items-center
+                 gap-[clamp(0.75rem,1.2vw,1.25rem)]">
+                        <span className="h-px w-[clamp(2rem,4vw,3.5rem)] bg-champagne-gold/70"/>
+                        <span className="text-fluid-2xs font-semibold uppercase
                  tracking-[0.32em] text-champagne-gold">
               Salon &amp; Studio
             </span>
-                        <span className="h-px w-12 bg-champagne-gold/70"/>
+                        <span className="h-px w-[clamp(2rem,4vw,3.5rem)] bg-champagne-gold/70"/>
                     </div>
 
-                    <div className="mt-6 flex gap-3">
+                    <div className="mt-[clamp(1.25rem,2vw,1.75rem)] flex
+                 gap-[clamp(0.5rem,1vw,0.875rem)]">
                         {[FaInstagram, FaFacebook, FaYoutube, FaTwitter].map((Icon, i) => (
                             <a
                                 key={i}
                                 href="#"
                                 aria-label="Social"
-                                className="grid h-10 w-10 place-items-center
-                                                rounded-full border border-blush/60
-                                                text-primary transition-colors
+                                className="grid size-[clamp(2.25rem,calc(1.9rem+1vw),3rem)]
+                                                place-items-center rounded-full border
+                                                border-blush/60 text-primary transition-colors
                                                 hover:bg-primary
                                                 hover:text-primary-foreground"
                             >
-                                <Icon className="h-4 w-4"/>
+                                <Icon className="size-[clamp(0.9rem,calc(0.8rem+0.3vw),1.15rem)]"/>
                             </a>
                         ))}
                     </div>
 
-                    <form onSubmit={onSubscribe} className="mt-8 w-full max-w-md px-4 sm:px-0">
-                        <p className="text-[10px] font-semibold uppercase
+                    <form onSubmit={onSubscribe}
+                          className="mt-[clamp(1.75rem,3vw,2.5rem)] w-full
+                                max-w-[clamp(18rem,40vw,32rem)]">
+                        <p className="text-fluid-2xs font-semibold uppercase
                  tracking-[0.22em] text-soft-rose">
                             Stay Updated
                         </p>
-                        <p className="mt-2 text-sm text-on-surface-variant">
+                        <p className="mt-[0.5em] text-fluid-sm text-on-surface-variant">
                             Private invitations, seasonal rituals, and quiet luxuries.
                         </p>
-                        <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                        <div className="mt-[clamp(0.75rem,1.4vw,1.25rem)] flex flex-col
+                 gap-[clamp(0.5rem,1vw,0.75rem)] sm:flex-row">
                             <label htmlFor="footer-email" className="sr-only">
                                 Email
                             </label>
@@ -122,19 +130,22 @@ export function Footer() {
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
                                 placeholder="your@email.com"
-                                className="min-w-0 flex-1 bg-surface-lowest"
+                                className="h-[clamp(2.25rem,calc(2rem+0.8vw),2.75rem)] min-w-0
+                                        flex-1 bg-surface-lowest text-fluid-sm"
                             />
-                            <Button type="submit" disabled={loading} className="uppercase text-xs">
+                            <Button type="submit" disabled={loading}
+                                    className="h-[clamp(2.25rem,calc(2rem+0.8vw),2.75rem)]
+                                        px-[clamp(1rem,1.6vw,1.5rem)] text-fluid-xs uppercase">
                                 {loading ? "Sending…" : "Subscribe"}
                             </Button>
                         </div>
                     </form>
                 </div>
 
-                <div className="my-[clamp(2rem,4vw,3rem)] h-px bg-blush/40"/>
+                <div className="my-[clamp(2rem,4vw,3.5rem)] h-px bg-blush/40"/>
 
                 {/* Bottom: three responsive columns */}
-                <div className="grid gap-10 px-4 text-center sm:px-0
+                <div className="grid gap-[clamp(2rem,4vw,3.5rem)] text-center
                  sm:grid-cols-2 sm:text-left md:grid-cols-3">
                     <FooterColumn title="Quick Links">
                         {QUICK_LINKS.map((l) => (
@@ -147,33 +158,36 @@ export function Footer() {
                         ))}
                     </FooterColumn>
                     <div className="min-w-0 sm:col-span-2 md:col-span-1">
-                        <h4 className="text-[10px] font-semibold uppercase
+                        <h4 className="text-fluid-2xs font-semibold uppercase
                  tracking-[0.22em] text-soft-rose">
                             Contact &amp; Support
                         </h4>
-                        <ul className="mt-5 space-y-3 text-sm text-on-surface-variant">
-                            <li className="flex items-start justify-center gap-2
+                        <ul className="mt-[clamp(1rem,1.6vw,1.5rem)]
+                 space-y-[clamp(0.5rem,1vw,0.875rem)] text-fluid-sm
+                 text-on-surface-variant">
+                            <li className="flex items-start justify-center gap-[0.5em]
                  sm:justify-start">
-                                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-champagne-gold"/>
+                                <MapPin className={INLINE_ICON}/>
                                 <span>35G Liberty Ave, Quezon City</span>
                             </li>
-                            <li className="flex items-start justify-center gap-2
+                            <li className="flex items-start justify-center gap-[0.5em]
                  sm:justify-start">
-                                <Mail className="mt-0.5 h-4 w-4 shrink-0 text-champagne-gold"/>
+                                <Mail className={INLINE_ICON}/>
                                 <span>concierge@verdantluxe.com</span>
                             </li>
-                            <li className="flex items-start justify-center gap-2
+                            <li className="flex items-start justify-center gap-[0.5em]
                  sm:justify-start">
-                                <Phone className="mt-0.5 h-4 w-4 shrink-0 text-champagne-gold"/>
+                                <Phone className={INLINE_ICON}/>
                                 <span>+1 (555) 000 0000</span>
                             </li>
-                            <li className="flex items-start justify-center gap-2
+                            <li className="flex items-start justify-center gap-[0.5em]
                  sm:justify-start">
-                                <Clock className="mt-0.5 h-4 w-4 shrink-0 text-champagne-gold"/>
+                                <Clock className={INLINE_ICON}/>
                                 <span>Mon–Sat · 9:00 AM – 6:00 PM EST</span>
                             </li>
                         </ul>
-                        <ul className="mt-5 space-y-2 text-xs">
+                        <ul className="mt-[clamp(1rem,1.6vw,1.5rem)]
+                 space-y-[clamp(0.375rem,0.7vw,0.625rem)] text-fluid-xs">
                             <li>
                                 <a href="#" className="text-on-surface-variant hover:text-primary">
                                     Shipping &amp; Delivery
@@ -187,10 +201,10 @@ export function Footer() {
                             <li>
                                 <button
                                     onClick={() => toast.success("Live chat opening soon…")}
-                                    className="inline-flex items-center gap-1.5
+                                    className="inline-flex items-center gap-[0.4em]
                                                     text-on-surface-variant hover:text-primary"
                                 >
-                                    <MessageCircle className="h-3.5 w-3.5"/> Live Chat / Contact
+                                    <MessageCircle className="h-[1.1em] w-[1.1em]"/> Live Chat / Contact
                                     Support
                                 </button>
                             </li>
@@ -199,12 +213,14 @@ export function Footer() {
                 </div>
 
                 <div
-                    className="mt-12 flex flex-col items-center
-                                    justify-between gap-4 border-t
-                                    border-blush/40 px-4 pt-6 text-xs
-                                    text-on-surface-variant sm:flex-row sm:px-0">
+                    className="mt-[clamp(2.5rem,5vw,4rem)] flex flex-col items-center
+                                    justify-between gap-[clamp(0.75rem,1.4vw,1.25rem)]
+                                    border-t border-blush/40 pt-[clamp(1.25rem,2vw,1.75rem)]
+                                    text-center text-fluid-xs text-on-surface-variant
+                                    md:flex-row md:text-left">
                     <p>© {new Date().getFullYear()} Verdant Luxe. All rights reserved.</p>
-                    <ul className="flex flex-wrap justify-center gap-x-5 gap-y-2">
+                    <ul className="flex flex-wrap justify-center
+                 gap-x-[clamp(1rem,1.6vw,1.5rem)] gap-y-[0.5em]">
                         {LEGAL_LINKS.map((l) => (
                             <li key={l}>
                                 <a href="#" className="hover:text-primary">
@@ -220,12 +236,13 @@ export function Footer() {
                 <button
                     onClick={() => window.scrollTo({top: 0, behavior: "smooth"})}
                     aria-label="Back to top"
-                    className="fixed bottom-6 right-6 z-40 grid h-11 w-11
+                    className="fixed bottom-[clamp(1rem,2vw,1.75rem)] right-[clamp(1rem,2vw,1.75rem)]
+                                    z-40 grid size-[clamp(2.5rem,calc(2.2rem+1vw),3.25rem)]
                                     place-items-center rounded-full bg-primary
                                     text-primary-foreground shadow-lg
                                     transition-transform hover:-translate-y-0.5"
                 >
-                    <ArrowUp className="h-5 w-5"/>
+                    <ArrowUp className="size-[45%]"/>
                 </button>
             )}
         </footer>
@@ -235,11 +252,12 @@ export function Footer() {
 function FooterColumn({title, children }: { title: string; children: ReactNode; }) {
     return (
         <div className="min-w-0">
-            <h4 className="text-[10px] font-semibold uppercase
+            <h4 className="text-fluid-2xs font-semibold uppercase
                  tracking-[0.22em] text-soft-rose">
                 {title}
             </h4>
-            <ul className="mt-5 space-y-3">{children}</ul>
+            <ul className="mt-[clamp(1rem,1.6vw,1.5rem)]
+                 space-y-[clamp(0.5rem,1vw,0.875rem)]">{children}</ul>
         </div>
     );
 }
@@ -250,7 +268,7 @@ function FooterLink({item}: { item: LinkItem }) {
             {item.href?.startsWith("/") ? (
                 <Link
                     href={item.href}
-                    className="text-sm text-on-surface-variant
+                    className="text-fluid-sm text-on-surface-variant
                                     transition-colors hover:text-primary"
                 >
                     {item.label}
@@ -258,7 +276,7 @@ function FooterLink({item}: { item: LinkItem }) {
             ) : (
                 <a
                     href={item.href ?? "#"}
-                    className="text-sm text-on-surface-variant
+                    className="text-fluid-sm text-on-surface-variant
                                     transition-colors hover:text-primary"
                 >
                     {item.label}

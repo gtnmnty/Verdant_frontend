@@ -7,10 +7,7 @@ import {toast} from "sonner";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {ProductGallery} from "@/app/(site)/collections/[id]/_components/ProductGallery";
 import {ProductInfo, type ProductInfoData} from "@/app/(site)/collections/[id]/_components/ProductInfo";
-import {ProductTabs} from "@/app/(site)/collections/[id]/_components/ProductTabs";
 import {ReviewsSection} from "@/app/(site)/collections/[id]/_components/ReviewsSection";
-import {RelatedProducts} from "@/app/(site)/collections/[id]/_components/RelatedProducts";
-import {FaqSection} from "@/app/(site)/collections/[id]/_components/FaqSection";
 import {
     PRODUCT_BY_ID_QUERY,
     CATEGORY_LABELS,
@@ -96,13 +93,7 @@ export function ProductDetailContent({id}: { id: string }) {
                 <ProductInfo product={productInfoData}/>
             </section>
 
-            <section className="mt-[clamp(40px,6vw,80px)]">
-                <ProductTabs description={product.description ?? ""} info={product.info}/>
-            </section>
-
             <ReviewsSection productId={product.id}/>
-            <RelatedProducts excludeProductId={product.id} category={product.catalog}/>
-            <FaqSection/>
         </div>
     );
 }

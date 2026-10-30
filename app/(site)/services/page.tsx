@@ -1,7 +1,6 @@
 import type {Metadata} from "next";
 import {ServicesHero} from "@/app/(site)/services/_components/ServicesHero";
 import {ServicesExplorer} from "@/app/(site)/services/_components/ServicesExplorer";
-import {Header} from "@/components/layout/Header";
 
 export const metadata: Metadata = {
     title: "Signature Services — Verdant Luxe",
@@ -18,7 +17,6 @@ export const metadata: Metadata = {
 export default function ServicesPage() {
     return (
         <div className="pb-20 w-full px-[clamp(12px,5vw,10vw)] sm:px-[6vw] lg:px-[10vw]">
-            <Header/>
             <ServicesHero/>
             <ServicesExplorer/>
         </div>

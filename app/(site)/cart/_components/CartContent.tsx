@@ -8,18 +8,15 @@ import {Checkbox} from "@/components/ui/checkbox";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {CartItemRow} from "@/app/(site)/cart/_components/CartItemRow";
 import {CartSummary} from "@/app/(site)/cart/_components/CartSummary";
-import {RecommendedProducts} from "@/app/(site)/cart/_components/RecommendedProducts";
 import {EmptyCart} from "@/app/(site)/cart/_components/EmptyCart";
 import {
     BASE_SHIPPING_FEE,
     DELIVERY_OPTION_FEES,
     FREE_SHIPPING_THRESHOLD,
     GIFT_PACKAGING_FEE,
-    RECOMMENDED_PRODUCTS,
     TAX_RATE,
     type CartProduct,
     type DeliveryOption,
-    type RecommendedProduct,
 } from "@/app/(site)/cart/_components/data";
 import {useAuth} from "@/context/AuthContext";
 import Link from "next/link";
@@ -89,14 +86,6 @@ const CART_FIELDS = `
 const MY_CART_QUERY = `
     query MyCart {
         myCart {
-            ${CART_FIELDS}
-        }
-    }
-`;
-
-const ADD_TO_CART_MUTATION = `
-    mutation AddToCart($input: AddToCartInput!) {
-        addToCart(input: $input) {
             ${CART_FIELDS}
         }
     }
@@ -262,21 +251,6 @@ export function CartContent() {
             });
     }
 
-    function addRecommendedToCart(product: RecommendedProduct) {
-        const prevItems = items;
-
-        gqlRequest<{ addToCart: BackendCart }>(ADD_TO_CART_MUTATION, {
-            input: {productId: product.id, quantity: 1, deliveryOption: "STANDARD"},
-        })
-            .then((res) => {
-                applyCart(res.addToCart, prevItems);
-                toast.success(`${product.name} added to your bag.`);
-            })
-            .catch((err) => {
-                toast.error(err instanceof Error ? err.message : "Failed to add item to bag.");
-            });
-    }
-
     function handleCheckout() {
         if (selectedItems.length === 0) return;
         // Hand the selected cart item ids to the checkout flow.
@@ -398,8 +372,6 @@ export function CartContent() {
                     />
                 </div>
             )}
-
-            <RecommendedProducts products={RECOMMENDED_PRODUCTS} onAddToCart={addRecommendedToCart}/>
         </div>
     );
 }

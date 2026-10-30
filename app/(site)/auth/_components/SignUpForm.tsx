@@ -9,6 +9,7 @@ import {PasswordStrengthMeter} from "@/app/(site)/auth/_components/PasswordStren
 import {SocialButtons} from "@/app/(site)/auth/_components/SocialButtons";
 import {TermsDialog} from "@/app/(site)/auth/_components/TermsDialog";
 import {apiRequest} from "@/utils/apiClient";
+import {useCooldown} from "@/hooks/useCooldown";
 
 interface FormState {
     fullName: string;
@@ -38,6 +39,8 @@ export function SignUpForm({
     const [form, setForm] = useState<FormState>(INITIAL);
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
+    // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
+    const cooldown = useCooldown();
 
     const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
         setForm((f) => ({...f, [key]: value}));
@@ -76,6 +79,7 @@ export function SignUpForm({
             onSuccess(form.email); // takes user to the verification step
         }
         catch (e) {
+            cooldown.startFrom(e);
             toast.error(e instanceof Error ? e.message : "Account creation failed.");
         } finally {
             setLoading(false)
@@ -140,8 +144,8 @@ export function SignUpForm({
                 {errors.agree && <p className="mt-1 text-xs text-rose-500">{errors.agree}</p>}
             </div>
 
-            <Button type="submit" disabled={loading} size="lg" className="w-full">
-                {loading ? "Creating Account…" : "Sign Up"}
+            <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
+                {loading ? "Creating Account…" : cooldown.active ? cooldown.label : "Sign Up"}
             </Button>
 
             <SocialButtons/>

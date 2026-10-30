@@ -1,4 +1,5 @@
 import {STATUS_LABELS, formatDate, type Order} from "@/app/(site)/orders/_components/data";
+import {PaymentStatusBadge} from "@/app/(site)/orders/_components/PaymentStatus";
 
 export function OrderDetailsHeader({order}: { order: Order }) {
     return (
@@ -20,6 +21,9 @@ export function OrderDetailsHeader({order}: { order: Order }) {
         </span>
                 <span className="mx-2">·</span>
                 Placed on {formatDate(order.createdAt)}
+                <span className="ml-2 align-middle">
+                    <PaymentStatusBadge orderStatus={order.orderStatus} paymentStatus={order.paymentStatus}/>
+                </span>
             </p>
         </header>
     );

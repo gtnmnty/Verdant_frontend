@@ -36,6 +36,8 @@ export function OrdersFeed() {
     const [query, setQuery] = useState("");
     const [sort, setSort] = useState<OrderSort>("date-desc");
     const [page, setPage] = useState(1);
+    // Bumped to refetch, e.g. after a payment so the webhook's PAID shows up.
+    const [reloadKey, setReloadKey] = useState(0);
 
     const {token, loading: authLoading} = useAuth();
     const router = useRouter();
@@ -70,7 +72,7 @@ export function OrdersFeed() {
             .finally(() => { if (!cancelled) setLoading(false); });
 
         return () => { cancelled = true; };
-    }, [filter, sort, page]);
+    }, [filter, sort, page, reloadKey]);
 
     // `query` (search box) filters orders over the current page only
     const visible = query.trim()
@@ -182,6 +184,12 @@ export function OrdersFeed() {
                                 router.push(`/collections/${it.product.id}#reviews`);
                             }}
                             onDownloadInvoice={downloadInvoice}
+                            onPaid={() => {
+                                // Stripe accepted it; the webhook marks the order PAID shortly after.
+                                setOrders((prev) => prev.map((x) =>
+                                    x.id === o.id ? {...x, paymentStatus: "PROCESSED"} : x));
+                                setTimeout(() => setReloadKey((k) => k + 1), 4000);
+                            }}
                         />
                     ))
                 )}
