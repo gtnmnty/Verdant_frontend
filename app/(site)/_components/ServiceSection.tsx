@@ -48,11 +48,6 @@ export default function ServicesSection() {
                         Refined <br/> Transformations
                     </h2>
                 </div>
-                <p className="text-stone-500 text-fluid-base max-w-[clamp(18rem,26vw,26rem)]
-                 leading-relaxed">
-                    A curated selection of treatments designed to enhance your natural beauty
-                    with precision and grace.
-                </p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2

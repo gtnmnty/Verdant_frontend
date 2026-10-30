@@ -128,6 +128,9 @@ export function NotificationsFeed() {
 
     // Initial load from the notification backend.
     useEffect(() => {
+        // Wait for the session restore: a freshly opened tab has no token yet, and an anonymous request is
+        // answered with 'You do not have permission'. Logged-out visitors are redirected to /auth instead.
+        if (loading || token === null) return;
         let cancelled = false;
 
         gqlRequest<NotificationsResponse>(NOTIFICATIONS_QUERY, {
@@ -151,7 +154,7 @@ export function NotificationsFeed() {
         return () => {
             cancelled = true;
         };
-    }, []);
+    }, [loading, token]);
 
     // Pulls the next server page and appends it once the locally-loaded set
     // runs out (see the `hasMore`/IntersectionObserver logic below).

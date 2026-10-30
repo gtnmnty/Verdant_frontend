@@ -37,15 +37,21 @@ export interface CheckoutOrderItem {
     deliveryOption: string;
 }
 
+// The backend stores ISO 3166-1 alpha-2 codes (AddressInput: ^[A-Z]{2}$), so the select's value is the code
+// and only the name is shown. Sending the name failed with "Country must be a 2-letter ISO code".
 export const COUNTRY_OPTIONS = [
-    "Philippines",
-    "United States",
-    "United Kingdom",
-    "France",
-    "Germany",
-    "Canada",
-    "Australia",
-    "Singapore",
-    "Japan",
-    "United Arab Emirates",
+    {code: "PH", name: "Philippines"},
+    {code: "US", name: "United States"},
+    {code: "GB", name: "United Kingdom"},
+    {code: "FR", name: "France"},
+    {code: "DE", name: "Germany"},
+    {code: "CA", name: "Canada"},
+    {code: "AU", name: "Australia"},
+    {code: "SG", name: "Singapore"},
+    {code: "JP", name: "Japan"},
+    {code: "AE", name: "United Arab Emirates"},
 ] as const;
+
+export function countryName(code: string): string {
+    return COUNTRY_OPTIONS.find((c) => c.code === code)?.name ?? code;
+}

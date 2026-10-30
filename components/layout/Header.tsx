@@ -27,7 +27,7 @@ const NAV_LINKS = [
 ];
 
 const ICON_ACTIONS = [
-    {label: "Wishlist", icon: Heart},
+    {label: "Wishlist", icon: Heart, href: "/account?section=favourites"},
     {label: "Cart", icon: ShoppingBag, href: "/cart"},
     {label: "Profile", icon: User, href: "/account"},
 ];

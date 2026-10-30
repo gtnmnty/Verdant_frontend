@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import {Trash2} from "lucide-react";
 import {Checkbox} from "@/components/ui/checkbox";
 import {
@@ -66,7 +67,12 @@ export function CartItemRow({
                     <div className="min-w-0">
                         <h3 className="truncate font-display text-base
                  text-on-surface sm:text-lg">
-                            {item.name}
+                            <Link
+                                href={`/collections/${item.productId}`}
+                                className="underline-offset-4 transition-colors hover:text-primary hover:underline"
+                            >
+                                {item.name}
+                            </Link>
                         </h3>
                         <p className="mt-1 text-[10px] font-semibold uppercase
                  tracking-[0.18em] text-soft-rose">

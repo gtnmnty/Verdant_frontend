@@ -17,18 +17,25 @@ const QUICK_LINKS: LinkItem[] = [
     {label: "Services", href: "/services"},
     {label: "Collection", href: "/collections"},
     {label: "Journal", href: "/journal"},
-    {label: "Reviews", href: "#"},
-    {label: "Contact Us", href: "#"},
+    {label: "Contact Us", href: "/help-support"},
 ];
 
 const CUSTOMER_LINKS: LinkItem[] = [
     {label: "Personal Space", href: "/account"},
     {label: "Appointments", href: "/appointments"},
     {label: "Orders", href: "/orders"},
-    {label: "Wishlist", href: "#"},
+    {label: "Wishlist", href: "/account?section=favourites"},
     {label: "Cart", href: "/cart"},
-    {label: "Gift Cards", href: "#"},
+    {label: "Gift Cards", href: "/account?section=gift-cards"},
     {label: "Support & FAQ", href: "/help-support"},
+];
+
+// Opened in a new tab; on phones these URLs hand off to the installed app. Swap in the salon's real handles.
+const SOCIAL_LINKS = [
+    {label: "Instagram", href: "https://www.instagram.com/", icon: FaInstagram},
+    {label: "Facebook", href: "https://www.facebook.com/", icon: FaFacebook},
+    {label: "YouTube", href: "https://www.youtube.com/", icon: FaYoutube},
+    {label: "X", href: "https://x.com/", icon: FaTwitter},
 ];
 
 const LEGAL_LINKS = [
@@ -92,11 +99,13 @@ export function Footer() {
 
                     <div className="mt-[clamp(1.25rem,2vw,1.75rem)] flex
                  gap-[clamp(0.5rem,1vw,0.875rem)]">
-                        {[FaInstagram, FaFacebook, FaYoutube, FaTwitter].map((Icon, i) => (
+                        {SOCIAL_LINKS.map(({label, href, icon: Icon}) => (
                             <a
-                                key={i}
-                                href="#"
-                                aria-label="Social"
+                                key={label}
+                                href={href}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`Verdant Luxe on ${label}`}
                                 className="grid size-[clamp(2.25rem,calc(1.9rem+1vw),3rem)]
                                                 place-items-center rounded-full border
                                                 border-blush/60 text-primary transition-colors
@@ -135,7 +144,7 @@ export function Footer() {
                             />
                             <Button type="submit" disabled={loading}
                                     className="h-[clamp(2.25rem,calc(2rem+0.8vw),2.75rem)]
-                                        px-[clamp(1rem,1.6vw,1.5rem)] text-fluid-xs uppercase">
+                                        px-[clamp(1rem,1.6vw,1.5rem)] text-[length:var(--text-fluid-xs)] uppercase">
                                 {loading ? "Sending…" : "Subscribe"}
                             </Button>
                         </div>
@@ -189,14 +198,14 @@ export function Footer() {
                         <ul className="mt-[clamp(1rem,1.6vw,1.5rem)]
                  space-y-[clamp(0.375rem,0.7vw,0.625rem)] text-fluid-xs">
                             <li>
-                                <a href="#" className="text-on-surface-variant hover:text-primary">
+                                <Link href="/help-support" className="text-on-surface-variant hover:text-primary">
                                     Shipping &amp; Delivery
-                                </a>
+                                </Link>
                             </li>
                             <li>
-                                <a href="#" className="text-on-surface-variant hover:text-primary">
+                                <Link href="/help-support" className="text-on-surface-variant hover:text-primary">
                                     Returns &amp; Refunds
-                                </a>
+                                </Link>
                             </li>
                             <li>
                                 <button

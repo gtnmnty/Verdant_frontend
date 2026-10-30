@@ -167,12 +167,18 @@ export function AppointmentsFeed() {
     }, [authLoading, token, router]);
 
     useEffect(() => {
+        // Wait for the session restore: a freshly opened tab has no token yet, and an anonymous request is
+        // answered with 'You do not have permission'. Logged-out visitors are redirected to /auth instead.
+        if (authLoading || token === null) return;
         gqlRequest<{ appointmentStatusCounts: StatusCounts }>(STATUS_COUNTS_QUERY)
             .then((res) => setCounts(res.appointmentStatusCounts))
             .catch(() => {});
-    }, [items]);
+    }, [items, authLoading, token]);
 
     useEffect(() => {
+        // Wait for the session restore: a freshly opened tab has no token yet, and an anonymous request is
+        // answered with 'You do not have permission'. Logged-out visitors are redirected to /auth instead.
+        if (authLoading || token === null) return;
         let cancelled = false;
         setLoading(true);
 
@@ -195,7 +201,7 @@ export function AppointmentsFeed() {
             .finally(() => { if (!cancelled) setLoading(false); });
 
         return () => { cancelled = true; };
-    }, [filter, query, sort, page, showHistory]);
+    }, [filter, query, sort, page, showHistory, authLoading, token]);
 
     const confirmCancel = () => {
         if (!cancelTarget) return;

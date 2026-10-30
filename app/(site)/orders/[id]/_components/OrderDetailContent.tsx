@@ -2,6 +2,7 @@
 
 import type { Order } from "@/app/(site)/orders/_components/data";
 import {useEffect, useState} from "react";
+import {useAuth} from "@/context/AuthContext";
 import Link from "next/link";
 import Image from "next/image";
 import {ArrowLeft, Loader2} from "lucide-react";
@@ -35,7 +36,12 @@ export function OrderDetailContent({id}: { id: string }) {
     // Bumped to refetch after a payment, so the webhook's PAID shows up.
     const [reloadKey, setReloadKey] = useState(0);
 
+    const {token, loading: authLoading} = useAuth();
+
     useEffect(() => {
+        // Wait for the session restore: a freshly opened tab has no token yet, and an anonymous request is
+        // answered with 'You do not have permission'. Logged-out visitors are redirected to /auth instead.
+        if (authLoading || token === null) return;
         let cancelled = false;
 
         gqlRequest<{ order: BackendOrder | null }>(ORDER_BY_ID_QUERY, {id})
@@ -57,7 +63,7 @@ export function OrderDetailContent({id}: { id: string }) {
         return () => {
             cancelled = true;
         };
-    }, [id, reloadKey]);
+    }, [id, reloadKey, authLoading, token]);
 
     if (loading) {
         return (

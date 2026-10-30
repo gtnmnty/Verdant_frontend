@@ -7,16 +7,31 @@ export const DELIVERY_OPTION_LABELS: Record<DeliveryOption, string> = {
 };
 
 // What the backend charges per delivery speed (shipping.fee.* in the backend's application.properties).
-// An order pays the HIGHEST fee among its items' options, once, not per item. Keep these in sync: the cart
-// and checkout show them, but the backend computes the order total itself.
+// Keep these in sync: the cart and checkout show them, but the backend computes the order total itself.
 export const DELIVERY_OPTION_FEES: Record<DeliveryOption, number> = {
   standard: 0,
   express: 5,
   "next-day": 10,
 };
 
+// One fee per distinct delivery option: items sharing an option ship together, each different option is its
+// own shipment (express + next-day = $15). Same rule as the backend's ShippingService.calculateDeliveryFee.
+export function deliveryFeeFor(options: DeliveryOption[]): number {
+  return [...new Set(options)].reduce((sum, option) => sum + DELIVERY_OPTION_FEES[option], 0);
+}
+
+// Label for the order summary: one option, or the distinct options joined ("Express + Next-Day Delivery").
+export function deliveryLabelFor(options: DeliveryOption[]): string {
+  const distinct = [...new Set(options)];
+  if (distinct.length === 0) return DELIVERY_OPTION_LABELS.standard;
+  if (distinct.length === 1) return DELIVERY_OPTION_LABELS[distinct[0]];
+  return distinct.map((o) => DELIVERY_OPTION_LABELS[o].replace(" Delivery", "")).join(" + ") + " Delivery";
+}
+
 export interface CartProduct {
   id: string;
+  // Catalog product id (id above is the cart line): links the name to /collections/[productId].
+  productId: string;
   name: string;
   category: string;
   description: string;
@@ -37,45 +52,6 @@ export interface RecommendedProduct {
 
 // Placeholder imagery via picsum.photos — swap for real product photography
 // (e.g. Cloudinary asset URLs) once available.
-
-export const INITIAL_CART_ITEMS: CartProduct[] = [
-  {
-    id: "silk-elixir-restorative-oil",
-    name: "Silk Elixir Restorative Oil",
-    category: "Hair Care / 50ml",
-    description:
-      "Our signature blend of cold-pressed botanicals designed for weightless shine and deep hydration.",
-    price: 82,
-    image: "https://picsum.photos/seed/silk-elixir/400/400",
-    quantity: 1,
-    deliveryOption: "standard",
-    selected: true,
-  },
-  {
-    id: "ceramic-sculpt-styler",
-    name: "Ceramic Sculpt Styler",
-    category: "Tools / Matte Taupe",
-    description:
-      "Advanced ionic technology meets ergonomic design for salon-perfect waves and smooth finishes at home.",
-    price: 245,
-    image: "https://picsum.photos/seed/ceramic-sculpt/400/400",
-    quantity: 1,
-    deliveryOption: "standard",
-    selected: true,
-  },
-  {
-    id: "hydrating-clay-mask",
-    name: "Hydrating Clay Mask",
-    category: "Skin Care / 100ml",
-    description:
-      "A mineral-rich mask that draws out impurities while botanical oils replenish moisture in a single ritual.",
-    price: 58,
-    image: "https://picsum.photos/seed/clay-mask/400/400",
-    quantity: 2,
-    deliveryOption: "express",
-    selected: false,
-  },
-];
 
 export const RECOMMENDED_PRODUCTS: RecommendedProduct[] = [
   {

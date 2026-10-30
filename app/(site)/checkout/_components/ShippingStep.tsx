@@ -139,8 +139,8 @@ export function ShippingStep({
                         </SelectTrigger>
                         <SelectContent>
                             {COUNTRY_OPTIONS.map((country) => (
-                                <SelectItem key={country} value={country}>
-                                    {country}
+                                <SelectItem key={country.code} value={country.code}>
+                                    {country.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>
