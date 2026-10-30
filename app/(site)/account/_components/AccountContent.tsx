@@ -1,8 +1,9 @@
 "use client";
 
 import {useEffect, useState} from "react";
-import {useRouter} from "next/navigation";
+import {useRouter, useSearchParams} from "next/navigation";
 import {useAuth} from "@/context/AuthContext";
+import {gqlRequest} from "@/utils/graphqlClient";
 import {SideNav} from "@/app/(site)/account/_components/SideNav";
 import {ProfileSection} from "@/app/(site)/account/_components/ProfileSection";
 import {GiftCardsSection} from "@/app/(site)/account/_components/GiftCardsSection";
@@ -11,16 +12,42 @@ import {SupportSection} from "@/app/(site)/account/_components/SupportSection";
 
 export type SectionId = "profile" | "gift-cards" | "favourites" | "support";
 
+const SECTION_IDS: SectionId[] = ["profile", "gift-cards", "favourites", "support"];
+
+function isSectionId(v: string | null): v is SectionId {
+    return SECTION_IDS.includes(v as SectionId);
+}
+
 export function AccountContent() {
-    const [section, setSection] = useState<SectionId>("profile");
+    // Footer/header links open a tab with /account?section=favourites (or gift-cards, support, ...).
+    const requested = useSearchParams().get("section");
+    const [section, setSection] = useState<SectionId>(isSectionId(requested) ? requested : "profile");
+
+    useEffect(() => {
+        if (isSectionId(requested)) setSection(requested);
+    }, [requested]);
     const {token, loading} = useAuth();
     const router = useRouter();
+
+    const [firstName, setFirstName] = useState("");
 
     useEffect(() => {
         if (!loading && token === null) {
             router.replace("/auth");
         }
     }, [loading, token, router]);
+
+    // Greeting name (was hard-coded "Elena"). Errors are left to ProfileSection, which loads the full profile.
+    useEffect(() => {
+        if (loading || token === null) return;
+        let cancelled = false;
+        gqlRequest<{ me: { fullName: string } }>(`query AccountGreeting { me { fullName } }`)
+            .then((res) => {
+                if (!cancelled) setFirstName(res.me.fullName.trim().split(/\s+/)[0] ?? "");
+            })
+            .catch(() => {});
+        return () => { cancelled = true; };
+    }, [loading, token]);
 
     // Still checking for an existing session — render nothing rather than a
     // flash of "you're logged out" or an empty account page.
@@ -44,7 +71,7 @@ export function AccountContent() {
                 <h1 className="mt-2 font-display
                  text-[clamp(2rem,4.5vw,3.25rem)]
                  leading-tight tracking-tight text-primary">
-                    Welcome, Elena
+                    {firstName ? `Welcome, ${firstName}` : "Welcome"}
                 </h1>
             </header>
 

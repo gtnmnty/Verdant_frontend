@@ -111,8 +111,9 @@ export function ProfileSection() {
                     setMemberSince(new Date(me.createdAt).getFullYear().toString());
                 }
             })
-            .catch(() => {
-                // Not authenticated or error loading profile
+            .catch((err) => {
+                // Used to be swallowed, which left the page blank with no hint that loading failed.
+                if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load your profile.");
             });
 
         // Fetch recent 3 customer orders
@@ -148,6 +149,12 @@ export function ProfileSection() {
     // The backend asks for the current password only when the email actually changes.
     const emailChanging = isEmailChanged(data.email, draft.email);
 
+    // Phone and address are optional. The address is all-or-nothing on the backend (AddressInput):
+    // once any part is filled in, street/city/state/postal become required; country defaults to US.
+    const hasAddress = ADDRESS_KEYS.some((k) => draft[k].trim() !== "");
+    const isRequired = (k: keyof ProfileData) =>
+        k === "fullName" || k === "email" || (hasAddress && k !== "country" && ADDRESS_KEYS.includes(k));
+
     // Flow Step 2: Persist edited profile details to database via GraphQL mutation
     const save = async (e: SubmitEvent) => {
         e.preventDefault();
@@ -157,14 +164,15 @@ export function ProfileSection() {
                     fullName: draft.fullName,
                     email: draft.email,
                     currentPassword: emailChanging ? currentPassword : undefined,
-                    phone: draft.phone,
-                    shippingAddress: {
-                        line1: draft.street,
-                        city: draft.city,
-                        state: draft.state || "N/A",
-                        postal: draft.postal || "0000",
-                        country: draft.country,
-                    },
+                    phone: draft.phone.trim(),
+                    // Omitted (left unchanged) when the address fields are empty.
+                    shippingAddress: hasAddress ? {
+                        line1: draft.street.trim(),
+                        city: draft.city.trim(),
+                        state: draft.state.trim(),
+                        postal: draft.postal.trim(),
+                        country: draft.country.trim().toUpperCase() || undefined,
+                    } : undefined,
                 },
             });
             // The saved email doesn't change yet: it only switches once the code is confirmed.
@@ -477,13 +485,21 @@ export function ProfileSection() {
                     <form onSubmit={save} className="grid gap-4">
                         {FIELD_KEYS.map(([k, label]) => (
                             <div key={k} className="grid gap-1.5">
-                                <Label htmlFor={k}>{label}</Label>
+                                <Label htmlFor={k}>
+                                    {label}
+                                    {!isRequired(k) && (
+                                        <span className="ml-1 font-normal text-on-surface-variant">(optional)</span>
+                                    )}
+                                </Label>
                                 <Input
                                     id={k}
+                                    type={k === "email" ? "email" : k === "phone" ? "tel" : "text"}
                                     value={draft[k]}
                                     onChange={(e) =>
                                         setDraft({...draft, [k]: e.target.value})}
-                                    required
+                                    placeholder={k === "country" ? "2-letter code, e.g. US" : undefined}
+                                    maxLength={k === "country" ? 2 : undefined}
+                                    required={isRequired(k)}
                                 />
                             </div>
                         ))}
@@ -528,6 +544,8 @@ export function ProfileSection() {
         </div>
     );
 }
+
+const ADDRESS_KEYS: (keyof ProfileData)[] = ["street", "city", "state", "postal", "country"];
 
 function Field({label, value}: { label: string; value: string }) {
     return (

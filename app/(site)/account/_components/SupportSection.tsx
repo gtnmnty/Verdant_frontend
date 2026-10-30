@@ -1,6 +1,6 @@
 "use client";
 
-import {useState, type SubmitEvent} from "react";
+import {useCallback, useEffect, useState, type SubmitEvent} from "react";
 import Link from "next/link";
 import {toast} from "sonner";
 import {ArrowRight, LifeBuoy, MessageCircle, Sparkles} from "lucide-react";
@@ -15,43 +15,106 @@ import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
 import {Textarea} from "@/components/ui/textarea";
+import {gqlRequest} from "@/utils/graphqlClient";
 import {EmptyBlock, PageIntro, SectionTitle} from "@/app/(site)/account/_components/shared";
 import {
     FAQS,
-    INITIAL_TICKETS,
     ticketTone,
     type Ticket,
 } from "@/app/(site)/account/_components/data";
 
+const STATUS_LABEL: Record<string, Ticket["status"]> = {
+    OPEN: "Open",
+    IN_REVIEW: "In Review",
+    RESOLVED: "Resolved",
+};
+
+interface TicketSummary {
+    id: string;
+    ticketNumber: string;
+    subject: string;
+    status: string;
+    createdAt: string;
+}
+
+const SUPPORT_QUERY = `
+    query AccountSupport {
+        me { fullName email }
+        mySupportTickets(page: 1, pageSize: 10) {
+            items { id ticketNumber subject status createdAt }
+        }
+    }
+`;
+
+const CREATE_TICKET_MUTATION = `
+    mutation CreateSupportTicket($input: CreateSupportTicketInput!) {
+        createSupportTicket(input: $input) { id }
+    }
+`;
+
+function toTicket(t: TicketSummary): Ticket {
+    return {
+        id: t.ticketNumber,
+        subject: t.subject,
+        status: STATUS_LABEL[t.status] ?? "Open",
+        date: new Date(t.createdAt).toLocaleDateString("en-US", {month: "short", day: "2-digit", year: "numeric"}),
+    };
+}
+
 export function SupportSection() {
-    const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+    const [tickets, setTickets] = useState<Ticket[]>([]);
+    // Prefilled from the signed-in profile (was a hard-coded placeholder person).
     const [form, setForm] = useState({
-        name: "Elena Rodriguez",
-        email: "elena.rodriguez@verdantluxe.com",
+        name: "",
+        email: "",
         subject: "",
         message: "",
     });
     const [submitting, setSubmitting] = useState(false);
 
-    const submit = (e: SubmitEvent) => {
+    const loadTickets = useCallback(async (prefillContact: boolean) => {
+        try {
+            const res = await gqlRequest<{
+                me: { fullName: string; email: string };
+                mySupportTickets: { items: TicketSummary[] };
+            }>(SUPPORT_QUERY);
+            setTickets(res.mySupportTickets.items.map(toTicket));
+            if (prefillContact) {
+                setForm((f) => ({...f, name: f.name || res.me.fullName, email: f.email || res.me.email}));
+            }
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to load your tickets.");
+        }
+    }, []);
+
+    useEffect(() => {
+        void loadTickets(true);
+    }, [loadTickets]);
+
+    const submit = async (e: SubmitEvent) => {
         e.preventDefault();
-        if (!form.subject || !form.message) {
+        if (!form.subject.trim() || !form.message.trim()) {
             toast.error("Please complete required fields.");
             return;
         }
         setSubmitting(true);
-        setTimeout(() => {
-            const t: Ticket = {
-                id: `T-${Math.floor(2000 + Math.random() * 999)}`,
-                subject: form.subject,
-                status: "Open",
-                date: "Today",
-            };
-            setTickets((p) => [t, ...p]);
-            setForm({...form, subject: "", message: ""});
+        try {
+            await gqlRequest(CREATE_TICKET_MUTATION, {
+                input: {
+                    subject: form.subject.trim(),
+                    message: form.message.trim(),
+                    contactName: form.name.trim(),
+                    contactEmail: form.email.trim(),
+                },
+            });
+            setForm((f) => ({...f, subject: "", message: ""}));
+            toast.success("Ticket submitted. Our team will get back to you by email.");
+            await loadTickets(false);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Failed to submit your ticket.");
+        } finally {
             setSubmitting(false);
-            toast.success("Ticket submitted.");
-        }, 700);
+        }
     };
 
     return (

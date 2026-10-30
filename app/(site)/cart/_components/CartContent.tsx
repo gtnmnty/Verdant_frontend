@@ -11,7 +11,7 @@ import {CartSummary} from "@/app/(site)/cart/_components/CartSummary";
 import {EmptyCart} from "@/app/(site)/cart/_components/EmptyCart";
 import {
     BASE_SHIPPING_FEE,
-    DELIVERY_OPTION_FEES,
+    deliveryFeeFor,
     FREE_SHIPPING_THRESHOLD,
     GIFT_PACKAGING_FEE,
     TAX_RATE,
@@ -121,6 +121,7 @@ function toCartProduct(item: BackendCartItem, previouslySelected: Record<string,
     const price = item.product.salePrice ?? item.product.price;
     return {
         id: item.id,
+        productId: item.product.id,
         name: item.product.name ?? "Untitled product",
         category: item.product.itemCatalog ? ITEM_CATALOG_LABELS[item.product.itemCatalog] ?? item.product.itemCatalog : "",
         description: "",
@@ -146,6 +147,9 @@ export function CartContent() {
     }
 
     useEffect(() => {
+        // Wait for the session restore: a freshly opened tab has no token yet, and an anonymous request is
+        // answered with 'You do not have permission'. Logged-out visitors are redirected to /auth instead.
+        if (authLoading || token === null) return;
         let cancelled = false;
         setLoading(true);
 
@@ -161,7 +165,7 @@ export function CartContent() {
 
         return () => { cancelled = true; };
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [authLoading, token]);
 
     const selectedItems = useMemo(() => items.filter((item) => item.selected), [items]);
 
@@ -173,13 +177,9 @@ export function CartContent() {
         [selectedItems],
     );
 
-    // The fastest delivery option chosen among selected items drives the fee.
+    // Each distinct delivery option among the selected items adds its fee (see deliveryFeeFor).
     const deliverySurcharge = useMemo(
-        () =>
-            selectedItems.reduce(
-                (max, item) => Math.max(max, DELIVERY_OPTION_FEES[item.deliveryOption]),
-                0,
-            ),
+        () => deliveryFeeFor(selectedItems.map((item) => item.deliveryOption)),
         [selectedItems],
     );
 

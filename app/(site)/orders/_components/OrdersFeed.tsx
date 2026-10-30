@@ -51,6 +51,9 @@ export function OrdersFeed() {
 
     // Fetch paginated orders from GraphQL backend when filters, sort, or page changes
     useEffect(() => {
+        // Wait for the session restore: a freshly opened tab has no token yet, and an anonymous request is
+        // answered with 'You do not have permission'. Logged-out visitors are redirected to /auth instead.
+        if (authLoading || token === null) return;
         let cancelled = false;
         setLoading(true);
 
@@ -72,7 +75,7 @@ export function OrdersFeed() {
             .finally(() => { if (!cancelled) setLoading(false); });
 
         return () => { cancelled = true; };
-    }, [filter, sort, page, reloadKey]);
+    }, [filter, sort, page, reloadKey, authLoading, token]);
 
     // `query` (search box) filters orders over the current page only
     const visible = query.trim()

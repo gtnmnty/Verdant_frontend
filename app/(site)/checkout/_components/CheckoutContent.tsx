@@ -6,6 +6,7 @@ import {toast} from "sonner";
 import {ShieldCheck} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {useAuth} from "@/context/AuthContext";
 import {CheckoutStepper} from "@/app/(site)/checkout/_components/CheckoutStepper";
 import {OrderSummary} from "@/app/(site)/checkout/_components/OrderSummary";
 import {ShippingStep} from "@/app/(site)/checkout/_components/ShippingStep";
@@ -13,8 +14,8 @@ import {PaymentStep} from "@/app/(site)/checkout/_components/PaymentStep";
 import {ReviewStep} from "@/app/(site)/checkout/_components/ReviewStep";
 import {OrderConfirmationDialog} from "@/app/(site)/checkout/_components/OrderConfirmationDialog";
 import {
-    DELIVERY_OPTION_FEES,
-    DELIVERY_OPTION_LABELS,
+    deliveryFeeFor,
+    deliveryLabelFor,
     type DeliveryOption,
 } from "@/app/(site)/cart/_components/data";
 import {
@@ -187,7 +188,12 @@ export function CheckoutContent() {
     const [hasSavedInfo, setHasSavedInfo] = useState(false);
     const [hasRespondedToSavePrompt, setHasRespondedToSavePrompt] = useState(false);
 
+    const {token, loading: authLoading} = useAuth();
+
     useEffect(() => {
+        // Wait for the session restore: a freshly opened tab has no token yet, and an anonymous request is
+        // answered with 'You do not have permission'. Logged-out visitors are redirected to /auth instead.
+        if (authLoading || token === null) return;
         let cancelled = false;
 
         gqlRequest<{ myCart: {items: BackendCartItem[]} }>(MY_CART_QUERY)
@@ -238,25 +244,21 @@ export function CheckoutContent() {
             .catch(() => { /* no wallet: the option simply isn't shown */ });
 
         return () => { cancelled = true; };
-    }, []);
+    }, [authLoading, token]);
 
     // Same rules as the backend (OrderService): total = subtotal - promo discount + delivery fee, where the
-    // fee is the highest among the items' delivery options. No tax. The backend's own figures replace this
+    // fee adds up each distinct delivery option among the items. No tax. The backend's own figures replace this
     // estimate once the order is placed.
     const subtotal = useMemo(
         () => (items ?? []).reduce((sum, item) =>
             sum + item.price * item.quantity, 0),
         [items],
     );
-    const fastestDelivery: DeliveryOption = useMemo(() => {
-        let fastest: DeliveryOption = "standard";
-        for (const item of items ?? []) {
-            const option = DELIVERY_FROM_BACKEND[item.deliveryOption] ?? "standard";
-            if (DELIVERY_OPTION_FEES[option] > DELIVERY_OPTION_FEES[fastest]) fastest = option;
-        }
-        return fastest;
-    }, [items]);
-    const shippingFee = (items?.length ?? 0) === 0 ? 0 : DELIVERY_OPTION_FEES[fastestDelivery];
+    const deliveryOptions: DeliveryOption[] = useMemo(
+        () => (items ?? []).map((item) => DELIVERY_FROM_BACKEND[item.deliveryOption] ?? "standard"),
+        [items],
+    );
+    const shippingFee = deliveryFeeFor(deliveryOptions);
     const discount = appliedPromo?.discount ?? 0;
     const estimatedTotal = Math.max(0, subtotal - discount + shippingFee);
     const total = placedOrder ? Number(placedOrder.total) : estimatedTotal;
@@ -431,7 +433,7 @@ export function CheckoutContent() {
                     {step === "review" ? (
                         <ReviewStep
                             shipping={shipping}
-                            deliveryLabel={DELIVERY_OPTION_LABELS[fastestDelivery]}
+                            deliveryLabel={deliveryLabelFor(deliveryOptions)}
                             items={items}
                             subtotal={subtotal}
                             shippingFee={shippingFee}

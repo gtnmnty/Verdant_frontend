@@ -10,6 +10,7 @@ import type {
     ShippingDetails,
 } from "@/app/(site)/checkout/_components/data";
 import React from "react";
+import {countryName} from "@/app/(site)/checkout/_components/data";
 
 interface ReviewStepProps {
     shipping: ShippingDetails;
@@ -67,7 +68,7 @@ export function ReviewStep({
                     <p className="text-sm text-on-surface">
                         {shipping.streetAddress}, {shipping.city} {shipping.postalCode}
                     </p>
-                    <p className="text-sm text-on-surface-variant">{shipping.country}</p>
+                    <p className="text-sm text-on-surface-variant">{countryName(shipping.country)}</p>
                     <p className="mt-1 text-sm text-champagne-gold">{deliveryLabel}</p>
                 </ReviewSection>
 
