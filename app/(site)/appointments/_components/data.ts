@@ -2,6 +2,8 @@ export type Status = "upcoming" | "pending" | "completed" | "cancelled";
 
 export interface Appointment {
   id: string;
+  // Readable reference shown to the customer; id (a UUID) is only for requests and links.
+  code: string;
   service: string;
   stylist: string;
   branch: string;

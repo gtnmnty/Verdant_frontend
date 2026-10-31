@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import {ArrowRight, Download, FileText, Truck} from "lucide-react";
+import {ArrowRight, Download, FileText, MapPin, Truck} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {
     STATUS_LABELS,
@@ -41,7 +41,7 @@ export function OrderCard({
                           {STATUS_LABELS[o.orderStatus].label}
                         </span>
                         <span className="mx-2 text-on-surface-variant">·</span>
-                        <span className="text-primary">Order #{o.id}</span>
+                        <span className="text-primary">Order #{o.orderCode || o.id}</span>
                     </p>
                     <p className="mt-1 flex flex-wrap items-center gap-2 text-xs text-on-surface-variant">
                         Placed on {formatDate(o.createdAt)}
@@ -126,6 +126,15 @@ export function OrderCard({
                 {isAwaitingPayment(o.orderStatus, o.paymentStatus) ? (
                     <CompletePaymentButton orderId={o.id} orderCode={o.orderCode} onPaid={onPaid}/>
                 ) : null}
+                {/* Every live order can be tracked (the page shows its stage from Placed onwards); a cancelled
+                    one has nothing to track. */}
+                {o.orderStatus !== "CANCELLED" && (
+                    <Button asChild size="sm" variant="ghost" className="text-primary">
+                        <Link href={`/tracking/${o.id}`}>
+                            <MapPin className="mr-1.5 h-4 w-4"/> Track Order
+                        </Link>
+                    </Button>
+                )}
                 <Button asChild size="sm" variant="ghost" className="text-primary">
                     <Link href={`/orders/${o.id}`}>
                         <FileText className="mr-1.5 h-4 w-4"/> Order Details

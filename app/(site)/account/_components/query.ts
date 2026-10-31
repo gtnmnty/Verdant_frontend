@@ -55,6 +55,7 @@ export interface ProfileData {
 
 export interface UpcomingAppointment {
     id: string;
+    appointmentCode: string;
     serviceName: string;
     scheduledAt: string;
 }
@@ -64,6 +65,7 @@ export const UPCOMING_APPOINTMENT_QUERY = `
         myAppointments(status: UPCOMING, page: 1, pageSize: 1) {
             items {
                 id
+                appointmentCode
                 serviceName
                 scheduledAt
             }

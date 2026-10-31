@@ -1,9 +1,9 @@
 "use client";
 
 import {useState, type SubmitEvent} from "react";
-import {toast} from "sonner";
 import {Button} from "@/app/(site)/auth/_components/ui/Button";
 import {OtpInput} from "@/app/(site)/auth/_components/OtpInput";
+import {FormAlert} from "@/app/(site)/auth/_components/ui/FormAlert";
 import {apiRequest} from "@/utils/apiClient";
 import {useCooldown} from "@/hooks/useCooldown";
 
@@ -19,19 +19,23 @@ export function VerifyForm({ email, purpose, onVerified }: {
     const [code, setCode] = useState("");
     const [error, setError] = useState<string>();
     const [loading, setLoading] = useState(false);
+    // Confirmation after "Resend Code" (verifying moves on to the next step, so it needs none).
+    const [notice, setNotice] = useState<string>();
     // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
     const cooldown = useCooldown();
 
     const authPost =
-        async (path: string, body: object, successMsg: string, onSuccess?: () => void) => {
+        async (path: string, body: object, successMsg: string | null, onSuccess?: () => void) => {
             setLoading(true);
+            setError(undefined);
+            setNotice(undefined);
             try {
                 await apiRequest(path, { method: "POST", body: JSON.stringify(body) });
-                toast.success(successMsg);
+                if (successMsg) setNotice(successMsg);
                 onSuccess?.();
             } catch (e) {
                 cooldown.startFrom(e);
-                toast.error(e instanceof Error ? e.message : "Something went wrong.");
+                setError(e instanceof Error ? e.message : "Something went wrong.");
             } finally {
                 setLoading(false);
             }
@@ -49,14 +53,14 @@ export function VerifyForm({ email, purpose, onVerified }: {
             ? ["/auth/verify-reset-code", {email, code}]
             : ["/auth/verify", {email, verificationCode: code}];
 
-        await authPost(path, body, "Code verified.", () => {
+        await authPost(path, body, null, () => {
             onVerified(code);
         });
     };
 
     const onResend = () => purpose === "reset"
-        ? authPost("/auth/forgot-password", {email}, "A new reset code was sent.")
-        : authPost("/auth/resend", {email}, "Verification code resent.");
+        ? authPost("/auth/forgot-password", {email}, "A new code is on its way. Check your inbox.")
+        : authPost("/auth/resend", {email}, "A new code is on its way. Check your inbox.");
 
     return (
         <form onSubmit={onSubmit} className="space-y-6">
@@ -72,7 +76,8 @@ export function VerifyForm({ email, purpose, onVerified }: {
                     setError(undefined);
                 }}
             />
-            {error && <p className="text-center text-xs text-rose-500">{error}</p>}
+            {error && <FormAlert>{error}</FormAlert>}
+            {notice && !error && <FormAlert tone="success">{notice}</FormAlert>}
 
             <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
                 {loading ? "Verifying…" : cooldown.active ? cooldown.label : "Verify Code"}

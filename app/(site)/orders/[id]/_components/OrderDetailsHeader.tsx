@@ -11,7 +11,7 @@ export function OrderDetailsHeader({order}: { order: Order }) {
             <h1 className="mt-2 wrap-break-word font-display
                  text-[clamp(1.75rem,4.5vw,3rem)]
                  leading-tight tracking-tight text-primary">
-                Order #{order.id}
+                Order #{order.orderCode || order.id}
             </h1>
             <p className="mt-2 text-xs text-on-surface-variant">
         <span
