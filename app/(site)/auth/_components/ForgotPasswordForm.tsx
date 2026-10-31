@@ -1,7 +1,6 @@
 "use client";
 
 import {useState, type SubmitEvent} from "react";
-import {toast} from "sonner";
 import {Button} from "@/app/(site)/auth/_components/ui/Button";
 import {Field} from "@/app/(site)/auth/_components/ui/Field";
 import {apiRequest} from "@/utils/apiClient";
@@ -39,13 +38,11 @@ export function ForgotPasswordForm({
                 body: JSON.stringify({ email }),
             });
 
-            // Notify user and trigger parent callback to advance auth stepper
-            toast.success("If that email exists, a reset code was sent.");
+            // The verify step says where the code went; the backend never reveals whether the account exists.
             onCodeSent(email);
         } catch (e) {
-            // Display failure toast if backend rejects request or network fails
             cooldown.startFrom(e);
-            toast.error(e instanceof Error ? e.message : "Failed to send code.");
+            setError(e instanceof Error ? e.message : "Failed to send code.");
         } finally {
             setLoading(false);
         }

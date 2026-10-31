@@ -56,6 +56,18 @@ async function refreshAccessTokenOnce(): Promise<string | null> {
     }
 }
 
+// fetch() rejects with a bare TypeError ("Failed to fetch") when the backend can't be reached at all
+// (server down, offline, CORS). Turn that into a message a customer can act on.
+export const NETWORK_ERROR_MESSAGE = "We can't reach Verdant Luxe right now. Check your connection and try again.";
+
+async function send(url: string, init: RequestInit): Promise<Response> {
+    try {
+        return await fetch(url, init);
+    } catch {
+        throw new ApiError(NETWORK_ERROR_MESSAGE, "NETWORK_ERROR");
+    }
+}
+
 // Parses the response from backend into a JSON format.
 // Some endpoints (e.g. /auth/forgot-password, /auth/verify) answer 200 with a plain-text message;
 // return that text rather than throwing, since the request itself succeeded.
@@ -113,7 +125,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
         headers["Authorization"] = `Bearer ${token}`;
     }
 
-    const response = await fetch(`${BASE_URL}${path}`, {
+    const response = await send(`${BASE_URL}${path}`, {
         ...requestOptions,
         headers,
         credentials: "include",
@@ -125,7 +137,7 @@ export async function apiRequest<T>(path: string, options: ApiRequestOptions = {
         if (newToken) {
             setToken(newToken)
             headers["Authorization"] = `Bearer ${newToken}`;
-            const retry = await fetch(`${BASE_URL}${path}`, {
+            const retry = await send(`${BASE_URL}${path}`, {
                 ...requestOptions,
                 headers,
                 credentials: "include",

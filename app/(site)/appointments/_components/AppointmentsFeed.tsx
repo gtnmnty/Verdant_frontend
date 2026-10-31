@@ -27,6 +27,7 @@ const FALLBACK_IMAGE = "https://picsum.photos/seed/appointment/400/400";
 
 interface BackendAppointment {
     id: string;
+    appointmentCode: string;
     serviceName: string;
     priceSnapshot: number;
     stylist: {name: string} | null;
@@ -84,6 +85,7 @@ const MY_APPOINTMENTS_QUERY = `
         ) {
             items {
                 id
+                appointmentCode
                 serviceName
                 priceSnapshot
                 stylist { name }
@@ -127,6 +129,7 @@ const RESCHEDULE_APPOINTMENT_MUTATION = `
 function toAppointment(a: BackendAppointment): Appointment {
     return {
         id: a.id,
+        code: a.appointmentCode,
         service: a.serviceName,
         stylist: a.stylist?.name ?? "Unassigned",
         branch: a.branch?.name ?? "—",

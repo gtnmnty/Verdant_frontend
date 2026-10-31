@@ -43,7 +43,7 @@ export function AppointmentCard({
                         >
                           {STATUS_META[a.status].label}
                         </span>
-                            <span className="text-xs text-on-surface-variant">#{a.id}</span>
+                            <span className="text-xs text-on-surface-variant">#{a.code || a.id}</span>
                             <span className="ml-auto font-display text-2xl text-primary">
                           ${a.price.toFixed(2)}
                         </span>

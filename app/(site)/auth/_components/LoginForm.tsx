@@ -7,9 +7,8 @@ import {SocialButtons} from "@/app/(site)/auth/_components/SocialButtons";
 import {useAuth} from "@/context/AuthContext";
 import {apiRequest} from "@/utils/apiClient";
 import {useCooldown} from "@/hooks/useCooldown";
-
-import {toast} from "sonner";
 import {Field} from "@/app/(site)/auth/_components/ui/Field";
+import {FormAlert} from "@/app/(site)/auth/_components/ui/FormAlert";
 
 type Errors = { email?: string; password?: string };
 
@@ -18,16 +17,20 @@ export function LoginForm({
     onSwitchToSignup,
     onForgotPassword,
     onSuccess,
+    notice,
 }: {
     onSwitchToSignup: () => void;
     onForgotPassword: () => void;
     onSuccess: () => void;
+    // Shown above the form, e.g. "Email verified" after the signup verification step.
+    notice?: string;
 }) {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [remember, setRemember] = useState(true);
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState<string>();
     // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
     const cooldown = useCooldown();
 
@@ -43,10 +46,9 @@ export function LoginForm({
 
     const onSubmit = async (ev: SubmitEvent) => {
         ev.preventDefault();
-        if (!validate()) {
-            toast.error("Please correct the highlighted fields.");
-            return;
-        }
+        setFormError(undefined);
+        // Invalid fields are already highlighted under each input.
+        if (!validate()) return;
         setLoading(true);
 
         try{
@@ -56,11 +58,10 @@ export function LoginForm({
                     body: JSON.stringify( { email, password } )
             })
             setToken(data.token)
-            toast.success("Welcome back to Verdant Luxe.");
             onSuccess();
         } catch (e) {
             cooldown.startFrom(e);
-            toast.error(e instanceof Error ? e.message : "Login failed.");
+            setFormError(e instanceof Error ? e.message : "Login failed. Please try again.");
         } finally {
             setLoading(false)
         }
@@ -68,6 +69,7 @@ export function LoginForm({
 
     return (
         <form onSubmit={onSubmit} className="space-y-5">
+            {notice && !formError && <FormAlert tone="success">{notice}</FormAlert>}
             <Field
                 label="Email"
                 type="email"
@@ -75,6 +77,7 @@ export function LoginForm({
                 onChange={(e) => {
                     setEmail(e.target.value);
                     setErrors((er) => ({...er, email: undefined}));
+                    setFormError(undefined);
                 }}
                 error={errors.email}
             />
@@ -85,6 +88,7 @@ export function LoginForm({
                 onChange={(e) => {
                     setPassword(e.target.value);
                     setErrors((er) => ({...er, password: undefined}));
+                    setFormError(undefined);
                 }}
                 error={errors.password}
             />
@@ -105,6 +109,8 @@ export function LoginForm({
                     Forgot password?
                 </button>
             </div>
+
+            {formError && <FormAlert>{formError}</FormAlert>}
 
             <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
                 {loading ? "Logging In…" : cooldown.active ? cooldown.label : "Log In"}

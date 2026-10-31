@@ -125,7 +125,7 @@ export function DetailsDialog({
                     <DialogTitle className="font-display text-2xl text-primary">
                         {appointment?.service}
                     </DialogTitle>
-                    <DialogDescription>Appointment #{appointment?.id}</DialogDescription>
+                    <DialogDescription>Appointment #{appointment?.code || appointment?.id}</DialogDescription>
                 </DialogHeader>
                 {appointment && (
                     <dl className="grid grid-cols-2 gap-4 text-sm">

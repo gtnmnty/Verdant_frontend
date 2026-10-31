@@ -1,10 +1,10 @@
 "use client";
 
 import {useState, type SubmitEvent} from "react";
-import {toast} from "sonner";
 import {Button} from "@/app/(site)/auth/_components/ui/Button";
 import {Checkbox} from "@/app/(site)/auth/_components/ui/Checkbox";
 import {Field} from "@/app/(site)/auth/_components/ui/Field";
+import {FormAlert} from "@/app/(site)/auth/_components/ui/FormAlert";
 import {PasswordStrengthMeter} from "@/app/(site)/auth/_components/PasswordStrengthMeter";
 import {SocialButtons} from "@/app/(site)/auth/_components/SocialButtons";
 import {TermsDialog} from "@/app/(site)/auth/_components/TermsDialog";
@@ -39,12 +39,14 @@ export function SignUpForm({
     const [form, setForm] = useState<FormState>(INITIAL);
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
+    const [formError, setFormError] = useState<string>();
     // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
     const cooldown = useCooldown();
 
     const set = <K extends keyof FormState>(key: K, value: FormState[K]) => {
         setForm((f) => ({...f, [key]: value}));
         setErrors((e) => ({...e, [key]: undefined}));
+        setFormError(undefined);
     };
 
     const validate = () => {
@@ -60,10 +62,9 @@ export function SignUpForm({
 
     const onSubmit =  async (ev: SubmitEvent) => {
         ev.preventDefault();
-        if (!validate()) {
-            toast.error("Please input correct info in respective fields.");
-            return;
-        }
+        setFormError(undefined);
+        // Invalid fields are already highlighted under each input.
+        if (!validate()) return;
         setLoading(true);
         try{
             await apiRequest("/auth/signup", {
@@ -75,12 +76,11 @@ export function SignUpForm({
                     password: form.password,
                 })
             })
-            toast.success("Account created! Check your email to verify.");
             onSuccess(form.email); // takes user to the verification step
         }
         catch (e) {
             cooldown.startFrom(e);
-            toast.error(e instanceof Error ? e.message : "Account creation failed.");
+            setFormError(e instanceof Error ? e.message : "Account creation failed.");
         } finally {
             setLoading(false)
         }
@@ -143,6 +143,8 @@ export function SignUpForm({
                 </label>
                 {errors.agree && <p className="mt-1 text-xs text-rose-500">{errors.agree}</p>}
             </div>
+
+            {formError && <FormAlert>{formError}</FormAlert>}
 
             <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
                 {loading ? "Creating Account…" : cooldown.active ? cooldown.label : "Sign Up"}

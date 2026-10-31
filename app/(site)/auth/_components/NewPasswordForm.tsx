@@ -7,7 +7,7 @@ import {PasswordStrengthMeter} from "@/app/(site)/auth/_components/PasswordStren
 import {CheckCircle2} from "@/app/(site)/auth/_components/ui/Icons";
 import {apiRequest} from "@/utils/apiClient";
 import {useCooldown} from "@/hooks/useCooldown";
-import {toast} from "sonner";
+import {FormAlert} from "@/app/(site)/auth/_components/ui/FormAlert";
 
 type Errors = { password?: string; confirm?: string };
 
@@ -17,6 +17,7 @@ export function NewPasswordForm({ email, code, onDone }: { email: string; code: 
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
     const [success, setSuccess] = useState(false);
+    const [formError, setFormError] = useState<string>();
     // 429: keep the button off until the backend accepts another attempt (retrying early extends nothing).
     const cooldown = useCooldown();
 
@@ -26,6 +27,7 @@ export function NewPasswordForm({ email, code, onDone }: { email: string; code: 
         if (password.length < 8) e.password = "Password must be at least 8 characters";
         if (confirm !== password) e.confirm = "Passwords do not match";
         setErrors(e);
+        setFormError(undefined);
         if (Object.keys(e).length) return;
         setLoading(true);
         try {
@@ -36,7 +38,7 @@ export function NewPasswordForm({ email, code, onDone }: { email: string; code: 
             setSuccess(true);
         } catch (error) {
             cooldown.startFrom(error);
-            toast.error(error instanceof Error ? error.message : "Failed to reset password.");
+            setFormError(error instanceof Error ? error.message : "Failed to reset password.");
         } finally {
             setLoading(false);
         }
@@ -86,6 +88,8 @@ export function NewPasswordForm({ email, code, onDone }: { email: string; code: 
                 }}
                 error={errors.confirm}
             />
+
+            {formError && <FormAlert>{formError}</FormAlert>}
 
             <Button type="submit" disabled={loading || cooldown.active} size="lg" className="w-full">
                 {loading ? "Updating…" : cooldown.active ? cooldown.label : "Set New Password"}

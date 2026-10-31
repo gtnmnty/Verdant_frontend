@@ -362,7 +362,7 @@ export function ProfileSection() {
                                     <Badge className="bg-blush/40 text-primary hover:bg-blush/40">Upcoming</Badge>
                                     <span className="text-xs uppercase tracking-[0.18em]
                                           text-on-surface-variant">
-                                        #{upcoming.id}
+                                        #{upcoming.appointmentCode || upcoming.id}
                                     </span>
                                 </div>
                                 <h3 className="mt-3 font-display

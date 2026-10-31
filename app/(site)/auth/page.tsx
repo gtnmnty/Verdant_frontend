@@ -1,7 +1,6 @@
 "use client";
 
 import {useState} from "react";
-import {toast} from "sonner";
 import {AuthShell} from "@/app/(site)/auth/_components/AuthShell";
 import {AuthCard} from "@/app/(site)/auth/_components/AuthCard";
 import {Transition} from "@/app/(site)/auth/_components/Transition";
@@ -51,6 +50,7 @@ export default function AuthPage() {
     // whichever email is currently mid-verification.
     const [pendingEmail, setPendingEmail] = useState("");
     const [resetCode, setResetCode] = useState("");
+    const [loginNotice, setLoginNotice] = useState<string>();
 
     return (
         <div className="w-full px-[clamp(12px,5vw,10vw)] sm:px-[6vw] lg:px-[10vw]"><AuthShell>
@@ -60,6 +60,7 @@ export default function AuthPage() {
                         <LoginForm
                             onSwitchToSignup={() => setMode("signup")}
                             onForgotPassword={() => setMode("forgot")}
+                            notice={loginNotice}
                             onSuccess={() => {
                                 window.location.href = "/";
                             }}
@@ -92,8 +93,8 @@ export default function AuthPage() {
                             purpose={mode === "verify-reset" ? "reset" : "signup"}
                             onVerified={(code: string) => {
                                 if (mode === "verify-signup") {
-                                    toast.success("Email verified — you can log in now.");
-                                    window.location.href = "/";
+                                    setLoginNotice("Email verified. You can log in now.");
+                                    setMode("login");
                                 } else {
                                     setResetCode(code);
                                     setMode("new-password");
@@ -106,7 +107,10 @@ export default function AuthPage() {
                         <NewPasswordForm
                             email={pendingEmail}
                             code={resetCode}
-                            onDone={() => setMode("login")}
+                            onDone={() => {
+                                setLoginNotice("Password updated. Log in with your new password.");
+                                setMode("login");
+                            }}
                         />
                     )}
                 </AuthCard>

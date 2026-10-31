@@ -5,6 +5,8 @@ import Link from "next/link";
 import {ArrowLeft, Sparkles} from "lucide-react";
 import {toast} from "sonner";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {useAuth} from "@/context/AuthContext";
+import {useRouter} from "next/navigation";
 import {TrackingSummary} from "@/app/(site)/tracking/[id]/_components/TrackingSummary";
 import {TrackingItemCard} from "@/app/(site)/tracking/[id]/_components/TrackingItemCard";
 import {ShipmentDetails} from "@/app/(site)/tracking/[id]/_components/ShipmentDetails";
@@ -18,6 +20,9 @@ interface BackendOrderItem {
     productImage: string | null;
     quantity: number;
     unitPrice: number;
+    deliveryOption: "STANDARD" | "EXPRESS" | "SAME_DAY";
+    estimatedDeliveryMin: string | null;
+    estimatedDeliveryMax: string | null;
 }
 
 interface BackendAddress {
@@ -57,6 +62,9 @@ const ORDER_QUERY = `
                 productImage
                 quantity
                 unitPrice
+                deliveryOption
+                estimatedDeliveryMin
+                estimatedDeliveryMax
             }
             createdAt
         }
@@ -64,11 +72,12 @@ const ORDER_QUERY = `
 `;
 
 // The backend only tracks a single orderStatus per order (order.graphql) —
-// there's no per-item status, no courier, no tracking number, and no ETA
-// field anywhere in the schema. So every item on this page shares the same
-// stage derived from the order's orderStatus, and courier/tracking
-// number/ETA below stay as frontend-only placeholders until the backend
-// exposes real shipment data.
+// there's no per-item status, no courier and no tracking number in the
+// schema. So every item on this page shares the same stage derived from
+// the order's orderStatus, and the tracking number below stays a
+// frontend-only placeholder until the backend exposes real shipment data.
+// The delivery option and its estimated arrival window (shipping.days.* on
+// the backend) are real, so the shipment name and ETA come from those.
 const STATUS_TO_STAGE_INDEX: Record<BackendOrder["orderStatus"], number> = {
     PLACED: 0,
     PROCESSING: 1,
@@ -78,9 +87,49 @@ const STATUS_TO_STAGE_INDEX: Record<BackendOrder["orderStatus"], number> = {
 };
 
 const FALLBACK_IMAGE = "https://picsum.photos/seed/tracking-item/400/400";
-const STATIC_COURIER = "DHL Express Delivery";
 const STATIC_TRACKING_NUMBER = "Not available yet";
-const STATIC_ETA = "Not available yet";
+
+const DELIVERY_LABELS: Record<BackendOrderItem["deliveryOption"], string> = {
+    STANDARD: "Standard Delivery",
+    EXPRESS: "Express Delivery",
+    SAME_DAY: "Same-Day Delivery",
+};
+
+function formatDay(iso: string) {
+    return new Date(iso).toLocaleDateString("en-US", {month: "short", day: "numeric"});
+}
+
+// "Nov 5 – Nov 7", or a single date when the window is one day (same-day delivery).
+function formatWindow(min: string | null, max: string | null) {
+    if (!min || !max) return null;
+    const from = formatDay(min);
+    const to = formatDay(max);
+    return from === to ? from : `${from} – ${to}`;
+}
+
+// The order is only fully delivered once its slowest shipment arrives, so the
+// order-level ETA runs from the earliest start to the latest end of its items.
+function orderEstimate(order: BackendOrder) {
+    if (order.orderStatus === "DELIVERED") return "Delivered";
+    if (order.orderStatus === "CANCELLED") return "Order cancelled";
+
+    const windows = order.items.filter((i) => i.estimatedDeliveryMin && i.estimatedDeliveryMax);
+    if (windows.length === 0) return "Not available yet";
+
+    const min = windows.map((i) => i.estimatedDeliveryMin as string).sort()[0];
+    const max = windows.map((i) => i.estimatedDeliveryMax as string).sort().reverse()[0];
+    return formatWindow(min, max) ?? "Not available yet";
+}
+
+function itemNote(status: BackendOrder["orderStatus"], item: BackendOrderItem) {
+    if (status === "DELIVERED") return "Your order has been delivered. We hope you love it.";
+    if (status === "CANCELLED") return "This order was cancelled.";
+    const window = formatWindow(item.estimatedDeliveryMin, item.estimatedDeliveryMax);
+    const base = status === "IN_TRANSIT"
+        ? "Your order is on its way."
+        : "Your order is being handled by our team.";
+    return window ? `${base} Expected to arrive ${window}.` : `${base} Check back for updates.`;
+}
 
 function formatAddress(a: BackendAddress) {
     return [a.line1, a.line2, a.city, a.state, a.postal, a.country].filter(Boolean).join(", ");
@@ -89,8 +138,17 @@ function formatAddress(a: BackendAddress) {
 export function TrackingContent({id}: { id: string }) {
     const [order, setOrder] = useState<BackendOrder | null>(null);
     const [loading, setLoading] = useState(true);
+    const {token, loading: authLoading} = useAuth();
+    const router = useRouter();
 
     useEffect(() => {
+        // Wait for the session restore: opened in a new tab (or from the Track Order button with a fresh load),
+        // the first request would otherwise go out without a token and fail with "no permission".
+        if (authLoading) return;
+        if (token === null) {
+            router.replace("/auth");
+            return;
+        }
         let cancelled = false;
         gqlRequest<{ order: BackendOrder | null }>(ORDER_QUERY, {id})
             .then((res) => { if (!cancelled) setOrder(res.order); })
@@ -99,7 +157,7 @@ export function TrackingContent({id}: { id: string }) {
             })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
-    }, [id]);
+    }, [id, authLoading, token, router]);
 
     if (loading) {
         return <p className="py-24 text-center text-sm text-on-surface-variant">Loading order…</p>;
@@ -124,9 +182,9 @@ export function TrackingContent({id}: { id: string }) {
         price: i.unitPrice,
         qty: i.quantity,
         image: i.productImage ?? FALLBACK_IMAGE,
-        courier: STATIC_COURIER,
+        courier: DELIVERY_LABELS[i.deliveryOption] ?? "Delivery",
         stage,
-        note: "Your order is being handled by our team — check back for updates.",
+        note: itemNote(order.orderStatus, i),
     }));
 
     return (
@@ -167,9 +225,9 @@ export function TrackingContent({id}: { id: string }) {
             </section>
 
             <ShipmentDetails
-                courier={STATIC_COURIER}
+                courier={[...new Set(order.items.map((i) => DELIVERY_LABELS[i.deliveryOption]))].join(", ") || "—"}
                 trackingNumber={STATIC_TRACKING_NUMBER}
-                eta={STATIC_ETA}
+                eta={orderEstimate(order)}
                 shippingAddress={formatAddress(order.address)}
                 paymentMethod={order.paymentMethod}
             />
