@@ -35,6 +35,7 @@ export const MY_ORDERS_QUERY = `
                   productImage
                   unitPrice
                   quantity
+                  deliveryOption
                 }
             }
         }

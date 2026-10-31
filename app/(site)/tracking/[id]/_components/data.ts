@@ -1,36 +1,23 @@
 export const STAGES = ["Placed", "Preparing", "Shipped", "Out for Delivery", "Delivered"] as const;
 export type Stage = (typeof STAGES)[number];
 
+export type DeliveryOption = "STANDARD" | "EXPRESS" | "SAME_DAY";
+
 export interface TrackItem {
   id: string;
+  // null when the product was deleted after the order was placed (can't be bought again).
+  productId: string | null;
   name: string;
   price: number;
   qty: number;
   image: string;
+  deliveryOption: DeliveryOption;
   courier: string;
   stage: Stage;
+  // Badge text; matches the order status shown on /orders, except "Out for Delivery" per item.
+  statusLabel: string;
+  cancelled: boolean;
+  // e.g. "Nov 5 – Nov 7"; null when the backend gave no estimate.
+  eta: string | null;
   note: string;
 }
-
-export const MOCK_ITEMS: TrackItem[] = [
-  {
-    id: "i1",
-    name: "Repair & Restore Shampoo",
-    price: 68,
-    qty: 1,
-    image: "https://images.unsplash.com/photo-1535585209827-a15fcdbc4c2d?w=600&q=80",
-    courier: "DHL Express Delivery",
-    stage: "Preparing",
-    note: "Our Avenue Montaigne atelier is meticulously preparing your items.",
-  },
-  {
-    id: "i2",
-    name: "Rose Gold Serum",
-    price: 145,
-    qty: 1,
-    image: "https://images.unsplash.com/photo-1556228578-8c89e6adf883?w=600&q=80",
-    courier: "DHL Express Delivery",
-    stage: "Preparing",
-    note: "Our Avenue Montaigne atelier is meticulously preparing your items.",
-  },
-];
