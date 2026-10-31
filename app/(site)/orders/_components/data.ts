@@ -7,6 +7,7 @@ export interface OrderItem {
     productImage: string | null;
     quantity: number;
     unitPrice: number;
+    deliveryOption?: "STANDARD" | "EXPRESS" | "SAME_DAY";
 }
 
 export interface Order {

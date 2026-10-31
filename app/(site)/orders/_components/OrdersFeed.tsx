@@ -82,7 +82,7 @@ export function OrdersFeed() {
         ? orders.filter((o) => o.orderCode.toLowerCase().includes(query.toLowerCase()))
         : orders;
 
-    // "Buy Again" action sends GraphQL mutation to backend cart
+    // "Buy Again" re-adds the item to the backend cart with its original quantity and delivery option
     const buyAgain = (it: OrderItem) => {
         const productId = it.product?.id;
         if (!productId) {
@@ -92,11 +92,13 @@ export function OrdersFeed() {
         gqlRequest(ADD_TO_CART_MUTATION, {
             input: {
                 productId,
-                quantity: 1,
-                deliveryOption: "STANDARD",
+                quantity: it.quantity,
+                deliveryOption: it.deliveryOption ?? "STANDARD",
             },
         })
-            .then(() => toast.success(`${it.productName} added to cart.`))
+            .then(() => toast.success(`${it.productName} × ${it.quantity} added to cart.`, {
+                action: {label: "View cart", onClick: () => router.push("/cart")},
+            }))
             .catch((err) =>
                 toast.error(err instanceof Error ? err.message : "Failed to add to cart.")
             );

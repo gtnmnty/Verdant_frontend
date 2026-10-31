@@ -11,16 +11,18 @@ import {TrackingSummary} from "@/app/(site)/tracking/[id]/_components/TrackingSu
 import {TrackingItemCard} from "@/app/(site)/tracking/[id]/_components/TrackingItemCard";
 import {ShipmentDetails} from "@/app/(site)/tracking/[id]/_components/ShipmentDetails";
 import {TrackingActions} from "@/app/(site)/tracking/[id]/_components/TrackingActions";
-import {STAGES, type Stage, type TrackItem} from "@/app/(site)/tracking/[id]/_components/data";
+import {type DeliveryOption, type Stage, type TrackItem} from "@/app/(site)/tracking/[id]/_components/data";
 import {PaymentStatusBadge} from "@/app/(site)/orders/_components/PaymentStatus";
+import {STATUS_LABELS} from "@/app/(site)/orders/_components/data";
 
 interface BackendOrderItem {
     id: string;
+    product: { id: string } | null;
     productName: string;
     productImage: string | null;
     quantity: number;
     unitPrice: number;
-    deliveryOption: "STANDARD" | "EXPRESS" | "SAME_DAY";
+    deliveryOption: DeliveryOption;
     estimatedDeliveryMin: string | null;
     estimatedDeliveryMax: string | null;
 }
@@ -58,6 +60,7 @@ const ORDER_QUERY = `
             total
             items {
                 id
+                product { id }
                 productName
                 productImage
                 quantity
@@ -71,20 +74,30 @@ const ORDER_QUERY = `
     }
 `;
 
-// The backend only tracks a single orderStatus per order (order.graphql) —
-// there's no per-item status, no courier and no tracking number in the
-// schema. So every item on this page shares the same stage derived from
-// the order's orderStatus, and the tracking number below stays a
+// The backend tracks a single orderStatus per order (order.graphql), set by
+// staff; there's no per-item status, no courier and no tracking number. Each
+// item's delivery option has an estimated arrival window (shipping.days.* on
+// the backend), so the per-item stage combines the two: the order status sets
+// the floor, and an in-transit item is "Out for Delivery" once its window
+// starts. A same-day item is out for delivery as soon as it ships, a standard
+// one only from its earliest arrival day. The tracking number stays a
 // frontend-only placeholder until the backend exposes real shipment data.
-// The delivery option and its estimated arrival window (shipping.days.* on
-// the backend) are real, so the shipment name and ETA come from those.
-const STATUS_TO_STAGE_INDEX: Record<BackendOrder["orderStatus"], number> = {
-    PLACED: 0,
-    PROCESSING: 1,
-    IN_TRANSIT: 2,
-    DELIVERED: 4,
-    CANCELLED: 0,
-};
+function itemStage(status: BackendOrder["orderStatus"], item: BackendOrderItem, now: Date): Stage {
+    switch (status) {
+        case "DELIVERED":
+            return "Delivered";
+        case "IN_TRANSIT": {
+            if (!item.estimatedDeliveryMin) return "Shipped";
+            const windowStart = new Date(item.estimatedDeliveryMin);
+            windowStart.setHours(0, 0, 0, 0);
+            return now >= windowStart ? "Out for Delivery" : "Shipped";
+        }
+        case "PROCESSING":
+            return "Preparing";
+        default:
+            return "Placed";
+    }
+}
 
 const FALLBACK_IMAGE = "https://picsum.photos/seed/tracking-item/400/400";
 const STATIC_TRACKING_NUMBER = "Not available yet";
@@ -121,14 +134,21 @@ function orderEstimate(order: BackendOrder) {
     return formatWindow(min, max) ?? "Not available yet";
 }
 
-function itemNote(status: BackendOrder["orderStatus"], item: BackendOrderItem) {
-    if (status === "DELIVERED") return "Your order has been delivered. We hope you love it.";
+const STAGE_NOTES: Record<Stage, string> = {
+    "Placed": "We've received your order.",
+    "Preparing": "Our team is preparing your item.",
+    "Shipped": "Your item is on its way.",
+    "Out for Delivery": "Your item is out for delivery.",
+    "Delivered": "Your item has been delivered. We hope you love it.",
+};
+
+function itemNote(status: BackendOrder["orderStatus"], stage: Stage, item: BackendOrderItem) {
     if (status === "CANCELLED") return "This order was cancelled.";
+    if (stage === "Delivered") return STAGE_NOTES[stage];
     const window = formatWindow(item.estimatedDeliveryMin, item.estimatedDeliveryMax);
-    const base = status === "IN_TRANSIT"
-        ? "Your order is on its way."
-        : "Your order is being handled by our team.";
-    return window ? `${base} Expected to arrive ${window}.` : `${base} Check back for updates.`;
+    return window
+        ? `${STAGE_NOTES[stage]} Expected to arrive ${window}.`
+        : `${STAGE_NOTES[stage]} Check back for updates.`;
 }
 
 function formatAddress(a: BackendAddress) {
@@ -174,18 +194,28 @@ export function TrackingContent({id}: { id: string }) {
         );
     }
 
-    const stage: Stage = STAGES[STATUS_TO_STAGE_INDEX[order.orderStatus]];
+    const now = new Date();
+    const cancelled = order.orderStatus === "CANCELLED";
 
-    const items: TrackItem[] = order.items.map((i) => ({
-        id: i.id,
-        name: i.productName,
-        price: i.unitPrice,
-        qty: i.quantity,
-        image: i.productImage ?? FALLBACK_IMAGE,
-        courier: DELIVERY_LABELS[i.deliveryOption] ?? "Delivery",
-        stage,
-        note: itemNote(order.orderStatus, i),
-    }));
+    const items: TrackItem[] = order.items.map((i) => {
+        const stage = itemStage(order.orderStatus, i, now);
+        return {
+            id: i.id,
+            productId: i.product?.id ?? null,
+            name: i.productName,
+            price: i.unitPrice,
+            qty: i.quantity,
+            image: i.productImage ?? FALLBACK_IMAGE,
+            deliveryOption: i.deliveryOption,
+            courier: DELIVERY_LABELS[i.deliveryOption] ?? "Delivery",
+            stage,
+            // Same wording as /orders and the profile page, so a new order reads "Placed" everywhere.
+            statusLabel: stage === "Out for Delivery" ? stage : STATUS_LABELS[order.orderStatus].label,
+            cancelled,
+            eta: formatWindow(i.estimatedDeliveryMin, i.estimatedDeliveryMax),
+            note: itemNote(order.orderStatus, stage, i),
+        };
+    });
 
     return (
         <div className="pb-20">
@@ -232,7 +262,7 @@ export function TrackingContent({id}: { id: string }) {
                 paymentMethod={order.paymentMethod}
             />
 
-            <TrackingActions/>
+            <TrackingActions items={items}/>
         </div>
     );
 }

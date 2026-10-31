@@ -1,10 +1,19 @@
 import {formatDate, type Order} from "@/app/(site)/orders/_components/data";
 
+// Payment statuses where the money was actually received (a later refund doesn't undo that).
+const RECEIVED_PAYMENT = new Set(["PAID", "PARTIALLY_REFUNDED", "REFUNDED"]);
+
 export function OrderTimeline({order: o}: { order: Order }) {
+    const paid = o.paymentStatus ? RECEIVED_PAYMENT.has(o.paymentStatus) : o.orderStatus !== "CANCELLED";
     const steps: { label: string; done: boolean; tone: string }[] = [
         {label: "Order placed", done: true, tone: "border-primary"},
-        {label: "Payment received", done: o.orderStatus !== "CANCELLED", tone: "border-primary"},
-        {label: "Preparing", done: o.orderStatus !== "CANCELLED", tone: "border-champagne-gold"},
+        {label: "Payment received", done: paid, tone: "border-primary"},
+        // Matches the tracking page: a just-placed order isn't being prepared yet.
+        {
+            label: "Preparing",
+            done: o.orderStatus === "PROCESSING" || o.orderStatus === "IN_TRANSIT" || o.orderStatus === "DELIVERED",
+            tone: "border-champagne-gold",
+        },
         {
             label: "In transit",
             done: o.orderStatus === "IN_TRANSIT" || o.orderStatus === "DELIVERED",
