@@ -55,6 +55,15 @@ export const ORDER_BY_ID_QUERY = `
             total
             createdAt
             updatedAt
+            trackingNumber
+            contactName
+            contactPhone
+            contactEmail
+            paidAt
+            cancelReason
+            cancelledAt
+            cancellable
+            walletAmountApplied
             address {
                 line1
                 line2
@@ -118,6 +127,16 @@ export interface BackendOrder {
     total: number;
     createdAt: string;
     updatedAt: string;
+    trackingNumber: string | null;
+    contactName: string | null;
+    contactPhone: string | null;
+    contactEmail: string | null;
+    paidAt: string | null;
+    cancelReason: string | null;
+    cancelledAt: string | null;
+    // Server-computed: owner, paid and not yet shipped.
+    cancellable: boolean;
+    walletAmountApplied: number | null;
     address: BackendAddress;
     user: BackendUser;
     items: BackendOrderItem[];

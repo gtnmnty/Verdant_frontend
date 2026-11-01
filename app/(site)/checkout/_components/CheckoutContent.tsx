@@ -62,7 +62,7 @@ interface BackendMe {
     } | null;
 }
 
-// What the backend says the placed order costs; used instead of the page's estimate from here on.
+// The order, once it exists (after payment). Its figures replace the page's estimate from then on.
 interface PlacedOrder {
     id: string;
     orderCode: string;
@@ -129,23 +129,35 @@ const UPDATE_PROFILE_MUTATION = `
     }
 `;
 
+// Card checkout creates no order: placeOrder returns a checkout (the Stripe form) and the order is created
+// once Stripe confirms the payment (finalizeCheckout). Only a wallet-covered checkout returns an order here.
 const PLACE_ORDER_MUTATION = `
     mutation PlaceOrder($input: PlaceOrderInput!) {
         placeOrder(input: $input) {
+            order {
+                id
+                orderCode
+                total
+                walletAmountApplied
+                paymentStatus
+            }
+            checkout {
+                paymentIntentId
+                clientSecret
+                amount
+            }
+        }
+    }
+`;
+
+const FINALIZE_CHECKOUT_MUTATION = `
+    mutation FinalizeCheckout($paymentIntentId: String!) {
+        finalizeCheckout(paymentIntentId: $paymentIntentId) {
             id
             orderCode
             total
             walletAmountApplied
             paymentStatus
-        }
-    }
-`;
-
-const CREATE_PAYMENT_INTENT_MUTATION = `
-    mutation CreatePaymentIntent($input: CreatePaymentInput!) {
-        createPaymentIntent(input: $input) {
-            clientSecret
-            amount
         }
     }
 `;
@@ -183,7 +195,8 @@ export function CheckoutContent() {
 
     const [isPlacingOrder, setIsPlacingOrder] = useState(false);
     const [placedOrder, setPlacedOrder] = useState<PlacedOrder | null>(null);
-    const [payment, setPayment] = useState<{clientSecret: string; amount: number} | null>(null);
+    // Set while the card form is open: the order doesn't exist yet, only this Stripe payment.
+    const [payment, setPayment] = useState<{paymentIntentId: string; clientSecret: string; amount: number} | null>(null);
     const [completed, setCompleted] = useState(false);
     const [hasSavedInfo, setHasSavedInfo] = useState(false);
     const [hasRespondedToSavePrompt, setHasRespondedToSavePrompt] = useState(false);
@@ -281,35 +294,20 @@ export function CheckoutContent() {
             .finally(() => setPromoChecking(false));
     }
 
-    // Starts (or resumes) the Stripe payment for a placed order. createPaymentIntent hands back the same
-    // intent if one exists, so retrying after a failure is safe.
-    function startPayment(order: PlacedOrder) {
-        setIsPlacingOrder(true);
-        gqlRequest<{ createPaymentIntent: {clientSecret: string; amount: number} }>(
-            CREATE_PAYMENT_INTENT_MUTATION, {input: {orderId: order.id}})
-            .then((res) => {
-                setPayment(res.createPaymentIntent);
-                setStep("payment");
-            })
-            .catch((err) => toast.error(
-                `Order ${order.orderCode} is placed, but payment couldn't start: ` +
-                (err instanceof Error ? err.message : "please try again.")))
-            .finally(() => setIsPlacingOrder(false));
-    }
-
-    // Flow: placeOrder (reserves stock, applies promo + wallet) -> fully covered by the wallet? done ->
-    // otherwise createPaymentIntent -> Stripe payment step.
+    // Flow: placeOrder (saves the checkout, checks the bag) -> wallet covers everything? the order exists, done ->
+    // otherwise the Stripe card form. Nothing is written to order history until the payment succeeds.
     function handlePlaceOrder() {
         if (!items || items.length === 0) return;
-        if (placedOrder) {
-            startPayment(placedOrder);  // order already placed: only the payment needs retrying
-            return;
-        }
         setIsPlacingOrder(true);
 
-        gqlRequest<{ placeOrder: PlacedOrder }>(PLACE_ORDER_MUTATION, {
+        gqlRequest<{ placeOrder: {order: PlacedOrder | null; checkout: {paymentIntentId: string; clientSecret: string; amount: number} | null} }>(
+            PLACE_ORDER_MUTATION, {
             input: {
                 cartItemIds: items.map((i) => i.id),
+                // Contact details are required on every order and stored on the order itself.
+                fullName: `${shipping.firstName} ${shipping.lastName}`.trim(),
+                phone: shipping.phone,
+                email: shipping.email,
                 shippingAddress: {
                     line1: shipping.streetAddress,
                     line2: undefined,
@@ -324,20 +322,42 @@ export function CheckoutContent() {
             },
         })
             .then((res) => {
-                const order = res.placeOrder;
-                setPlacedOrder(order);
-                sessionStorage.removeItem(SESSION_STORAGE_KEY);
-                if (order.paymentStatus === "PAID") {
-                    setIsPlacingOrder(false);
+                const {order, checkout} = res.placeOrder;
+                if (order) {
+                    setPlacedOrder(order);
+                    sessionStorage.removeItem(SESSION_STORAGE_KEY);
                     setCompleted(true);
-                    return;
+                } else if (checkout) {
+                    setPayment(checkout);
+                    setStep("payment");
                 }
-                startPayment(order);
             })
             .catch((err) => {
-                setIsPlacingOrder(false);
-                toast.error(err instanceof Error ? err.message : "Failed to place order.");
-            });
+                toast.error(err instanceof Error ? err.message : "Failed to start checkout.");
+            })
+            .finally(() => setIsPlacingOrder(false));
+    }
+
+    // Stripe took the payment: create the order. The backend reads the payment back from Stripe before it
+    // believes it. A thrown Error's message is shown in the card form.
+    async function handlePaid(paymentIntentId: string) {
+        try {
+            const res = await gqlRequest<{ finalizeCheckout: PlacedOrder }>(
+                FINALIZE_CHECKOUT_MUTATION, {paymentIntentId});
+            setPlacedOrder(res.finalizeCheckout);
+            sessionStorage.removeItem(SESSION_STORAGE_KEY);
+            setCompleted(true);
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "We couldn't finish your order.";
+            if (message.includes("refunded")) {
+                // The order couldn't be made (e.g. an item sold out) and the money went back: start over.
+                toast.error(message);
+                setPayment(null);
+                setStep("review");
+                return;
+            }
+            throw err;
+        }
     }
 
     // Flow: Update user profile with shipping address for future checkouts
@@ -442,20 +462,17 @@ export function CheckoutContent() {
                             walletApplied={walletApplied}
                             amountDue={amountDue}
                             isPlacingOrder={isPlacingOrder}
-                            // The order is fixed once placed; only its payment can still be retried.
                             onEditStep={(s) => { if (!placedOrder) setStep(s); }}
                             onBack={() => { if (!placedOrder) setStep("shipping"); }}
                             onPlaceOrder={handlePlaceOrder}
                         />
                     ) : null}
 
-                    {step === "payment" && placedOrder && payment ? (
+                    {step === "payment" && payment ? (
                         <PaymentStep
                             clientSecret={payment.clientSecret}
-                            orderId={placedOrder.id}
-                            orderCode={placedOrder.orderCode}
                             amountDue={Number(payment.amount)}
-                            onPaid={() => setCompleted(true)}
+                            onPaid={handlePaid}
                         />
                     ) : null}
                 </div>
@@ -481,7 +498,7 @@ export function CheckoutContent() {
                     onUseWalletChange={setUseWallet}
                     walletApplied={walletApplied}
                     amountDue={amountDue}
-                    locked={placedOrder !== null}
+                    locked={placedOrder !== null || payment !== null}
                 />
             </div>
 

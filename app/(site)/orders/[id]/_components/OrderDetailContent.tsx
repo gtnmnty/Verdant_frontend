@@ -13,11 +13,7 @@ import {DetailCard, DetailRow} from "@/app/(site)/orders/[id]/_components/shared
 import {OrderDetailsHeader} from "@/app/(site)/orders/[id]/_components/OrderDetailsHeader";
 import {OrderDetailsFooter} from "@/app/(site)/orders/[id]/_components/OrderDetailsFooter";
 import {OrderTimeline} from "@/app/(site)/orders/[id]/_components/OrderTimeline";
-import {
-    CompletePaymentButton,
-    PaymentStatusBadge,
-    isAwaitingPayment,
-} from "@/app/(site)/orders/_components/PaymentStatus";
+import {PaymentStatusBadge} from "@/app/(site)/orders/_components/PaymentStatus";
 import {
     ORDER_BY_ID_QUERY,
     type BackendOrder,
@@ -33,7 +29,7 @@ function formatAddress(addr?: BackendOrder["address"]) {
 export function OrderDetailContent({id}: { id: string }) {
     const [order, setOrder] = useState<BackendOrder | null>(null);
     const [loading, setLoading] = useState(true);
-    // Bumped to refetch after a payment, so the webhook's PAID shows up.
+    // Bumped to refetch after the customer cancels, so the new status shows.
     const [reloadKey, setReloadKey] = useState(0);
 
     const {token, loading: authLoading} = useAuth();
@@ -109,6 +105,7 @@ export function OrderDetailContent({id}: { id: string }) {
 
 
     const totalItemCount = order.items.reduce((s, i) => s + i.quantity, 0);
+    const walletApplied = Number(order.walletAmountApplied ?? 0);
 
     return (
         <div className="mx-auto w-[min(90vw,1200px)] pb-20">
@@ -123,39 +120,22 @@ export function OrderDetailContent({id}: { id: string }) {
 
             <OrderDetailsHeader order={clientOrder}/>
 
-            {isAwaitingPayment(order.orderStatus, order.paymentStatus) ? (
-                <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl
-                    border border-amber-500/30 bg-amber-500/5 px-5 py-4">
-                    <p className="text-sm text-on-surface">
-                        {order.paymentStatus === "FAILED"
-                            ? "The last payment attempt didn't go through."
-                            : "This order hasn't been paid yet."}{" "}
-                        <span className="text-on-surface-variant">
-                            Unpaid orders are cancelled automatically after an hour.
-                        </span>
-                    </p>
-                    <CompletePaymentButton
-                        orderId={order.id}
-                        orderCode={order.orderCode}
-                        size="default"
-                        onPaid={() => {
-                            setOrder((prev) => (prev ? {...prev, paymentStatus: "PROCESSED"} : prev));
-                            setTimeout(() => setReloadKey((k) => k + 1), 4000);
-                        }}
-                    />
-                </div>
-            ) : null}
-
             <div className="mt-8 grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
                 <div className="min-w-0 space-y-5">
                     <DetailCard title="Order Summary">
                         <dl>
                             <DetailRow label="Reference"
                                        value={<span className="font-mono">{order.orderCode || order.id}</span>}/>
-                            <DetailRow label="Customer" value={order.user?.fullName || "Guest"}/>
-                            <DetailRow label="Email" value={order.user?.email || "N/A"}/>
-                            <DetailRow label="Phone" value={order.user?.phone || "N/A"}/>
+                            <DetailRow label="Tracking Number"
+                                       value={<span className="font-mono">{order.trackingNumber || "N/A"}</span>}/>
+                            {/* Contact details saved on the order win over the account's. */}
+                            <DetailRow label="Customer" value={order.contactName || order.user?.fullName || "Guest"}/>
+                            <DetailRow label="Email" value={order.contactEmail || order.user?.email || "N/A"}/>
+                            <DetailRow label="Phone" value={order.contactPhone || order.user?.phone || "N/A"}/>
                             <DetailRow label="Items" value={totalItemCount}/>
+                            {order.orderStatus === "CANCELLED" && order.cancelReason ? (
+                                <DetailRow label="Cancel Reason" value={order.cancelReason}/>
+                            ) : null}
 
                             {/* Fix Issue D: Use backend order.subtotal */}
                             <DetailRow label="Subtotal" value={`$${Number(order.subtotal).toFixed(2)}`}/>
@@ -218,7 +198,13 @@ export function OrderDetailContent({id}: { id: string }) {
                 </div>
             </div>
 
-            <OrderDetailsFooter order={clientOrder}/>
+            <OrderDetailsFooter
+                order={clientOrder}
+                cancellable={order.cancellable}
+                cardRefund={Math.max(Number(order.total) - walletApplied, 0)}
+                walletRefund={walletApplied}
+                onCancelled={() => setReloadKey((k) => k + 1)}
+            />
         </div>
     );
 }

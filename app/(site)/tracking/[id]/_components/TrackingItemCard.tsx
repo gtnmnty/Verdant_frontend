@@ -27,17 +27,13 @@ export function TrackingItemCard({item}: { item: TrackItem }) {
                                 {item.name}
                             </h3>
                             <p className="mt-1 text-sm text-on-surface-variant">
-                                USD ${item.price.toFixed(2)} · Qty {item.qty}
+                                USD ${item.price.toFixed(2)} · Qty {item.qty} · {item.courier}
                             </p>
                         </div>
                         <div className="text-left sm:text-right">
-                            <p className="text-[10px] font-semibold uppercase
-                            tracking-[0.18em] text-on-surface-variant">
-                                {item.courier}
-                            </p>
-                            {item.eta && !item.cancelled && item.stage !== "Delivered" && (
-                                <p className="mt-1 text-xs text-on-surface-variant">
-                                    Est. arrival {item.eta}
+                            {!item.cancelled && item.stage !== "Delivered" && (
+                                <p className="text-base font-semibold text-primary">
+                                    Est. arrival {item.eta ?? "not available yet"}
                                 </p>
                             )}
                             <span className={`mt-2 inline-block rounded-full border px-3 py-1

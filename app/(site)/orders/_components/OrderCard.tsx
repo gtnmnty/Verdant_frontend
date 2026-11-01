@@ -8,24 +8,18 @@ import {
     type Order,
     type OrderItem,
 } from "@/app/(site)/orders/_components/data";
-import {
-    CompletePaymentButton,
-    PaymentStatusBadge,
-    isAwaitingPayment,
-} from "@/app/(site)/orders/_components/PaymentStatus";
+import {PaymentStatusBadge} from "@/app/(site)/orders/_components/PaymentStatus";
 
 export function OrderCard({
     order: o,
     onBuyAgain,
     onReview,
     onDownloadInvoice,
-    onPaid,
 }: {
     order: Order;
     onBuyAgain: (item: OrderItem) => void;
     onReview: (item: OrderItem) => void;
     onDownloadInvoice: (order: Order) => void;
-    onPaid: () => void;
 }) {
     const trackable = o.orderStatus === "IN_TRANSIT" || o.orderStatus === "PROCESSING";
 
@@ -123,9 +117,6 @@ export function OrderCard({
 
             <footer className="mt-5 flex flex-wrap items-center justify-end
                  gap-3 border-t border-blush/40 pt-4">
-                {isAwaitingPayment(o.orderStatus, o.paymentStatus) ? (
-                    <CompletePaymentButton orderId={o.id} orderCode={o.orderCode} onPaid={onPaid}/>
-                ) : null}
                 {/* Every live order can be tracked (the page shows its stage from Placed onwards); a cancelled
                     one has nothing to track. */}
                 {o.orderStatus !== "CANCELLED" && (
