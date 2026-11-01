@@ -154,6 +154,8 @@ export function AppointmentsFeed() {
     const [page, setPage] = useState(1);
     const [pageCount, setPageCount] = useState(1);
     const [showHistory, setShowHistory] = useState(false);
+    // Bumped after a change the server decides the outcome of (reschedule), to load the list again.
+    const [reloadKey, setReloadKey] = useState(0);
 
     const [reschedule, setReschedule] = useState<Appointment | null>(null);
     const [cancelTarget, setCancelTarget] = useState<Appointment | null>(null);
@@ -204,7 +206,7 @@ export function AppointmentsFeed() {
             .finally(() => { if (!cancelled) setLoading(false); });
 
         return () => { cancelled = true; };
-    }, [filter, query, sort, page, showHistory, authLoading, token]);
+    }, [filter, query, sort, page, showHistory, reloadKey, authLoading, token]);
 
     const confirmCancel = () => {
         if (!cancelTarget) return;
@@ -230,14 +232,15 @@ export function AppointmentsFeed() {
         const target = reschedule;
         const newScheduledAt = new Date(`${newDate}T${newTime}`).toISOString();
 
-        gqlRequest(RESCHEDULE_APPOINTMENT_MUTATION, {id: target.id, newScheduledAt})
-            .then(() => {
-                setItems((arr) =>
-                    arr.map((i) => (
-                        i.id === target.id ? {...i, date: newScheduledAt, status: "upcoming"} : i
-                    )),
-                );
-                toast.success("Appointment rescheduled.");
+        gqlRequest<{rescheduleAppointment: {status: BackendAppointment["status"]}}>(
+            RESCHEDULE_APPOINTMENT_MUTATION, {id: target.id, newScheduledAt})
+            .then((res) => {
+                // The server decides the status: a customer moving a confirmed appointment sends it back to
+                // staff for approval, so it must not be shown as upcoming here. Reload to show what is stored.
+                setReloadKey((k) => k + 1);
+                toast.success(res.rescheduleAppointment.status === "PENDING"
+                    ? "Appointment rescheduled. Our team will confirm the new time."
+                    : "Appointment rescheduled.");
                 setReschedule(null);
                 setNewDate("");
                 setNewTime("");
