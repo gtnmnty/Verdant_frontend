@@ -2,7 +2,7 @@
 
 import {useEffect, useMemo, useState} from "react";
 import Link from "next/link";
-import {ArrowUpDown, Download, RefreshCw, Search} from "lucide-react";
+import {ArrowUpDown, Download, Plus, RefreshCw, Search} from "lucide-react";
 import {toast} from "sonner";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
@@ -17,6 +17,7 @@ import {PageHeader} from "@/app/admin/_components/PageHeader";
 import {DataTable, type Column} from "@/app/admin/_components/DataTable";
 import {StatusBadge} from "@/app/admin/_components/StatusBadge";
 import {OrderFormDialog} from "@/app/admin/orders/_components/OrderFormDialog";
+import {OrderCreateDialog} from "@/app/admin/orders/_components/OrderCreateDialog";
 import {gqlRequest} from "@/utils/graphqlClient";
 
 type FrontendStatus = "pending" | "processing" | "in_transit" | "delivered" | "cancelled";
@@ -132,6 +133,7 @@ export function OrdersContent() {
     const [sortBy, setSortBy] = useState<"date" | "total" | "status">("date");
     const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
     const [formOpen, setFormOpen] = useState(false);
+    const [createOpen, setCreateOpen] = useState(false);
     const [editing, setEditing] = useState<DisplayOrder | null>(null);
     const [refreshKey, setRefreshKey] = useState(0);
 
@@ -259,6 +261,9 @@ export function OrdersContent() {
                 >
                     <RefreshCw className="size-4"/>
                 </Button>
+                <Button size="sm" onClick={() => setCreateOpen(true)}>
+                    <Plus className="mr-1.5 size-4"/> New order
+                </Button>
                 {/* No export endpoint on the backend — stays a demo toast. */}
                 <Button
                     variant="outline"
@@ -288,6 +293,12 @@ export function OrdersContent() {
                     {label: "Mark delivered", onSelect: () => updateStatus(o, "delivered")},
                     {label: "Cancel", onSelect: () => updateStatus(o, "cancelled"), destructive: true},
                 ]}
+            />
+
+            <OrderCreateDialog
+                open={createOpen}
+                onOpenChange={setCreateOpen}
+                onCreated={() => setRefreshKey((k) => k + 1)}
             />
 
             <OrderFormDialog

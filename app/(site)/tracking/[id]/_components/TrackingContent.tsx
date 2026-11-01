@@ -46,6 +46,7 @@ interface BackendOrder {
     total: number;
     items: BackendOrderItem[];
     createdAt: string;
+    trackingNumber: string | null;
 }
 
 const ORDER_QUERY = `
@@ -70,18 +71,19 @@ const ORDER_QUERY = `
                 estimatedDeliveryMax
             }
             createdAt
+            trackingNumber
         }
     }
 `;
 
 // The backend tracks a single orderStatus per order (order.graphql), set by
-// staff; there's no per-item status, no courier and no tracking number. Each
+// staff; there's no per-item status and no courier. Each
 // item's delivery option has an estimated arrival window (shipping.days.* on
 // the backend), so the per-item stage combines the two: the order status sets
 // the floor, and an in-transit item is "Out for Delivery" once its window
 // starts. A same-day item is out for delivery as soon as it ships, a standard
-// one only from its earliest arrival day. The tracking number stays a
-// frontend-only placeholder until the backend exposes real shipment data.
+// one only from its earliest arrival day. The window counts from when the order was
+// paid, so it is empty (shown as "not available yet") until then.
 function itemStage(status: BackendOrder["orderStatus"], item: BackendOrderItem, now: Date): Stage {
     switch (status) {
         case "DELIVERED":
@@ -256,7 +258,7 @@ export function TrackingContent({id}: { id: string }) {
 
             <ShipmentDetails
                 courier={[...new Set(order.items.map((i) => DELIVERY_LABELS[i.deliveryOption]))].join(", ") || "—"}
-                trackingNumber={STATIC_TRACKING_NUMBER}
+                trackingNumber={order.trackingNumber ?? STATIC_TRACKING_NUMBER}
                 eta={orderEstimate(order)}
                 shippingAddress={formatAddress(order.address)}
                 paymentMethod={order.paymentMethod}

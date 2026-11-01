@@ -30,6 +30,10 @@ interface BackendAdminOrder {
     user: { fullName: string };
     orderStatus: string;
     paymentMethod: string;
+    trackingNumber: string | null;
+    contactEmail: string | null;
+    paidAt: string | null;
+    cancelReason: string | null;
     address: {
         line1: string;
         line2: string | null;
@@ -60,6 +64,10 @@ const ADMIN_ORDER_DETAIL_QUERY = `
             user { fullName }
             orderStatus
             paymentMethod
+            trackingNumber
+            contactEmail
+            paidAt
+            cancelReason
             address { line1 line2 city state postal country }
             subtotal
             deliveryFee
@@ -209,7 +217,12 @@ export function OrderDetailContent() {
                                 label="Reference"
                                 value={<span className="font-mono">{order.orderCode}</span>}
                             />
+                            <FieldRow
+                                label="Tracking number"
+                                value={<span className="font-mono">{order.trackingNumber ?? "N/A"}</span>}
+                            />
                             <FieldRow label="Customer" value={order.user.fullName}/>
+                            <FieldRow label="Email" value={order.contactEmail ?? "N/A"}/>
                             <FieldRow label="Items" value={order.itemCount}/>
                             <FieldRow label="Subtotal" value={`$${order.subtotal}`}/>
                             <FieldRow label="Delivery" value={`$${order.deliveryFee}`}/>
@@ -221,6 +234,9 @@ export function OrderDetailContent() {
                             <FieldRow label="Payment method" value={order.paymentMethod}/>
                             <FieldRow label="Shipping address" value={formatAddress(order.address)}/>
                             <FieldRow label="Placed" value={new Date(order.createdAt).toLocaleString()}/>
+                            <FieldRow label="Paid"
+                                      value={order.paidAt ? new Date(order.paidAt).toLocaleString() : "Not paid"}/>
+                            {order.cancelReason ? <FieldRow label="Cancel reason" value={order.cancelReason}/> : null}
                         </dl>
                     </DetailCard>
 

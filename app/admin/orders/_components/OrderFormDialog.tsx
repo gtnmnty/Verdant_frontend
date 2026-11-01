@@ -31,6 +31,8 @@ const PAYMENT_STATUSES = [
     "PENDING", "REQUIRES_ACTION", "PROCESSED", "PAID", "FAILED", "PARTIALLY_REFUNDED", "REFUNDED", "CANCELLED",
 ] as const;
 const DELIVERY_OPTIONS = ["STANDARD", "EXPRESS", "SAME_DAY"] as const;
+// How the customer paid; matches what OrderCreateDialog records.
+const PAYMENT_METHODS = ["card", "bank", "cash"] as const;
 // M-16: the backend refuses item changes once money was collected or returned for the current total
 // (OrderService.ITEM_EDIT_LOCKED_PAYMENT_STATUSES), and on cancelled orders.
 const ITEM_LOCKED_PAYMENT_STATUSES = new Set(["PROCESSED", "PAID", "PARTIALLY_REFUNDED", "REFUNDED"]);
@@ -331,9 +333,15 @@ export function OrderFormDialog({
                             </div>
                             <div>
                                 <Label>Payment Method</Label>
-                                <Input value={draft.paymentMethod}
-                                       onChange={(e) =>
-                                           set("paymentMethod", e.target.value)} className="mt-1.5"/>
+                                <Select value={draft.paymentMethod.toLowerCase()}
+                                        onValueChange={(v) => set("paymentMethod", v)}>
+                                    <SelectTrigger className="mt-1.5"><SelectValue/></SelectTrigger>
+                                    <SelectContent>
+                                        {PAYMENT_METHODS.map((m) => (
+                                            <SelectItem key={m} value={m} className="capitalize">{m}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                         </div>
 
