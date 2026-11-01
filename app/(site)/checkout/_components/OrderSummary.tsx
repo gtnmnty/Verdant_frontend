@@ -1,11 +1,6 @@
 "use client";
 
-import {ChevronDown} from "lucide-react";
-import {useState} from "react";
 import Image from "next/image";
-import {Button} from "@/components/ui/button";
-import {Checkbox} from "@/components/ui/checkbox";
-import {Input} from "@/components/ui/input";
 import {Separator} from "@/components/ui/separator";
 import type {CheckoutOrderItem} from "@/app/(site)/checkout/_components/data";
 
@@ -16,20 +11,8 @@ interface OrderSummaryProps {
     tax: number;
     discount: number;
     total: number;
-    promoCode: string;
-    promoApplied: boolean;
-    promoChecking: boolean;
-    promoError: string | null;
-    onPromoCodeChange: (value: string) => void;
-    onApplyPromoCode: () => void;
-    // Spendable gift-card balance (myWalletBalance); the option is hidden when it's 0.
-    walletBalance: number;
-    useWallet: boolean;
-    onUseWalletChange: (use: boolean) => void;
     walletApplied: number;
     amountDue: number;
-    // Once the order is placed its promo and wallet are fixed, so the controls are disabled.
-    locked: boolean;
 }
 
 export function OrderSummary({
@@ -39,21 +22,9 @@ export function OrderSummary({
      tax,
      discount,
      total,
-     promoCode,
-     promoApplied,
-     promoChecking,
-     promoError,
-     onPromoCodeChange,
-     onApplyPromoCode,
-     walletBalance,
-     useWallet,
-     onUseWalletChange,
      walletApplied,
      amountDue,
-     locked,
 }: OrderSummaryProps) {
-    const [promoOpen, setPromoOpen] = useState(false);
-
     return (
         <aside className="rounded-xl bg-surface-low p-6 sm:sticky
                  sm:top-[calc(clamp(56px,8vw,76px)+1.5rem)]
@@ -143,70 +114,6 @@ export function OrderSummary({
                     </div>
                 </dl>
             ) : null}
-
-            {walletBalance > 0 ? (
-                <label className="mt-5 flex cursor-pointer items-start gap-3">
-                    <Checkbox
-                        checked={useWallet}
-                        disabled={locked}
-                        onCheckedChange={(checked: boolean | "indeterminate") => onUseWalletChange(checked === true)}
-                        className="mt-0.5"
-                    />
-                    <span className="text-sm text-on-surface">
-                        Use my gift card balance
-                        <span className="block text-xs text-on-surface-variant">
-                            ${walletBalance.toFixed(2)} available
-                        </span>
-                    </span>
-                </label>
-            ) : null}
-
-            <Separator className="my-5 bg-blush/40"/>
-
-            <div>
-                <button
-                    type="button"
-                    onClick={() => setPromoOpen((open) => !open)}
-                    aria-expanded={promoOpen}
-                    className="flex items-center gap-1.5 text-[11px]
-                                    font-semibold uppercase tracking-[0.12em]
-                                    text-champagne-gold"
-                >
-                    Have a promotional code?
-                    <ChevronDown
-                        className={`h-3.5 w-3.5 transition-transform ${promoOpen ? "rotate-180" : ""}`}
-                    />
-                </button>
-
-                {promoOpen ? (
-                    <div className="mt-3 flex items-start gap-2">
-                        <div className="min-w-0 flex-1">
-                            <Input
-                                value={promoCode}
-                                onChange={(e) => onPromoCodeChange(e.target.value)}
-                                placeholder="Enter code"
-                                disabled={promoApplied || locked}
-                                className="bg-surface-lowest"
-                            />
-                            {promoError ? (
-                                <p className="mt-1 text-xs text-destructive">{promoError}</p>
-                            ) : promoApplied ? (
-                                <p className="mt-1 text-xs text-champagne-gold">
-                                    Code applied.
-                                </p>
-                            ) : null}
-                        </div>
-                        <Button
-                            type="button"
-                            variant="outline"
-                            onClick={onApplyPromoCode}
-                            disabled={promoApplied || locked || promoChecking || promoCode.trim().length === 0}
-                        >
-                            {promoChecking ? "Checking…" : "Apply"}
-                        </Button>
-                    </div>
-                ) : null}
-            </div>
 
             <p className="mt-5 text-[11px] leading-relaxed
                  text-on-surface-variant">
