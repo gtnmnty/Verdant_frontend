@@ -128,7 +128,8 @@ export function GiftCardsSection() {
     // Set once purchaseGiftCard created the PaymentIntent: the dialog switches to the card form.
     const [clientSecret, setClientSecret] = useState<string | null>(null);
 
-    const load = useCallback(async () => {
+    // Returns the sent cards so callers can tell whether a purchase has settled yet.
+    const load = useCallback(async (): Promise<GiftCard[]> => {
         try {
             const res = await gqlRequest<{
                 myWalletBalance: number;
@@ -140,8 +141,10 @@ export function GiftCardsSection() {
             setCards(res.myGiftCards);
             setSent(res.mySentGiftCards);
             setTx(res.myGiftCardTransactions);
+            return res.mySentGiftCards;
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to load gift cards.");
+            return [];
         } finally {
             setLoading(false);
         }
@@ -208,7 +211,13 @@ export function GiftCardsSection() {
         const recipient = purchase.recipient.trim() || purchase.email.trim();
         closePurchase(false);
         toast.success(`Payment received. ${recipient} will get the gift card by email shortly.`);
-        await load();
+        // The card is marked paid by Stripe's webhook, which usually lands a moment after the browser's
+        // confirmation: keep re-checking for a few seconds so "Awaiting payment" turns into "Delivered" by itself.
+        for (let attempt = 0; attempt < 8; attempt++) {
+            const sentCards = await load();
+            if (!sentCards.some((c) => c.paymentStatus === "PENDING")) return;
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+        }
     };
 
     if (loading) {

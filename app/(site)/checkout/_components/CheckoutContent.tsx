@@ -11,6 +11,7 @@ import {CheckoutStepper} from "@/app/(site)/checkout/_components/CheckoutStepper
 import {OrderSummary} from "@/app/(site)/checkout/_components/OrderSummary";
 import {ShippingStep} from "@/app/(site)/checkout/_components/ShippingStep";
 import {PaymentStep} from "@/app/(site)/checkout/_components/PaymentStep";
+import {PaymentBreakdown, PaymentOptions} from "@/app/(site)/checkout/_components/PaymentOptions";
 import {ReviewStep} from "@/app/(site)/checkout/_components/ReviewStep";
 import {OrderConfirmationDialog} from "@/app/(site)/checkout/_components/OrderConfirmationDialog";
 import {
@@ -280,6 +281,12 @@ export function CheckoutContent() {
         : useWallet ? Math.min(walletBalance, estimatedTotal) : 0;
     const amountDue = payment ? Number(payment.amount) : Math.max(0, total - walletApplied);
 
+    function removePromoCode() {
+        setAppliedPromo(null);
+        setPromoCode("");
+        setPromoError(null);
+    }
+
     function applyPromoCode() {
         const code = promoCode.trim().toUpperCase();
         if (!code) return;
@@ -459,8 +466,29 @@ export function CheckoutContent() {
                             shippingFee={shippingFee}
                             discount={discount}
                             total={total}
-                            walletApplied={walletApplied}
                             amountDue={amountDue}
+                            paymentOptions={
+                                <PaymentOptions
+                                    total={total}
+                                    discount={discount}
+                                    walletBalance={walletBalance}
+                                    useWallet={useWallet}
+                                    onUseWalletChange={setUseWallet}
+                                    walletApplied={walletApplied}
+                                    promoCode={appliedPromo?.code ?? promoCode}
+                                    promoApplied={appliedPromo !== null}
+                                    promoChecking={promoChecking}
+                                    promoError={promoError}
+                                    onPromoCodeChange={(value) => {
+                                        setPromoCode(value);
+                                        setPromoError(null);
+                                    }}
+                                    onApplyPromoCode={applyPromoCode}
+                                    onRemovePromoCode={removePromoCode}
+                                    amountDue={amountDue}
+                                    locked={placedOrder !== null || payment !== null}
+                                />
+                            }
                             isPlacingOrder={isPlacingOrder}
                             onEditStep={(s) => { if (!placedOrder) setStep(s); }}
                             onBack={() => { if (!placedOrder) setStep("shipping"); }}
@@ -472,6 +500,13 @@ export function CheckoutContent() {
                         <PaymentStep
                             clientSecret={payment.clientSecret}
                             amountDue={Number(payment.amount)}
+                            summary={
+                                <PaymentBreakdown
+                                    total={total}
+                                    walletApplied={walletApplied}
+                                    amountDue={Number(payment.amount)}
+                                />
+                            }
                             onPaid={handlePaid}
                         />
                     ) : null}
@@ -484,21 +519,8 @@ export function CheckoutContent() {
                     tax={0}
                     discount={discount}
                     total={total}
-                    promoCode={promoCode}
-                    promoApplied={appliedPromo !== null}
-                    promoChecking={promoChecking}
-                    promoError={promoError}
-                    onPromoCodeChange={(value) => {
-                        setPromoCode(value);
-                        setPromoError(null);
-                    }}
-                    onApplyPromoCode={applyPromoCode}
-                    walletBalance={walletBalance}
-                    useWallet={useWallet}
-                    onUseWalletChange={setUseWallet}
                     walletApplied={walletApplied}
                     amountDue={amountDue}
-                    locked={placedOrder !== null || payment !== null}
                 />
             </div>
 

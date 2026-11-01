@@ -21,8 +21,9 @@ interface ReviewStepProps {
     shippingFee: number;
     discount: number;
     total: number;
-    // Gift-card balance that will be used (an estimate; the backend applies up to the order total).
-    walletApplied: number;
+    // Promo code, gift card and card choices (PaymentOptions), shown under the totals.
+    paymentOptions: React.ReactNode;
+    // What is left for the card; 0 means the gift card covers the order.
     amountDue: number;
     isPlacingOrder: boolean;
     onEditStep: (step: CheckoutStep) => void;
@@ -38,7 +39,7 @@ export function ReviewStep({
     shippingFee,
     discount,
     total,
-    walletApplied,
+    paymentOptions,
     amountDue,
     isPlacingOrder,
     onEditStep,
@@ -135,24 +136,9 @@ export function ReviewStep({
                           ${total.toFixed(2)}
                         </span>
                     </div>
-                    {walletApplied > 0 ? (
-                        <dl className="mt-3 space-y-2 text-sm">
-                            <div className="flex items-center justify-between">
-                                <dt className="text-champagne-gold">Gift card balance</dt>
-                                <dd className="text-champagne-gold">−${walletApplied.toFixed(2)}</dd>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <dt className="font-medium text-on-surface">Due now</dt>
-                                <dd className="font-medium text-on-surface">${amountDue.toFixed(2)}</dd>
-                            </div>
-                        </dl>
-                    ) : null}
-                    <p className="mt-4 text-xs text-on-surface-variant">
-                        {amountDue > 0
-                            ? "Placing the order reserves your items; you'll pay securely with Stripe on the next step."
-                            : "Your gift card balance covers this order, so there's nothing to pay by card."}
-                    </p>
                 </div>
+
+                {paymentOptions}
             </div>
 
             <div className="mt-10 flex flex-wrap items-center

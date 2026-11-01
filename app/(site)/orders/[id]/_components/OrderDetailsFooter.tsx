@@ -25,7 +25,7 @@ export function OrderDetailsFooter({order, cancellable, cardRefund, walletRefund
         <footer className="mt-8 flex flex-wrap items-center justify-end
                  gap-3 border-t border-blush/40 pt-6">
             {cancellable && (
-                <Button variant="outline" className="border-rose-500/50 text-rose-600"
+                <Button variant="outline" className="border-primary text-primary"
                         onClick={() => setCancelOpen(true)}>
                     <XCircle className="mr-1.5 h-4 w-4"/> Cancel Order
                 </Button>

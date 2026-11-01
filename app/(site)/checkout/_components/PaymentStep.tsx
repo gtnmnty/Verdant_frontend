@@ -22,6 +22,8 @@ interface PaymentStepProps {
     // Where Stripe sends the browser if a payment method has to leave the site (card normally never does).
     returnUrl?: string;
     description?: string;
+    // Shown above the card form, e.g. how the total splits between promo, gift card and card.
+    summary?: React.ReactNode;
 }
 
 // Flow: placeOrder (review step) -> this form -> stripe.confirmPayment -> finalizeCheckout, which checks the
@@ -49,7 +51,7 @@ export function PaymentStep(props: PaymentStepProps) {
     );
 }
 
-function PaymentForm({amountDue, onPaid, returnUrl, description}: PaymentStepProps) {
+function PaymentForm({amountDue, onPaid, returnUrl, description, summary}: PaymentStepProps) {
     const stripe = useStripe();
     const elements = useElements();
     const [submitting, setSubmitting] = useState(false);
@@ -109,6 +111,10 @@ function PaymentForm({amountDue, onPaid, returnUrl, description}: PaymentStepPro
                 {description ??
                     "Your order is created as soon as the payment goes through. Payments are processed securely by Stripe; card details never reach our servers."}
             </p>
+
+            {summary ? (
+                <div className="mt-6 rounded-lg border border-blush/40 p-5">{summary}</div>
+            ) : null}
 
             <div className="mt-8">
                 <PaymentElement/>
