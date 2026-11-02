@@ -1,6 +1,6 @@
 "use client";
 
-import {smoothScrollTo} from "@/utils/smoothScrollTo";
+import Link from "next/link";
 import {SectionLabel} from "@/utils/SectionLabel";
 import {PAGE_GUTTER} from "@/utils/pageGutter";
 import Image from "next/image";
@@ -28,8 +28,8 @@ export default function HeroSection() {
                     </p>
                     <div className="flex flex-wrap gap-[clamp(0.625rem,1vw,1rem)]
                  pt-[clamp(0.25rem,0.6vw,0.75rem)]">
-                        <button
-                            onClick={() => smoothScrollTo("services")}
+                        <Link
+                            href="/book"
                             className="group inline-flex items-center gap-[0.5em]
                                             rounded-full bg-stone-900 text-rose-50
                                             px-[clamp(1.25rem,2vw,2rem)]
@@ -40,9 +40,9 @@ export default function HeroSection() {
                         >
                             Book Your Experience
                             <span className="transition-transform group-hover:translate-x-1">→</span>
-                        </button>
-                        <button
-                            onClick={() => smoothScrollTo("services")}
+                        </Link>
+                        <Link
+                            href="/services"
                             className="inline-flex items-center gap-[0.5em] rounded-full
                                             border border-stone-300 bg-white/60 backdrop-blur
                                             px-[clamp(1.25rem,2vw,2rem)]
@@ -53,7 +53,7 @@ export default function HeroSection() {
                         >
                             Explore Services
                             <span>→</span>
-                        </button>
+                        </Link>
                     </div>
                 </div>
 

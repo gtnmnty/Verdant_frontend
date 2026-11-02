@@ -12,7 +12,6 @@ import {
 } from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {Switch} from "@/components/ui/switch";
 import {Textarea} from "@/components/ui/textarea";
 import {
     Select,
@@ -24,11 +23,13 @@ import {
 import {ChipInput} from "@/app/admin/_components/ChipInput";
 import {ImageUploader} from "@/app/admin/_components/ImageUploader";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {apiRequest} from "@/utils/apiClient";
 import {showSaveError} from "@/lib/admin/save-error";
 import type {AdminProduct} from "@/app/admin/products/_components/types";
+import {PRODUCT_CATEGORIES} from "@/app/admin/products/_components/categories";
 
-const CATEGORIES = ["Shampoo", "Conditioner", "Skincare", "Styling", "Fragrance"];
 const MAX_IMAGES = 4;
+const isNewImage = (src: string) => src.startsWith("data:");
 
 interface Draft {
     name: string;
@@ -41,8 +42,7 @@ interface Draft {
     lowStockThreshold: number;
     badges: string[]; // only badges[0] is sent — backend has a single `badge` field
     tags: string[];
-    info: string[];
-    images: string[];
+    images: string[]; // saved image URLs plus newly picked ones as data: URLs (uploaded on save)
     primaryImage: number;
     status: "active" | "inactive";
     featured: boolean;
@@ -50,7 +50,7 @@ interface Draft {
 
 const EMPTY: Draft = {
     name: "",
-    category: "Shampoo",
+    category: PRODUCT_CATEGORIES[0].value,
     description: "",
     price: 0,
     sku: "",
@@ -58,7 +58,6 @@ const EMPTY: Draft = {
     lowStockThreshold: 5,
     badges: [],
     tags: [],
-    info: [],
     images: [],
     primaryImage: 0,
     status: "active",
@@ -77,7 +76,6 @@ function toDraft(p: AdminProduct): Draft {
         lowStockThreshold: p.lowStockThreshold,
         badges: p.badge ? [p.badge] : [],
         tags: p.tags,
-        info: p.info,
         images: p.images,
         primaryImage: 0,
         status: p.status,
@@ -130,19 +128,41 @@ export function ProductFormDialog({
         set("primaryImage", Math.min(draft.primaryImage, Math.max(0, next.length - 1)));
     };
 
+    // createProduct/updateProduct don't take image files, so images go through
+    // /api/products/{id}/images (multipart -> Cloudinary -> media_images) after the product is saved:
+    // remove the ones the admin dropped, upload the new ones, then mark the primary.
+    const syncImages = async (productId: string) => {
+        const base = `/api/products/${productId}/images`;
+        const primarySrc = draft.images[draft.primaryImage] ?? draft.images[0];
+
+        if (product) {
+            for (let i = 0; i < product.images.length; i++) {
+                if (!draft.images.includes(product.images[i])) {
+                    await apiRequest(`${base}/${product.imageIds[i]}`, {method: "DELETE"});
+                }
+            }
+        }
+
+        for (const src of draft.images.filter(isNewImage)) {
+            const blob = await (await fetch(src)).blob();
+            const form = new FormData();
+            form.append("files", new File([blob], `product.${blob.type.split("/")[1] || "jpg"}`, {type: blob.type}));
+            form.append("isPrimary", String(src === primarySrc));
+            await apiRequest(base, {method: "POST", body: form});
+        }
+
+        if (product && primarySrc && !isNewImage(primarySrc)) {
+            const idx = product.images.indexOf(primarySrc);
+            if (idx >= 0) await apiRequest(`${base}/${product.imageIds[idx]}/primary`, {method: "PATCH"});
+        }
+    };
+
     const handleSave = () => {
         if (!draft.name.trim()) return;
         if (!draft.sku.trim() && !product) {
             toast.error("SKU is required for a new product.");
             return;
         }
-
-        // The backend just takes an ordered list of image URLs — put the chosen
-        // "primary" image first since there's no separate primary-index field.
-        const orderedImages = draft.primaryImage > 0
-            ? [draft.images[draft.primaryImage],
-                ...draft.images.filter((_, i) => i !== draft.primaryImage)]
-            : draft.images;
 
         const shared = {
             name: draft.name,
@@ -151,9 +171,7 @@ export function ProductFormDialog({
             price: draft.price,
             salePrice: draft.salePrice,
             badge: draft.badges[0] || undefined,
-            images: orderedImages,
             tags: draft.tags,
-            info: draft.info,
             stockQuantity: draft.stock,
             lowStockThreshold: draft.lowStockThreshold,
             isFeatured: draft.featured,
@@ -167,9 +185,22 @@ export function ProductFormDialog({
         const updateInput = draft.stock !== product?.stock ? shared : {...shared, stockQuantity: undefined};
 
         setSaving(true);
-        const request = product
-            ? gqlRequest(UPDATE_PRODUCT_MUTATION, {input: {id: product.id, ...updateInput}})
-            : gqlRequest(CREATE_PRODUCT_MUTATION, {input: {...shared, sku: draft.sku}});
+        const request: Promise<unknown> = (product
+            ? gqlRequest<{ updateProduct: { id: string } }>(UPDATE_PRODUCT_MUTATION, {input: {id: product.id, ...updateInput}})
+                .then((r) => r.updateProduct.id)
+            : gqlRequest<{ createProduct: { id: string } }>(CREATE_PRODUCT_MUTATION, {input: {...shared, sku: draft.sku}})
+                .then((r) => r.createProduct.id)
+        ).then(async (id) => {
+            // The product itself is already saved here, so an image failure gets its own message and the
+            // list still refreshes (the dialog closes and the product shows without the failed images).
+            try {
+                await syncImages(id);
+            } catch (err) {
+                toast.error(
+                    `Product saved, but its images failed: ${err instanceof Error ? err.message : "upload error"}`,
+                );
+            }
+        });
 
         request
             .then(() => {
@@ -187,12 +218,12 @@ export function ProductFormDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+            <DialogContent className="max-h-[90vh] gap-6 overflow-y-auto p-6 sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle>{product ? "Edit Product" : "New Product"}</DialogTitle>
                 </DialogHeader>
 
-                <div className="grid gap-4">
+                <div className="grid gap-5">
                     <div>
                         <Label>
                             Images ({draft.images.length}/{MAX_IMAGES})
@@ -273,12 +304,12 @@ export function ProductFormDialog({
                         <div>
                             <Label>Category</Label>
                             <Select value={draft.category} onValueChange={(v) => set("category", v)}>
-                                <SelectTrigger className="mt-1.5">
+                                <SelectTrigger className="mt-1.5 w-full">
                                     <SelectValue/>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {CATEGORIES.map((c) => (
-                                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                                    {PRODUCT_CATEGORIES.map((c) => (
+                                        <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -289,7 +320,7 @@ export function ProductFormDialog({
                                 value={draft.status}
                                 onValueChange={(v: "active" | "inactive") => set("status", v)}
                             >
-                                <SelectTrigger className="mt-1.5">
+                                <SelectTrigger className="mt-1.5 w-full">
                                     <SelectValue/>
                                 </SelectTrigger>
                                 <SelectContent>
@@ -360,7 +391,7 @@ export function ProductFormDialog({
                         />
                     </div>
 
-                    <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <Label className="mb-2 block">
                                 Badge
@@ -381,32 +412,6 @@ export function ProductFormDialog({
                                 placeholder="e.g. repair, hydration"
                             />
                         </div>
-                        <div>
-                            <Label className="mb-2 block">Quick Infos</Label>
-                            <ChipInput
-                                value={draft.info}
-                                onChange={(v) => set("info", v)}
-                                placeholder="e.g. 250ml, Cruelty-free"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-6 rounded-lg border border-admin-line p-4">
-                        <label className="flex items-center gap-2.5 text-sm">
-                            <Switch
-                                checked={draft.status === "active"}
-                                onCheckedChange={(v) =>
-                                    set("status", v ? "active" : "inactive")}
-                            />
-                            Active
-                        </label>
-                        <label className="flex items-center gap-2.5 text-sm">
-                            <Switch
-                                checked={draft.featured}
-                                onCheckedChange={(v) => set("featured", v)}
-                            />
-                            Featured
-                        </label>
                     </div>
                 </div>
 

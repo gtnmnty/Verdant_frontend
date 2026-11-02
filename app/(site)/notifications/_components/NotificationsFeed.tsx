@@ -27,6 +27,7 @@ import {
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {notifyUnreadChanged} from "@/hooks/useUnreadNotifications";
 import {
     CATEGORY_BADGE,
     CATEGORY_LABEL,
@@ -187,7 +188,7 @@ export function NotificationsFeed() {
 
     const markRead = (id: string) => {
         setItems((p) => p.map((n) => (n.id === id ? {...n, read: true} : n)));
-        gqlRequest(MARK_READ_MUTATION, {id}).catch((err) => {
+        gqlRequest(MARK_READ_MUTATION, {id}).then(notifyUnreadChanged).catch((err) => {
             toast.error(err instanceof Error ? err.message : "Failed to mark as read.");
             setItems((p) => p.map((n) => (n.id === id ? {...n, read: false} : n)));
         });
@@ -200,14 +201,14 @@ export function NotificationsFeed() {
     const markAllRead = () => {
         const previouslyUnread = items.filter((n) => !n.read).map((n) => n.id);
         setItems((p) => p.map((n) => ({...n, read: true})));
-        gqlRequest(MARK_ALL_READ_MUTATION, {}).catch((err) => {
+        gqlRequest(MARK_ALL_READ_MUTATION, {}).then(notifyUnreadChanged).catch((err) => {
             toast.error(err instanceof Error ? err.message : "Failed to mark all as read.");
             setItems((p) => p.map((n) => (previouslyUnread.includes(n.id) ? {...n, read: false} : n)));
         });
     };
     const dismiss = (id: string) => {
         setItems((p) => p.filter((n) => n.id !== id));
-        gqlRequest(DELETE_NOTIFICATION_MUTATION, {id}).catch((err) =>
+        gqlRequest(DELETE_NOTIFICATION_MUTATION, {id}).then(notifyUnreadChanged).catch((err) =>
             toast.error(err instanceof Error ? err.message : "Failed to delete notification."),
         );
     };
@@ -215,7 +216,7 @@ export function NotificationsFeed() {
         const ids = items.map((n) => n.id);
         setItems([]);
         if (ids.length === 0) return;
-        gqlRequest(DELETE_NOTIFICATIONS_MUTATION, {ids}).catch((err) =>
+        gqlRequest(DELETE_NOTIFICATIONS_MUTATION, {ids}).then(notifyUnreadChanged).catch((err) =>
             toast.error(err instanceof Error ? err.message : "Failed to clear notifications."),
         );
     };

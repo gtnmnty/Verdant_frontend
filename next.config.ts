@@ -11,6 +11,11 @@ const nextConfig: NextConfig = {
                 protocol: "https",
                 hostname: "picsum.photos",
             },
+            // Product, service and avatar uploads are stored on Cloudinary.
+            {
+                protocol: "https",
+                hostname: "res.cloudinary.com",
+            },
         ],
     },
 };

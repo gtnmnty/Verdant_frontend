@@ -215,14 +215,14 @@ export function AppointmentFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+      <DialogContent className="max-h-[90vh] gap-6 overflow-y-auto p-6 sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">
             {appointment ? "Edit appointment" : "New appointment"}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="grid gap-4 py-2 sm:grid-cols-2">
+        <div className="grid gap-5 sm:grid-cols-2 [&_label]:mb-1.5 [&_label]:block">
           <div className="sm:col-span-2">
             <Label>Service Type</Label>
             <div className="mt-1 flex gap-2">
@@ -246,7 +246,7 @@ export function AppointmentFormDialog({
           <div className="sm:col-span-2">
             <Label>Customer</Label>
             <Select value={draft.userId} onValueChange={pickCustomer}>
-              <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue placeholder="Select customer" /></SelectTrigger>
               <SelectContent>
                 {customers.map((c) => (
                   <SelectItem key={c.id} value={c.id}>{c.fullName}</SelectItem>
@@ -272,7 +272,7 @@ export function AppointmentFormDialog({
             <div className="sm:col-span-2">
               <Label>Branch</Label>
               <Select value={draft.branchId} onValueChange={(v) => set("branchId", v)}>
-                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {branches.map((b) => (
                     <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
@@ -294,7 +294,7 @@ export function AppointmentFormDialog({
           <div>
             <Label>Service</Label>
             <Select value={draft.serviceId} onValueChange={(v) => set("serviceId", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {services.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
@@ -305,7 +305,7 @@ export function AppointmentFormDialog({
           <div>
             <Label>Stylist</Label>
             <Select value={draft.stylistId} onValueChange={(v) => set("stylistId", v)}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {stylists.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>

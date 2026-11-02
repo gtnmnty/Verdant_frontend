@@ -26,7 +26,7 @@ interface Fav {
     name: string;
     kind: FavKind;
     price: number;
-    image: string;
+    image: string | null;
     category: string;
 }
 
@@ -88,15 +88,13 @@ const ADD_TO_CART_MUTATION = `
     }
 `;
 
-const FALLBACK_IMAGE = "https://picsum.photos/seed/favourite/600/450";
-
 function toFav(item: BackendCatalogItem): Fav {
     return {
         id: item.id,
         name: item.name,
         kind: item.__typename === "SalonService" ? "Service" : "Product",
         price: item.price,
-        image: item.primaryImage?.url ?? FALLBACK_IMAGE,
+        image: item.primaryImage?.url ?? null,
         category: CATEGORY_LABELS[item.catalog] ?? item.catalog,
     };
 }
@@ -279,15 +277,17 @@ function FavGrid({
                 <li key={f.id} className="group overflow-hidden
                     rounded-2xl border
                     border-blush/50 bg-surface-lowest">
-                    <div className="relative aspect-4/3 overflow-hidden">
-                        <Image
-                            src={f.image}
-                            alt={f.name}
-                            fill
-                            sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
-                            className="object-cover transition-transform
-                            duration-500 group-hover:scale-105"
-                        />
+                    <div className="relative aspect-4/3 overflow-hidden bg-secondary">
+                        {f.image ? (
+                            <Image
+                                src={f.image}
+                                alt={f.name}
+                                fill
+                                sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
+                                className="object-cover transition-transform
+                                duration-500 group-hover:scale-105"
+                            />
+                        ) : null}
                         <button
                             onClick={() => onRemove(f.id)}
                             aria-label="Remove"

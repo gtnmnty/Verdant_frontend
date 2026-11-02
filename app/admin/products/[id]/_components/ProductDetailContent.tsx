@@ -19,6 +19,7 @@ import {ConfirmDialog} from "@/app/admin/_components/ConfirmDialog";
 import {EmptyState} from "@/app/admin/_components/EmptyState";
 import {ProductFormDialog} from "@/app/admin/products/_components/ProductFormDialog";
 import {PriceDisplay, toAdminProduct} from "@/app/admin/products/_components/ProductsContent";
+import {categoryLabel} from "@/app/admin/products/_components/categories";
 import {gqlRequest} from "@/utils/graphqlClient";
 import type {AdminProduct} from "@/app/admin/products/_components/types";
 
@@ -32,7 +33,7 @@ const ADMIN_PRODUCT_DETAIL_QUERY = `
             price
             salePrice
             sku
-            images { url }
+            images { id url }
             tags
             info
             badge
@@ -196,21 +197,12 @@ export function ProductDetailContent() {
                                         variant="outline"
                                         className="border-admin-line text-admin-muted"
                                     >
-                                        #{t}
+                                        {t}
                                     </Badge>
                                 ))}
                             </div>
                         ) : null}
 
-                        {product.info.length > 0 ? (
-                            <ul className="mt-4 grid gap-1.5 sm:grid-cols-2">
-                                {product.info.map((i) => (
-                                    <li key={i} className="text-sm text-admin-muted">
-                                        ✦ {i}
-                                    </li>
-                                ))}
-                            </ul>
-                        ) : null}
                     </DetailCard>
 
                     <DetailCard title="Rating">
@@ -233,7 +225,7 @@ export function ProductDetailContent() {
 
                     <DetailCard title="Details">
                         <dl>
-                            <FieldRow label="Category" value={product.category}/>
+                            <FieldRow label="Category" value={categoryLabel(product.category)}/>
                             <FieldRow label="SKU" value={product.sku}/>
                             <FieldRow
                                 label="Stock"

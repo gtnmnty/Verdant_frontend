@@ -208,7 +208,7 @@ export function OrderCreateDialog({
 
     return (
         <Dialog open={open} onOpenChange={(next) => { if (!next) reset(); onOpenChange(next); }}>
-            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            <DialogContent className="max-h-[90vh] gap-6 overflow-y-auto p-6 sm:max-w-3xl">
                 <DialogHeader>
                     <DialogTitle className="inline-flex items-center gap-2">
                         <Plus className="size-5"/> New Order
@@ -224,7 +224,7 @@ export function OrderCreateDialog({
                         description={`Enter the customer's card${method === "bank" ? " (recorded as a bank payment)" : ""}. The order is created as soon as the payment goes through.`}
                     />
                 ) : (
-                    <div className="grid gap-4">
+                    <div className="grid gap-5">
                         <div className="grid gap-4 sm:grid-cols-3">
                             <div>
                                 <Label>Customer account email</Label>
@@ -299,7 +299,7 @@ export function OrderCreateDialog({
                                                onChange={(e) => patchLine(i, {quantity: Number(e.target.value)})}/>
                                         <Select value={l.deliveryOption}
                                                 onValueChange={(v) => patchLine(i, {deliveryOption: v})}>
-                                            <SelectTrigger><SelectValue/></SelectTrigger>
+                                            <SelectTrigger className="w-full"><SelectValue/></SelectTrigger>
                                             <SelectContent>
                                                 {DELIVERY_OPTIONS.map((d) => (
                                                     <SelectItem key={d} value={d}>{d.replace("_", " ")}</SelectItem>
@@ -325,7 +325,7 @@ export function OrderCreateDialog({
                             <div>
                                 <Label>Payment method</Label>
                                 <Select value={method} onValueChange={(v) => setMethod(v as PaymentMethod)}>
-                                    <SelectTrigger className="mt-1.5"><SelectValue/></SelectTrigger>
+                                    <SelectTrigger className="mt-1.5 w-full"><SelectValue/></SelectTrigger>
                                     <SelectContent>
                                         {PAYMENT_METHODS.map((m) => (
                                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
