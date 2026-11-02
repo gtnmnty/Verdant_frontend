@@ -19,6 +19,7 @@ import {Input} from "@/components/ui/input";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {useAuth} from "@/context/AuthContext";
 import {EmptyBlock, PageIntro, SectionTitle} from "@/app/(site)/account/_components/shared";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 type FavKind = "Service" | "Product";
 
@@ -292,7 +293,12 @@ function FavGrid({
                                 className="object-cover transition-transform
                                 duration-500 group-hover:scale-105"
                             />
-                        ) : null}
+                        ) : (
+                            <ImagePlaceholder
+                                name={f.name}
+                                kind={f.kind === "Service" ? "service" : "product"}
+                            />
+                        )}
                         <button
                             onClick={() => onRemove(f.id)}
                             aria-label="Remove"

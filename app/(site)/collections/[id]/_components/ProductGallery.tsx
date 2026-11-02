@@ -5,6 +5,7 @@ import Image from "next/image";
 import {ChevronLeft, ChevronRight, X, ZoomIn} from "lucide-react";
 import {Dialog, DialogContent} from "@/components/ui/dialog";
 import {ProductBadge} from "@/app/(site)/collections/_components/ProductBadge";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 export function ProductGallery({
     images,
@@ -15,11 +16,12 @@ export function ProductGallery({
     const [activeImage, setActiveImage] = useState(0);
     const [lightbox, setLightbox] = useState(false);
 
-    // No uploaded photo yet: show a plain placeholder block instead of a stock image.
+    // No uploaded photo yet: show a generated card instead of a stock image.
     if (gallery.length === 0) {
         return (
             <div className="min-w-0">
-                <div className="relative aspect-4/3 w-full rounded-2xl border border-border bg-secondary">
+                <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-border">
+                    <ImagePlaceholder name={name} kind="product"/>
                     {badge ? <ProductBadge label={badge}/> : null}
                 </div>
             </div>

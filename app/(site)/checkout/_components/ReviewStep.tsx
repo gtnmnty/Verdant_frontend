@@ -11,6 +11,7 @@ import type {
 } from "@/app/(site)/checkout/_components/data";
 import React from "react";
 import {countryName} from "@/app/(site)/checkout/_components/data";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface ReviewStepProps {
     shipping: ShippingDetails;
@@ -92,7 +93,9 @@ export function ReviewStep({
                                             sizes="56px"
                                             className="object-cover"
                                         />
-                                    ) : null}
+                                    ) : (
+                                        <ImagePlaceholder name={item.name} kind="product" compact/>
+                                    )}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-medium text-on-surface">

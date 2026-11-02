@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { Plus, Search } from "lucide-react";
+import { Download, Plus, RefreshCw, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -26,6 +26,7 @@ import {
   CATEGORY_TO_BACKEND,
   type AdminService,
 } from "@/app/admin/services/_components/types";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface BackendAdminServiceDto {
   id: string;
@@ -41,7 +42,7 @@ interface BackendAdminServiceDto {
   info: string[];
   isHomeService: boolean;
   isFeatured: boolean;
-  images: { url: string }[];
+  images: { id: string; url: string }[];
   stylists: { id: string; name: string; bio: string | null; avatarUrl: string | null }[];
   createdAt: string | null;
   updatedAt: string | null;
@@ -69,7 +70,7 @@ const ADMIN_SERVICES_QUERY = `
                 info
                 isHomeService
                 isFeatured
-                images { url }
+                images { id url }
                 stylists { id name bio avatarUrl }
                 createdAt
                 updatedAt
@@ -85,15 +86,16 @@ const UPDATE_SERVICE_STATUS_MUTATION = `
     }
 `;
 
-const CREATE_SERVICE_MUTATION = `
-    mutation CreateServiceDuplicate($input: CreateServiceInput!) {
-        createService(input: $input) { id }
-    }
-`;
 
 const DELETE_SERVICE_MUTATION = `
     mutation DeleteService($id: ID!) {
         deleteService(id: $id) { id }
+    }
+`;
+
+const DELETE_SERVICES_MUTATION = `
+    mutation DeleteServices($ids: [ID!]!) {
+        deleteServices(ids: $ids) { id }
     }
 `;
 
@@ -110,9 +112,11 @@ export function toAdminService(s: BackendAdminServiceDto): AdminService {
       id: st.id,
       fullName: st.name,
       bio: st.bio ?? "",
-      photo: st.avatarUrl ?? "https://picsum.photos/seed/stylist-admin/100/100",
+      photo: st.avatarUrl ?? "",
     })),
     image: s.images[0]?.url ?? "",
+    images: s.images.map((i) => i.url),
+    imageIds: s.images.map((i) => i.id),
     active: s.status === "ACTIVE",
     homeService: s.isHomeService,
     featured: s.isFeatured,
@@ -125,19 +129,23 @@ export function toAdminService(s: BackendAdminServiceDto): AdminService {
 }
 
 export function ServicesContent() {
+  const router = useRouter();
   const [services, setServices] = useState<AdminService[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
+  const [status, setStatus] = useState("all");
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<AdminService | null>(null);
   const [deleting, setDeleting] = useState<AdminService | null>(null);
+  const [deletingIds, setDeletingIds] = useState<string[] | null>(null);
 
   const fetchServices = () => {
     setLoading(true);
     gqlRequest<{ adminServices: AdminServicePage }>(ADMIN_SERVICES_QUERY, {
       category: category === "all" ? undefined : CATEGORY_TO_BACKEND[category],
       search: search.trim() || undefined,
+      status: status === "all" ? undefined : status === "active" ? "ACTIVE" : "INACTIVE",
       page: 1,
       pageSize: 100,
     })
@@ -146,12 +154,10 @@ export function ServicesContent() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(fetchServices, [search, category]);
+  useEffect(fetchServices, [search, category, status]);
 
-  const categories = useMemo(
-    () => Array.from(new Set(services.map((s) => s.category))).sort(),
-    [services],
-  );
+  // Fixed list (not derived from the loaded rows) so the filter never collapses to the current selection.
+  const categories = Object.keys(CATEGORY_TO_BACKEND);
 
   const openCreate = () => {
     setEditing(null);
@@ -166,36 +172,11 @@ export function ServicesContent() {
     gqlRequest(UPDATE_SERVICE_STATUS_MUTATION, {
       input: { id: s.id, status: s.active ? "INACTIVE" : "ACTIVE" },
     })
-      .then(() => fetchServices())
-      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to update status."));
-  };
-
-  // No dedicated "duplicate" endpoint — recreated client-side by re-sending
-  // the source service's fields to createService.
-  const duplicate = (s: AdminService) => {
-    gqlRequest(CREATE_SERVICE_MUTATION, {
-      input: {
-        name: `${s.name} (Copy)`,
-        subName: s.subName,
-        category: Object.entries(CATEGORY_FROM_BACKEND).find(([, v]) => v === s.category)?.[0] ?? "SKIN_CARE",
-        price: s.price,
-        durationInMinutes: s.duration,
-        status: "INACTIVE",
-        description: s.description || undefined,
-        badge: s.badge || undefined,
-        tags: s.tags,
-        info: s.info,
-        images: s.image ? [s.image] : [],
-        isHomeService: s.homeService,
-        isFeatured: false,
-        stylistIds: s.stylists.map((st) => st.id),
-      },
-    })
       .then(() => {
-        toast.success("Service duplicated.");
+        toast.success(s.active ? "Service set to inactive." : "Service set to active.");
         fetchServices();
       })
-      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to duplicate service."));
+      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to update status."));
   };
 
   const confirmDelete = () => {
@@ -209,6 +190,17 @@ export function ServicesContent() {
       .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to delete service."));
   };
 
+  const confirmBulkDelete = () => {
+    if (!deletingIds) return;
+    gqlRequest(DELETE_SERVICES_MUTATION, { ids: deletingIds })
+      .then(() => {
+        toast.success(`Deleted ${deletingIds.length} services`);
+        setDeletingIds(null);
+        fetchServices();
+      })
+      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to delete services."));
+  };
+
   const columns: Column<AdminService>[] = [
     {
       key: "name",
@@ -218,7 +210,11 @@ export function ServicesContent() {
       render: (s) => (
         <Link href={`/admin/services/${s.id}`} className="flex items-center gap-3 hover:underline">
           <div className="relative size-10 shrink-0 overflow-hidden rounded-lg bg-admin-cream">
-            {s.image ? <Image src={s.image} alt="" fill sizes="40px" className="object-cover" /> : null}
+            {s.image ? (
+              <Image src={s.image} alt="" fill sizes="40px" className="object-cover" />
+            ) : (
+              <ImagePlaceholder name={s.name} kind="service" compact />
+            )}
           </div>
           <div className="min-w-0">
             <p className="truncate font-medium">{s.name}</p>
@@ -245,12 +241,7 @@ export function ServicesContent() {
     {
       key: "status",
       header: "Status",
-      render: (s) => (
-        <div className="flex items-center gap-2">
-          <Switch checked={s.active} onCheckedChange={() => toggleActive(s)} />
-          <StatusBadge status={s.active ? "active" : "inactive"} />
-        </div>
-      ),
+      render: (s) => <StatusBadge status={s.active ? "active" : "inactive"} />,
     },
   ];
 
@@ -259,11 +250,6 @@ export function ServicesContent() {
       <PageHeader
         title="Services"
         description="Manage the salon's service catalog."
-        actions={
-          <Button onClick={openCreate}>
-            <Plus className="mr-1.5 size-4" /> New Service
-          </Button>
-        }
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -287,6 +273,31 @@ export function ServicesContent() {
             ))}
           </SelectContent>
         </Select>
+        <Select value={status} onValueChange={setStatus}>
+          <SelectTrigger className="w-36 border-admin-line bg-admin-surface">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="sm" onClick={fetchServices} className="border-admin-line">
+          <RefreshCw className="size-4" />
+        </Button>
+        {/* No export endpoint on the backend — stays a demo toast. */}
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => toast("Exported CSV")}
+          className="border-admin-line"
+        >
+          <Download className="size-4" /> Export
+        </Button>
+        <Button onClick={openCreate}>
+          <Plus className="mr-1.5 size-4" /> New Service
+        </Button>
       </div>
 
       <DataTable
@@ -294,9 +305,26 @@ export function ServicesContent() {
         columns={columns}
         emptyTitle={loading ? "Loading…" : "No services found"}
         emptyDescription={loading ? "Fetching services from the server." : "Try a different search or add a new service."}
+        bulkActions={(ids, clear) => (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="text-admin-rose"
+            onClick={() => {
+              setDeletingIds(ids);
+              clear();
+            }}
+          >
+            Delete selected
+          </Button>
+        )}
         rowActions={(s) => [
+          { label: "View details", onSelect: () => router.push(`/admin/services/${s.id}`) },
           { label: "Edit", onSelect: () => openEdit(s) },
-          { label: "Duplicate", onSelect: () => duplicate(s) },
+          {
+            label: s.active ? "Set inactive" : "Set active",
+            onSelect: () => toggleActive(s),
+          },
           { label: "Delete", onSelect: () => setDeleting(s), destructive: true },
         ]}
       />
@@ -315,6 +343,14 @@ export function ServicesContent() {
         confirmLabel="Delete"
         destructive
         onConfirm={confirmDelete}
+      />
+      <ConfirmDialog
+        open={!!deletingIds}
+        onOpenChange={(o) => !o && setDeletingIds(null)}
+        title={`Delete ${deletingIds?.length ?? 0} services?`}
+        confirmLabel="Delete"
+        destructive
+        onConfirm={confirmBulkDelete}
       />
     </div>
   );

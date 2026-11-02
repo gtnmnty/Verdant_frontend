@@ -126,7 +126,7 @@ function toService(s: BackendSalonService): Service {
         durationMin: s.durationInMinutes,
         price: s.price,
         popular: 0,
-        image: s.primaryImage?.url ?? s.images[0]?.url ?? "https://picsum.photos/seed/service/900/600",
+        image: s.primaryImage?.url ?? s.images[0]?.url ?? "",
     };
 }
 

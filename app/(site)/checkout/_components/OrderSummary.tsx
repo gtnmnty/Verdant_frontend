@@ -3,6 +3,7 @@
 import Image from "next/image";
 import {Separator} from "@/components/ui/separator";
 import type {CheckoutOrderItem} from "@/app/(site)/checkout/_components/data";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface OrderSummaryProps {
     items: CheckoutOrderItem[];
@@ -44,7 +45,9 @@ export function OrderSummary({
                                     sizes="56px"
                                     className="object-cover"
                                 />
-                            ) : null}
+                            ) : (
+                                <ImagePlaceholder name={item.name} kind="product" compact/>
+                            )}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-[11px] font-semibold uppercase

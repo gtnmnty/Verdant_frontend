@@ -1,12 +1,19 @@
 "use client";
 
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useState} from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {toast} from "sonner";
-import {Plus, Search} from "lucide-react";
+import {Plus, RefreshCw, Search} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import {PageHeader} from "@/app/admin/_components/PageHeader";
 import {DataTable, type Column} from "@/app/admin/_components/DataTable";
 import {StatusBadge} from "@/app/admin/_components/StatusBadge";
@@ -15,8 +22,11 @@ import {StylistFormDialog} from "@/app/admin/stylists/_components/StylistFormDia
 import {gqlRequest} from "@/utils/graphqlClient";
 import {
     STATUS_FROM_BACKEND,
+    STATUS_TO_BACKEND,
     type AdminStylist,
+    type AdminStylistService,
 } from "@/app/admin/stylists/_components/types";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface BackendAdminStylistsDto {
     id: string;
@@ -27,6 +37,7 @@ interface BackendAdminStylistsDto {
     bio: string | null;
     avatarUrl: string | null;
     branch: { id: string; name: string } | null;
+    services: AdminStylistService[];
     createdAt: string;
 }
 
@@ -37,12 +48,14 @@ interface AdminStylistsPage {
 
 const ADMIN_STYLISTS_QUERY = `
     query AdminStylists(
+        $status: StylistAccountStatus,
         $search: String, 
         $sort: StylistSort, 
         $page: Int, 
         $pageSize: Int
     ) {
         adminStylists(
+            status: $status,
             search: $search, 
             sort: $sort, 
             page: $page, 
@@ -57,6 +70,7 @@ const ADMIN_STYLISTS_QUERY = `
                 bio
                 avatarUrl
                 branch { id name }
+                services { id name price durationInMinutes }
                 createdAt
             }
             totalItems
@@ -76,7 +90,11 @@ const DELETE_STYLIST_MUTATION = `
     }
 `;
 
-const FALLBACK_AVATAR = "https://picsum.photos/seed/stylist-admin/100/100";
+const DELETE_STYLISTS_MUTATION = `
+    mutation DeleteStylists($ids: [ID!]!) {
+        deleteStylists(ids: $ids) { id }
+    }
+`;
 
 export function toAdminStylist(s: BackendAdminStylistsDto): AdminStylist {
     return {
@@ -85,10 +103,11 @@ export function toAdminStylist(s: BackendAdminStylistsDto): AdminStylist {
         email: s.email,
         phone: s.phone ?? "",
         bio: s.bio ?? "",
-        photo: s.avatarUrl ?? FALLBACK_AVATAR,
+        photo: s.avatarUrl ?? "",
         status: STATUS_FROM_BACKEND[s.status] ?? s.status.toLowerCase(),
         branchId: s.branch?.id ?? null,
         branchName: s.branch?.name ?? null,
+        services: s.services ?? [],
         createdAt: s.createdAt,
     };
 }
@@ -98,13 +117,16 @@ export function StylistsContent() {
     const [stylists, setStylists] = useState<AdminStylist[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
+    const [status, setStatus] = useState("all");
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<AdminStylist | null>(null);
     const [deleting, setDeleting] = useState<AdminStylist | null>(null);
+    const [deletingIds, setDeletingIds] = useState<string[] | null>(null);
 
     const fetchStylists = () => {
         setLoading(true);
         gqlRequest<{ adminStylists: AdminStylistsPage }>(ADMIN_STYLISTS_QUERY, {
+            status: status === "all" ? undefined : STATUS_TO_BACKEND[status],
             search: search.trim() || undefined,
             page: 1,
             pageSize: 100,
@@ -116,9 +138,7 @@ export function StylistsContent() {
             .finally(() => setLoading(false));
     };
 
-    useEffect(fetchStylists, [search]);
-
-    const filtered = useMemo(() => stylists, [stylists]);
+    useEffect(fetchStylists, [search, status]);
 
     const openCreate = () => {
         setEditing(null);
@@ -154,6 +174,18 @@ export function StylistsContent() {
                 toast.error(err instanceof Error ? err.message : "Failed to delete stylist."));
     };
 
+    const confirmBulkDelete = () => {
+        if (!deletingIds) return;
+        gqlRequest(DELETE_STYLISTS_MUTATION, {ids: deletingIds})
+            .then(() => {
+                toast.success(`Deleted ${deletingIds.length} stylists`);
+                setDeletingIds(null);
+                fetchStylists();
+            })
+            .catch((err) =>
+                toast.error(err instanceof Error ? err.message : "Failed to delete stylists."));
+    };
+
     const columns: Column<AdminStylist>[] = [
         {
             key: "name",
@@ -163,8 +195,14 @@ export function StylistsContent() {
             render: (s) => (
                 <Link href={`/admin/stylists/${s.id}`}
                       className="flex min-w-0 items-center gap-3 hover:underline">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded avatar URLs */}
-                    <img src={s.photo} alt="" className="size-10 shrink-0 rounded-full"/>
+                    <div className="size-10 shrink-0 overflow-hidden rounded-full">
+                        {s.photo ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded avatar URLs
+                            <img src={s.photo} alt="" className="size-full object-cover"/>
+                        ) : (
+                            <ImagePlaceholder name={s.fullName} kind="stylist" compact/>
+                        )}
+                    </div>
                     <div className="min-w-0">
                         <p className="truncate font-medium">{s.fullName}</p>
                         <p className="truncate text-xs text-admin-muted">{s.email}</p>
@@ -192,15 +230,10 @@ export function StylistsContent() {
                 title="Stylists"
                 description="Manage your team of stylists
                              and their assigned services."
-                actions={
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1.5 size-4"/> Add Stylist
-                    </Button>
-                }
             />
 
-            <div className="mb-4">
-                <div className="relative max-w-sm">
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+                <div className="relative min-w-50 flex-1">
                     <Search
                         className="pointer-events-none absolute
                         left-3 top-1/2 size-4 -translate-y-1/2
@@ -213,15 +246,46 @@ export function StylistsContent() {
                         className="border-admin-line bg-admin-surface pl-9"
                     />
                 </div>
+                <Select value={status} onValueChange={setStatus}>
+                    <SelectTrigger className="w-36 border-admin-line bg-admin-surface">
+                        <SelectValue/>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Status</SelectItem>
+                        <SelectItem value="active">Active</SelectItem>
+                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="suspended">Suspended</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Button variant="outline" size="sm" onClick={fetchStylists} className="border-admin-line">
+                    <RefreshCw className="size-4"/>
+                </Button>
+                <Button onClick={openCreate}>
+                    <Plus className="mr-1.5 size-4"/> Add Stylist
+                </Button>
             </div>
 
             <DataTable
-                rows={filtered}
+                rows={stylists}
                 columns={columns}
                 emptyTitle={loading ? "Loading…" : "No stylists found"}
                 emptyDescription={loading ?
                     "Fetching stylists from the server." :
                     "Try a different search or add a new stylist."}
+                bulkActions={(ids, clear) => (
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-admin-rose"
+                        onClick={() => {
+                            setDeletingIds(ids);
+                            clear();
+                        }}
+                    >
+                        Delete selected
+                    </Button>
+                )}
                 rowActions={(s) => [
                     {label: "View Profile", onSelect: () =>
                             router.push(`/admin/stylists/${s.id}`)},
@@ -248,6 +312,14 @@ export function StylistsContent() {
                 confirmLabel="Delete"
                 destructive
                 onConfirm={confirmDelete}
+            />
+            <ConfirmDialog
+                open={!!deletingIds}
+                onOpenChange={(o) => !o && setDeletingIds(null)}
+                title={`Delete ${deletingIds?.length ?? 0} stylists?`}
+                confirmLabel="Delete"
+                destructive
+                onConfirm={confirmBulkDelete}
             />
         </div>
     );

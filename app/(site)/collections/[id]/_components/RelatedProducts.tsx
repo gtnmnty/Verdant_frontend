@@ -6,6 +6,7 @@ import {toast} from "sonner";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {SectionTitle} from "@/app/(site)/collections/[id]/_components/shared";
 import {activeSalePrice} from "@/app/(site)/collections/_components/query";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface BackendProductSummary {
     id: string;
@@ -76,7 +77,7 @@ export function RelatedProducts(
                                     className="object-cover"
                                 />
                             ) : (
-                                <div className="size-full bg-secondary"/>
+                                <ImagePlaceholder name={r.name} kind="product"/>
                             )}
                         </div>
                         <div className="flex items-center justify-between p-4">

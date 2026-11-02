@@ -1,5 +1,6 @@
 import Image from "next/image";
 import {SectionTitle} from "@/app/(site)/services/[id]/_components/shared";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 export interface StylistData {
     id: string;
@@ -9,7 +10,6 @@ export interface StylistData {
     branchName: string | null;
 }
 
-const FALLBACK_AVATAR = "https://picsum.photos/seed/stylist/300/300";
 
 export function StylistsSection({stylists}: { stylists: StylistData[] }) {
     if (stylists.length === 0) return null;
@@ -27,13 +27,17 @@ export function StylistsSection({stylists}: { stylists: StylistData[] }) {
                     >
                         <div className="relative h-16 w-16 shrink-0 overflow-hidden
                              rounded-full">
-                            <Image
-                                src={s.avatarUrl ?? FALLBACK_AVATAR}
-                                alt={s.name}
-                                fill
-                                sizes="64px"
-                                className="object-cover"
-                            />
+                            {s.avatarUrl ? (
+                                <Image
+                                    src={s.avatarUrl}
+                                    alt={s.name}
+                                    fill
+                                    sizes="64px"
+                                    className="object-cover"
+                                />
+                            ) : (
+                                <ImagePlaceholder name={s.name} kind="stylist"/>
+                            )}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="truncate font-display text-base text-primary">{s.name}</p>

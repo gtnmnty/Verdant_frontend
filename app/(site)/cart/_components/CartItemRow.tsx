@@ -17,6 +17,7 @@ import {
     type CartProduct,
     type DeliveryOption,
 } from "@/app/(site)/cart/_components/data";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface CartItemRowProps {
     item: CartProduct;
@@ -60,7 +61,9 @@ export function CartItemRow({
                         sizes="(max-width: 640px) 64px, 112px"
                         className="object-cover"
                     />
-                ) : null}
+                ) : (
+                    <ImagePlaceholder name={item.name} kind="product" compact/>
+                )}
             </div>
 
             <div className="min-w-35 flex-1 basis-40">

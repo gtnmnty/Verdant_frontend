@@ -18,6 +18,7 @@ import {StylistFormDialog} from "@/app/admin/stylists/_components/StylistFormDia
 import {toAdminStylist} from "@/app/admin/stylists/_components/StylistsContent";
 import {gqlRequest} from "@/utils/graphqlClient";
 import type {AdminStylist} from "@/app/admin/stylists/_components/types";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 const ADMIN_STYLIST_DETAIL_QUERY = `
     query AdminStylistDetail($id: ID!) {
@@ -30,22 +31,8 @@ const ADMIN_STYLIST_DETAIL_QUERY = `
             bio
             avatarUrl
             branch { id name }
+            services { id name price durationInMinutes }
             createdAt
-        }
-    }
-`;
-
-interface OfferedService {
-    id: string;
-    name: string;
-    price: number;
-    durationInMinutes: number;
-}
-
-const STYLIST_SERVICES_QUERY = `
-    query StylistOfferedServices {
-        adminServices(pageSize: 100) {
-            items { id name price durationInMinutes stylists { id } }
         }
     }
 `;
@@ -66,7 +53,6 @@ export function StylistDetailContent() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
     const [stylist, setStylist] = useState<AdminStylist | null | undefined>(undefined);
-    const [offered, setOffered] = useState<OfferedService[]>([]);
     const [editOpen, setEditOpen] = useState(false);
     const [deleteOpen, setDeleteOpen] = useState(false);
 
@@ -84,20 +70,6 @@ export function StylistDetailContent() {
     };
 
     useEffect(fetchStylist, [params.id]);
-
-    useEffect(() => {
-        // AdminStylistsDto has no `services` field — derived by checking which
-        // services list this stylist under their `stylists` array.
-        gqlRequest<{ adminServices: { items: (OfferedService & { stylists: { id: string }[] })[] } }>(
-            STYLIST_SERVICES_QUERY,
-        )
-            .then((res) => {
-                setOffered(res.adminServices.items.filter((sv) =>
-                    sv.stylists.some((st) => st.id === params.id)));
-            })
-            .catch(() => { /* supplementary — fail quietly */
-            });
-    }, [params.id]);
 
     if (stylist === undefined) {
         return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
@@ -162,8 +134,14 @@ export function StylistDetailContent() {
                 <div className="space-y-4">
                     <DetailCard>
                         <div className="flex flex-wrap items-start gap-4">
-                            {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded avatar URLs */}
-                            <img src={stylist.photo} alt="" className="size-24 rounded-2xl"/>
+                            <div className="size-24 overflow-hidden rounded-2xl">
+                                {stylist.photo ? (
+                                    // eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded avatar URLs
+                                    <img src={stylist.photo} alt="" className="size-full object-cover"/>
+                                ) : (
+                                    <ImagePlaceholder name={stylist.fullName} kind="stylist"/>
+                                )}
+                            </div>
                             <div className="min-w-0 flex-1">
                                 <p className="text-sm leading-relaxed
                                     text-admin-muted">{stylist.bio || "No bio yet."}
@@ -173,11 +151,11 @@ export function StylistDetailContent() {
                     </DetailCard>
 
                     <DetailCard title="Offered Services">
-                        {offered.length === 0 ? (
+                        {stylist.services.length === 0 ? (
                             <p className="text-sm text-admin-muted">No services assigned yet.</p>
                         ) : (
                             <ul className="grid gap-3 sm:grid-cols-2">
-                                {offered.map((sv) => (
+                                {stylist.services.map((sv) => (
                                     <li key={sv.id} className="rounded-lg border border-admin-line p-3">
                                         <p className="font-medium">{sv.name}</p>
                                         <p className="text-xs text-admin-muted">{sv.durationInMinutes} min ·

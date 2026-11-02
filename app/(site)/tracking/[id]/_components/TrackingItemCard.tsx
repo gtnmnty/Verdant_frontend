@@ -1,5 +1,6 @@
 import Image from "next/image";
 import {STAGES, type TrackItem} from "@/app/(site)/tracking/[id]/_components/data";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 // Each item gets its own stage: the order status sets the floor, and an
 // in-transit item moves to "Out for Delivery" once its delivery option's
@@ -16,7 +17,11 @@ export function TrackingItemCard({item}: { item: TrackItem }) {
             <div className="grid gap-6 md:grid-cols-[200px_1fr]">
                 <div className="relative aspect-square w-full overflow-hidden
                  rounded-xl">
-                    <Image src={item.image} alt={item.name} fill sizes="200px" className="object-cover"/>
+                    {item.image ? (
+                        <Image src={item.image} alt={item.name} fill sizes="200px" className="object-cover"/>
+                    ) : (
+                        <ImagePlaceholder name={item.name} kind="product"/>
+                    )}
                 </div>
                 <div className="min-w-0">
                     <div className="flex flex-col gap-3 sm:flex-row

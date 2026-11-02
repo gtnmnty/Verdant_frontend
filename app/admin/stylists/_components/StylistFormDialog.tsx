@@ -22,6 +22,7 @@ import {
 import {Textarea} from "@/components/ui/textarea";
 import {ImageUploader} from "@/app/admin/_components/ImageUploader";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {apiRequest} from "@/utils/apiClient";
 import {STATUS_TO_BACKEND, type AdminStylist} from "@/app/admin/stylists/_components/types";
 
 interface Draft {
@@ -54,8 +55,9 @@ interface BranchOption {
 interface ServiceOption {
     id: string;
     name: string;
-    stylists: { id: string }[];
 }
+
+const isNewImage = (src: string) => src.startsWith("data:");
 
 const FORM_OPTIONS_QUERY = `
     query StylistFormOptions {
@@ -63,7 +65,7 @@ const FORM_OPTIONS_QUERY = `
             items { id name }
         }
         adminServices(pageSize: 100) {
-            items { id name stylists { id } }
+            items { id name }
         }
     }
 `;
@@ -116,13 +118,9 @@ export function StylistFormDialog({
             .then((res) => {
                 setBranches(res.adminBranches.items);
                 setServiceOptions(res.adminServices.items);
-                // AdminStylistsDto has no `services` field, so the currently
-                // assigned services are derived by checking which services list
-                // this stylist under their `stylists` array.
+                // The stylist's own live assignments (AdminStylistsDto.services), not a scan of the services list.
                 if (stylist) {
-                    const assigned = res.adminServices.items
-                        .filter((sv) => sv.stylists.some((st) => st.id === stylist.id))
-                        .map((sv) => sv.id);
+                    const assigned = stylist.services.map((sv) => sv.id);
                     setDraft({
                         fullName: stylist.fullName,
                         photo: stylist.photo,
@@ -151,6 +149,20 @@ export function StylistFormDialog({
                 : [...draft.serviceIds, id],
         );
 
+    // createStylist/updateStylist only store an avatarUrl string, so a picked file goes through
+    // /api/stylists/{id}/avatar (multipart -> Cloudinary) after the stylist is saved. A removed photo is deleted.
+    const syncAvatar = async (stylistId: string) => {
+        const hadPhoto = !!stylist?.photo;
+        if (draft.photo && isNewImage(draft.photo)) {
+            const blob = await (await fetch(draft.photo)).blob();
+            const form = new FormData();
+            form.append("file", new File([blob], `stylist.${blob.type.split("/")[1] || "jpg"}`, {type: blob.type}));
+            await apiRequest(`/api/stylists/${stylistId}/avatar`, {method: "POST", body: form});
+        } else if (!draft.photo && hadPhoto) {
+            await apiRequest(`/api/stylists/${stylistId}/avatar`, {method: "DELETE"});
+        }
+    };
+
     const handleSave = async () => {
         if (!draft.fullName.trim()) {
             toast.error("Name is required");
@@ -172,7 +184,6 @@ export function StylistFormDialog({
                         email: draft.email || undefined,
                         phone: draft.phone || undefined,
                         bio: draft.bio || undefined,
-                        avatarUrl: draft.photo || undefined,
                         branchId: draft.branchId,
                     },
                 });
@@ -186,7 +197,6 @@ export function StylistFormDialog({
                         email: draft.email || undefined,
                         phone: draft.phone || undefined,
                         bio: draft.bio || undefined,
-                        avatarUrl: draft.photo || undefined,
                         branchId: draft.branchId,
                         serviceIds: draft.serviceIds,
                     },
@@ -199,6 +209,17 @@ export function StylistFormDialog({
             // stylist it's already set via createStylist above.
             if (stylist && id) {
                 await gqlRequest(ASSIGN_SERVICES_MUTATION, {stylistId: id, serviceIds: draft.serviceIds});
+            }
+
+            // The stylist is already saved here, so an avatar failure gets its own message.
+            if (id) {
+                try {
+                    await syncAvatar(id);
+                } catch (err) {
+                    toast.error(
+                        `Stylist saved, but the photo failed: ${err instanceof Error ? err.message : "upload error"}`,
+                    );
+                }
             }
 
             toast.success("Saved");

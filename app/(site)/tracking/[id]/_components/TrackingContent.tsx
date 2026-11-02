@@ -101,7 +101,6 @@ function itemStage(status: BackendOrder["orderStatus"], item: BackendOrderItem, 
     }
 }
 
-const FALLBACK_IMAGE = "https://picsum.photos/seed/tracking-item/400/400";
 const STATIC_TRACKING_NUMBER = "Not available yet";
 
 const DELIVERY_LABELS: Record<BackendOrderItem["deliveryOption"], string> = {
@@ -207,7 +206,7 @@ export function TrackingContent({id}: { id: string }) {
             name: i.productName,
             price: i.unitPrice,
             qty: i.quantity,
-            image: i.productImage ?? FALLBACK_IMAGE,
+            image: i.productImage ?? "",
             deliveryOption: i.deliveryOption,
             courier: DELIVERY_LABELS[i.deliveryOption] ?? "Delivery",
             stage,
