@@ -21,6 +21,7 @@ import {ServiceFormDialog} from "@/app/admin/services/_components/ServiceFormDia
 import {toAdminService} from "@/app/admin/services/_components/ServicesContent";
 import {gqlRequest} from "@/utils/graphqlClient";
 import type {AdminService} from "@/app/admin/services/_components/types";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 const ADMIN_SERVICE_DETAIL_QUERY = `
     query AdminServiceDetail($id: ID!) {
@@ -38,7 +39,7 @@ const ADMIN_SERVICE_DETAIL_QUERY = `
             info
             isHomeService
             isFeatured
-            images { url }
+            images { id url }
             stylists { id name bio avatarUrl }
             createdAt
             updatedAt
@@ -143,40 +144,65 @@ export function ServiceDetailContent() {
             <DetailGrid>
                 <div className="space-y-4">
                     <DetailCard>
-                        <div className="relative aspect-16/7 w-full
-                        overflow-hidden rounded-xl bg-admin-cream">
-                            {service.image ? (
-                                <Image src={service.image} alt={service.name} fill sizes="800px"
-                                       className="object-cover"/>
-                            ) : null}
+                        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                            {service.images.length > 0 ? (
+                                service.images.map((src, i) => (
+                                    <div
+                                        key={i}
+                                        className={`relative aspect-square overflow-hidden rounded-xl bg-admin-cream ${
+                                            i === 0 ? "ring-2 ring-admin-sidebar" : ""
+                                        }`}
+                                    >
+                                        <Image
+                                            src={src}
+                                            alt={service.name}
+                                            fill
+                                            sizes="(max-width: 640px) 45vw, 200px"
+                                            className="object-cover"
+                                        />
+                                    </div>
+                                ))
+                            ) : (
+                                <div
+                                    className="relative aspect-square overflow-hidden
+                                    rounded-xl sm:col-span-2">
+                                    <ImagePlaceholder name={service.name} kind="service"/>
+                                </div>
+                            )}
                         </div>
                         <p className="mt-4 text-sm leading-relaxed text-admin-muted">{service.description}</p>
 
-                        {(service.badge || service.tags.length) ? (
+                        {service.info.length > 0 ? (
+                            <ul className="mt-4 space-y-1.5">
+                                {service.info.map((line) => (
+                                    <li key={line} className="text-sm text-admin-muted">
+                                        ✦ {line}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : null}
+
+                        {service.badge || service.tags.length ? (
                             <div className="mt-4 flex flex-wrap gap-1.5">
                                 {service.badge ? (
-                                    <Badge
-                                        className="bg-admin-amber/25
-                                        text-admin-ink
-                                        hover:bg-admin-amber/25">{service.badge}
+                                    <Badge className="bg-admin-amber/25
+                                           text-admin-ink
+                                           hover:bg-admin-amber/25">
+                                        {service.badge}
                                     </Badge>
                                 ) : null}
                                 {service.tags.map((t) => (
-                                    <Badge key={t} variant="outline"
-                                           className="border-admin-line
-                                           text-admin-muted">#{t}
+                                    <Badge
+                                        key={t}
+                                        variant="outline"
+                                        className="border-admin-line text-admin-muted"
+                                    >
+                                        {t}
                                     </Badge>
                                 ))}
                             </div>
                         ) : null}
 
-                        {service.info.length > 0 ? (
-                            <ul className="mt-4 grid gap-1.5 sm:grid-cols-2">
-                                {service.info.map((i) => (
-                                    <li key={i} className="text-sm text-admin-muted">✦ {i}</li>
-                                ))}
-                            </ul>
-                        ) : null}
                     </DetailCard>
 
                     <DetailCard title="Assigned Stylists">
@@ -188,8 +214,14 @@ export function ServiceDetailContent() {
                                     <li key={s.id}
                                         className="flex items-center gap-3
                                         rounded-lg border border-admin-line p-3">
-                                        {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded URLs */}
-                                        <img src={s.photo} alt="" className="size-9 rounded-full"/>
+                                        <div className="size-9 shrink-0 overflow-hidden rounded-full">
+                                            {s.photo ? (
+                                                // eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded URLs
+                                                <img src={s.photo} alt="" className="size-full object-cover"/>
+                                            ) : (
+                                                <ImagePlaceholder name={s.fullName} kind="stylist" compact/>
+                                            )}
+                                        </div>
                                         <div className="min-w-0">
                                             <p className="truncate text-sm font-medium">{s.fullName}</p>
                                             <p className="truncate text-xs text-admin-muted">{s.bio}</p>
@@ -202,11 +234,17 @@ export function ServiceDetailContent() {
                 </div>
 
                 <div className="space-y-4">
+                    <DetailCard title="Pricing">
+                        <span className="font-display text-3xl font-semibold">
+                            ${service.price.toFixed(2)}
+                        </span>
+                        <span className="ml-2 text-sm text-admin-muted">{service.duration} min</span>
+                    </DetailCard>
+
                     <DetailCard title="Details">
                         <dl>
                             <FieldRow label="Category" value={service.category}/>
                             <FieldRow label="Duration" value={`${service.duration} min`}/>
-                            <FieldRow label="Price" value={`$${service.price.toFixed(2)}`}/>
                             <FieldRow label="Home Service" value={service.homeService ? "Available" : "In-salon only"}/>
                             <FieldRow label="Featured" value={service.featured ? "Yes" : "No"}/>
                             <FieldRow

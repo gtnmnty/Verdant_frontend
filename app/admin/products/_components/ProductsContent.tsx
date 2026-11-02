@@ -320,11 +320,6 @@ export function ProductsContent() {
             <PageHeader
                 title="Products"
                 description="Manage retail inventory across all branches."
-                actions={
-                    <Button onClick={openCreate}>
-                        <Plus className="mr-1.5 size-4"/> Add Product
-                    </Button>
-                }
             />
 
             <div className="mb-4 flex flex-wrap items-center gap-3">
@@ -378,6 +373,9 @@ export function ProductsContent() {
                     className="border-admin-line"
                 >
                     <Download className="size-4"/> Export
+                </Button>
+                <Button onClick={openCreate}>
+                    <Plus className="mr-1.5 size-4"/> Add Product
                 </Button>
             </div>
 

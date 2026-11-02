@@ -5,6 +5,7 @@ import Image from "next/image";
 import {toast} from "sonner";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {ScrollRow, SectionTitle} from "@/app/(site)/services/[id]/_components/shared";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface BackendSummaryItem {
     id: string;
@@ -39,7 +40,6 @@ const RECOMMENDED_PRODUCTS_QUERY = `
     }
 `;
 
-const FALLBACK_IMAGE = "https://picsum.photos/seed/related/600/450";
 
 export function RelatedServicesSection({
                                            excludeServiceId,
@@ -80,13 +80,17 @@ export function RelatedServicesSection({
                             bg-surface-lowest sm:w-65"
                     >
                         <div className="relative aspect-4/3">
-                            <Image
-                                src={r.primaryImage?.url ?? FALLBACK_IMAGE}
-                                alt={r.name}
-                                fill
-                                sizes="260px"
-                                className="object-cover"
-                            />
+                            {r.primaryImage?.url ? (
+                                <Image
+                                    src={r.primaryImage.url}
+                                    alt={r.name}
+                                    fill
+                                    sizes="260px"
+                                    className="object-cover"
+                                />
+                            ) : (
+                                <ImagePlaceholder name={r.name} kind="service"/>
+                            )}
                         </div>
                         <div className="p-4">
                             <p className="font-display text-base text-primary">{r.name}</p>
@@ -126,13 +130,17 @@ export function RecommendedProductsSection() {
                     <li key={p.id} className="overflow-hidden rounded-2xl border
                         border-border bg-surface-lowest">
                         <div className="relative aspect-4/3">
-                            <Image
-                                src={p.primaryImage?.url ?? FALLBACK_IMAGE}
-                                alt={p.name}
-                                fill
-                                sizes="(max-width: 640px) 90vw, 30vw"
-                                className="object-cover"
-                            />
+                            {p.primaryImage?.url ? (
+                                <Image
+                                    src={p.primaryImage.url}
+                                    alt={p.name}
+                                    fill
+                                    sizes="(max-width: 640px) 90vw, 30vw"
+                                    className="object-cover"
+                                />
+                            ) : (
+                                <ImagePlaceholder name={p.name} kind="product"/>
+                            )}
                         </div>
                         <div className="flex items-center justify-between p-4">
                             <p className="font-display text-base text-primary">{p.name}</p>

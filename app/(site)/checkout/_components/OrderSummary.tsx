@@ -3,6 +3,7 @@
 import Image from "next/image";
 import {Separator} from "@/components/ui/separator";
 import type {CheckoutOrderItem} from "@/app/(site)/checkout/_components/data";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface OrderSummaryProps {
     items: CheckoutOrderItem[];
@@ -36,13 +37,17 @@ export function OrderSummary({
                     <li key={item.id} className="flex items-start gap-3">
                         <div className="relative h-14 w-14 shrink-0 overflow-hidden
                              rounded-lg bg-surface-lowest">
-                            <Image
-                                src={item.image}
-                                alt={item.name}
-                                fill
-                                sizes="56px"
-                                className="object-cover"
-                            />
+                            {item.image ? (
+                                <Image
+                                    src={item.image}
+                                    alt={item.name}
+                                    fill
+                                    sizes="56px"
+                                    className="object-cover"
+                                />
+                            ) : (
+                                <ImagePlaceholder name={item.name} kind="product" compact/>
+                            )}
                         </div>
                         <div className="min-w-0 flex-1">
                             <p className="truncate text-[11px] font-semibold uppercase

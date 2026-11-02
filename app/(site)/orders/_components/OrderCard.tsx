@@ -77,14 +77,16 @@ export function OrderCard({
                 {o.items.map((it) => (
                     <li key={it.id} className="flex flex-col gap-4 sm:flex-row sm:items-center">
                         <div className="relative h-20 w-20 shrink-0 overflow-hidden
-                             rounded-xl">
-                            <Image
-                                src={it.productImage ?? "https://picsum.photos/seed/order-item/80/80"}
-                                alt={it.productName}
-                                fill
-                                sizes="80px"
-                                className="object-cover"
-                            />
+                             rounded-xl bg-secondary">
+                            {(it.productImage ?? it.product?.primaryImage?.url) ? (
+                                <Image
+                                    src={(it.productImage ?? it.product?.primaryImage?.url) as string}
+                                    alt={it.productName}
+                                    fill
+                                    sizes="80px"
+                                    className="object-cover"
+                                />
+                            ) : null}
                         </div>
                         <div className="min-w-0 flex-1">
                             {/*<p className="text-[10px] font-semibold uppercase*/}

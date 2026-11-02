@@ -27,6 +27,7 @@ export interface ProductInfoData {
     averageRating: number;
     reviewCount: number;
     badge: string | null;
+    info: string[];
     tags: string[];
     inStock: boolean;
     isFavorited: boolean;
@@ -125,15 +126,37 @@ export function ProductInfo({product}: { product: ProductInfoData }) {
                 </span>
             </div>
 
-            <p className="mt-4 text-sm leading-relaxed
-                 text-on-surface-variant">
+            <p className="mt-5 text-base leading-relaxed
+                 text-on-surface-variant md:text-lg">
                 {product.description || "No description available yet."}
             </p>
 
+            {product.info.length > 0 && (
+                <ul className="mt-5 space-y-2.5">
+                    {product.info.map((line) => (
+                        <li key={line} className="flex items-start gap-3 text-base
+                             leading-relaxed text-on-surface-variant">
+                            <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full
+                                  bg-champagne-gold"/>
+                            <span>{line}</span>
+                        </li>
+                    ))}
+                </ul>
+            )}
+
             {product.tags.length > 0 && (
-                <p className="mt-5 text-xs tracking-wide text-on-surface-variant">
-                    {product.tags.join("  ·  ")}
-                </p>
+                <div className="mt-5 flex flex-wrap items-center gap-2">
+                    <span className="mr-2 text-sm font-semibold text-primary">Tags:</span>
+                    {product.tags.map((t) => (
+                        <span
+                            key={t}
+                            className="rounded-md border border-border px-2.5 py-1
+                                 text-sm text-on-surface-variant"
+                        >
+                            {t}
+                        </span>
+                    ))}
+                </div>
             )}
 
             <div className="mt-6 flex flex-wrap items-center gap-4">

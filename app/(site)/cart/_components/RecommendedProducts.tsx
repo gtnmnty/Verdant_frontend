@@ -5,6 +5,7 @@ import Image from "next/image";
 import {Plus} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import type {RecommendedProduct} from "@/app/(site)/cart/_components/data";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface RecommendedProductsProps {
     products: RecommendedProduct[];
@@ -48,14 +49,18 @@ export function RecommendedProducts({
                             className="relative block aspect-square overflow-hidden
                               rounded-lg bg-surface-low"
                         >
-                            <Image
-                                src={product.image}
-                                alt={product.name}
-                                fill
-                                sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 22vw"
-                                className="object-cover transition-transform
+                            {product.image ? (
+                                <Image
+                                    src={product.image}
+                                    alt={product.name}
+                                    fill
+                                    sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 22vw"
+                                    className="object-cover transition-transform
                                 duration-500 group-hover:scale-105"
-                            />
+                                />
+                            ) : (
+                                <ImagePlaceholder name={product.name} kind="product" compact/>
+                            )}
                         </Link>
                         <div className="mt-3 flex items-start justify-between gap-2">
                             <div className="min-w-0">

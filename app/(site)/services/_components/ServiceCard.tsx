@@ -3,6 +3,7 @@ import Link from "next/link";
 import {ArrowRight, Calendar, Heart} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import type {Service} from "@/app/(site)/services/_components/data";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 export function ServiceCard({
     service,
@@ -20,14 +21,18 @@ export function ServiceCard({
                  duration-300
                  hover:shadow-[0_18px_40px_-24px_rgba(39,19,28,0.35)]">
             <div className="relative aspect-4/3 w-full overflow-hidden">
-                <Image
-                    src={service.image}
-                    alt={service.name}
-                    fill
-                    sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
-                    className="object-cover transition-transform
+                {service.image ? (
+                    <Image
+                        src={service.image}
+                        alt={service.name}
+                        fill
+                        sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
+                        className="object-cover transition-transform
                           duration-500 group-hover:scale-105"
-                />
+                    />
+                ) : (
+                    <ImagePlaceholder name={service.name} kind="service"/>
+                )}
                 <button
                     type="button"
                     aria-label={wished ? "Remove from wishlist" : "Save to wishlist"}

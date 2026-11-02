@@ -5,6 +5,7 @@ import Link from "next/link";
 import {ChevronLeft} from "lucide-react";
 import {toast} from "sonner";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {useAuth} from "@/context/AuthContext";
 import {ProductGallery} from "@/app/(site)/collections/[id]/_components/ProductGallery";
 import {ProductInfo, type ProductInfoData} from "@/app/(site)/collections/[id]/_components/ProductInfo";
 import {ReviewsSection} from "@/app/(site)/collections/[id]/_components/ReviewsSection";
@@ -19,7 +20,12 @@ export function ProductDetailContent({id}: { id: string }) {
     const [product, setProduct] = useState<BackendProduct | null>(null);
     const [loading, setLoading] = useState(true);
 
+    const {token, loading: authLoading} = useAuth();
+
+    // isFavorited is per user, so wait until the session has been restored (a refresh starts with no token
+    // and an early request would come back "not favourited"), and load again if the token changes.
     useEffect(() => {
+        if (authLoading) return;
         let cancelled = false;
         setLoading(true);
 
@@ -31,7 +37,7 @@ export function ProductDetailContent({id}: { id: string }) {
             .finally(() => { if (!cancelled) setLoading(false); });
 
         return () => { cancelled = true; };
-    }, [id]);
+    }, [id, authLoading, token]);
 
     if (loading) {
         return <p className="py-24 text-center text-sm text-on-surface-variant">Loading product…</p>;
@@ -58,6 +64,7 @@ export function ProductDetailContent({id}: { id: string }) {
         averageRating: product.averageRating,
         reviewCount: product.reviewCount,
         badge: product.badge,
+        info: product.info,
         tags: product.tags,
         inStock: product.inStock,
         isFavorited: product.isFavorited,
@@ -90,8 +97,10 @@ export function ProductDetailContent({id}: { id: string }) {
             </div>
 
             <section className="grid grid-cols-1 gap-[clamp(20px,3vw,40px)]
-                 lg:grid-cols-[1.1fr_1fr]">
-                <ProductGallery images={galleryImages} name={product.name} badge={product.badge}/>
+                 lg:grid-cols-2">
+                <div className="min-w-0">
+                    <ProductGallery images={galleryImages} name={product.name} badge={product.badge}/>
+                </div>
                 <ProductInfo product={productInfoData}/>
             </section>
 

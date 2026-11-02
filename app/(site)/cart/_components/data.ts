@@ -36,7 +36,7 @@ export interface CartProduct {
   category: string;
   description: string;
   price: number;
-  image: string;
+  image: string | null;
   quantity: number;
   deliveryOption: DeliveryOption;
   selected: boolean;
@@ -49,40 +49,6 @@ export interface RecommendedProduct {
   price: number;
   image: string;
 }
-
-// Placeholder imagery via picsum.photos — swap for real product photography
-// (e.g. Cloudinary asset URLs) once available.
-
-export const RECOMMENDED_PRODUCTS: RecommendedProduct[] = [
-  {
-    id: "sculptural-boar-brush",
-    name: "Sculptural Boar Brush",
-    category: "Tools",
-    price: 45,
-    image: "https://picsum.photos/seed/boar-brush/400/400",
-  },
-  {
-    id: "volume-bath",
-    name: "Volume Bath",
-    category: "Hair Care",
-    price: 38,
-    image: "https://picsum.photos/seed/volume-bath/400/400",
-  },
-  {
-    id: "intense-recovery-mask",
-    name: "Intense Recovery Mask",
-    category: "Hair Care",
-    price: 62,
-    image: "https://picsum.photos/seed/recovery-mask/400/400",
-  },
-  {
-    id: "tortoise-claw-clip",
-    name: "Tortoise Claw Clip",
-    category: "Accessories",
-    price: 22,
-    image: "https://picsum.photos/seed/claw-clip/400/400",
-  },
-];
 
 // The backend charges no base shipping, no tax and no gift-packaging fee, so neither does the display.
 // (Showing them made the cart and checkout total differ from what the order actually costs.)

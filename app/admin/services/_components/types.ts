@@ -14,7 +14,9 @@ export interface AdminService {
   duration: number;
   price: number;
   stylists: AdminServiceStylist[];
-  image: string;
+  image: string; // primary image (first of `images`)
+  images: string[];
+  imageIds: string[];
   active: boolean;
   homeService: boolean;
   featured: boolean;

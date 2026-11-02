@@ -40,6 +40,7 @@ import {
 } from "@/app/(site)/account/_components/query";
 import {ConfirmEmailChangeDialog, isEmailChanged} from "@/components/account/ConfirmEmailChangeDialog";
 import {useAuth} from "@/context/AuthContext";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 export function ProfileSection() {
     const router = useRouter();
@@ -357,8 +358,7 @@ export function ProfileSection() {
                         <div className="grid gap-6 md:grid-cols-[200px_1fr]">
                             <div className="relative aspect-square w-full overflow-hidden
                                  rounded-xl">
-                                <Image src="https://picsum.photos/seed/appointment-profile/400/400" alt={upcoming.serviceName} fill sizes="200px"
-                                       className="object-cover"/>
+                                <ImagePlaceholder name={upcoming.serviceName} kind="service"/>
                             </div>
                             <div className="min-w-0">
                                 <div className="flex flex-wrap items-center gap-3">
@@ -408,13 +408,21 @@ export function ProfileSection() {
                                 >
                                     <div className="relative aspect-square w-full overflow-hidden
                                          rounded-lg">
-                                        <Image
-                                            src={o.items[0]?.productImage || "https://picsum.photos/seed/order/80/80"}
-                                            alt={o.items[0]?.productName || "Product"}
-                                            fill
-                                            sizes="80px"
-                                            className="object-cover"
-                                        />
+                                        {o.items[0]?.productImage ? (
+                                            <Image
+                                                src={o.items[0].productImage}
+                                                alt={o.items[0].productName || "Product"}
+                                                fill
+                                                sizes="80px"
+                                                className="object-cover"
+                                            />
+                                        ) : (
+                                            <ImagePlaceholder
+                                                name={o.items[0]?.productName || "Product"}
+                                                kind="product"
+                                                compact
+                                            />
+                                        )}
                                     </div>
                                     <div className="min-w-0">
                                         <p className="text-[10px] font-semibold uppercase

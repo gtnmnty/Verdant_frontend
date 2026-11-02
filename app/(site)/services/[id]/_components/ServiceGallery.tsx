@@ -4,18 +4,28 @@ import {useState} from "react";
 import Image from "next/image";
 import {ChevronLeft, ChevronRight, X, ZoomIn} from "lucide-react";
 import {Dialog, DialogContent} from "@/components/ui/dialog";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 interface ServiceGalleryProps {
     images: string[];
     name: string;
 }
 
-const FALLBACK_IMAGE = "https://picsum.photos/seed/service-detail/1400/1050";
-
 export function ServiceGallery({images, name}: ServiceGalleryProps) {
-    const gallery = images.length > 0 ? images : [FALLBACK_IMAGE];
+    const gallery = images;
     const [activeImage, setActiveImage] = useState(0);
     const [lightbox, setLightbox] = useState(false);
+
+    // No uploaded photo yet: show a generated card instead of a stock image.
+    if (gallery.length === 0) {
+        return (
+            <div className="min-w-0">
+                <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-border">
+                    <ImagePlaceholder name={name} kind="service"/>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-w-0">

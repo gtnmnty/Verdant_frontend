@@ -23,7 +23,6 @@ import type {Appointment} from "@/app/(site)/appointments/_components/data";
 import {useAuth} from "@/context/AuthContext";
 
 const PER_PAGE = 6;
-const FALLBACK_IMAGE = "https://picsum.photos/seed/appointment/400/400";
 
 interface BackendAppointment {
     id: string;
@@ -137,7 +136,7 @@ function toAppointment(a: BackendAppointment): Appointment {
         durationMin: a.durationMinutes,
         price: a.priceSnapshot,
         status: a.status.toLowerCase() as Appointment["status"],
-        image: a.service?.primaryImage?.url ?? FALLBACK_IMAGE,
+        image: a.service?.primaryImage?.url ?? "",
     };
 }
 

@@ -1,3 +1,10 @@
+export interface AdminStylistService {
+  id: string;
+  name: string;
+  price: number;
+  durationInMinutes: number;
+}
+
 export interface AdminStylist {
   id: string;
   fullName: string;
@@ -8,6 +15,7 @@ export interface AdminStylist {
   status: string; // lowercase display status, e.g. "active"
   branchId: string | null;
   branchName: string | null;
+  services: AdminStylistService[]; // live assignments straight from the backend
   createdAt: string;
 }
 

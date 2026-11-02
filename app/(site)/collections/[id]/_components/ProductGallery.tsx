@@ -5,6 +5,7 @@ import Image from "next/image";
 import {ChevronLeft, ChevronRight, X, ZoomIn} from "lucide-react";
 import {Dialog, DialogContent} from "@/components/ui/dialog";
 import {ProductBadge} from "@/app/(site)/collections/_components/ProductBadge";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 export function ProductGallery({
     images,
@@ -15,11 +16,12 @@ export function ProductGallery({
     const [activeImage, setActiveImage] = useState(0);
     const [lightbox, setLightbox] = useState(false);
 
-    // No uploaded photo yet: show a plain placeholder block instead of a stock image.
+    // No uploaded photo yet: show a generated card instead of a stock image.
     if (gallery.length === 0) {
         return (
             <div className="min-w-0">
-                <div className="relative aspect-square w-full rounded-2xl border border-border bg-secondary">
+                <div className="relative aspect-4/3 w-full overflow-hidden rounded-2xl border border-border">
+                    <ImagePlaceholder name={name} kind="product"/>
                     {badge ? <ProductBadge label={badge}/> : null}
                 </div>
             </div>
@@ -30,7 +32,7 @@ export function ProductGallery({
         <div className="min-w-0">
             <div className="group relative overflow-hidden rounded-2xl
                  border border-border bg-secondary">
-                <div className="relative aspect-square w-full">
+                <div className="relative aspect-4/3 w-full">
                     <Image
                         src={gallery[activeImage]}
                         alt={name}
@@ -80,12 +82,12 @@ export function ProductGallery({
             </div>
 
             {gallery.length > 1 && (
-                <div className="mt-4 grid grid-cols-4 gap-3">
+                <div className="mt-3 grid grid-cols-4 gap-3">
                     {gallery.map((src, i) => (
                         <button
                             key={src + i}
                             onClick={() => setActiveImage(i)}
-                            className={`relative aspect-square overflow-hidden rounded-xl border transition-all ${
+                            className={`relative aspect-3/2 overflow-hidden rounded-lg border transition-all ${
                                 activeImage === i
                                     ? "border-primary ring-2 ring-primary/30"
                                     : "border-border hover:border-primary/60"

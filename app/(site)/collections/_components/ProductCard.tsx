@@ -7,6 +7,7 @@ import {
     type BackendProductSummary,
 } from "@/app/(site)/collections/_components/query";
 import {ProductBadge} from "@/app/(site)/collections/_components/ProductBadge";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 export function ProductCard({
     product,
@@ -36,7 +37,9 @@ export function ProductCard({
                             className="object-cover transition-transform
                                 duration-500 group-hover:scale-105"
                         />
-                    ) : null}
+                    ) : (
+                        <ImagePlaceholder name={product.name} kind="product"/>
+                    )}
                     {product.badge ? <ProductBadge label={product.badge}/> : null}
                 </div>
                 <button

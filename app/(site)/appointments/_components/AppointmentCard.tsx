@@ -6,6 +6,7 @@ import {
     formatDateTime,
     type Appointment,
 } from "@/app/(site)/appointments/_components/data";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 
 export function AppointmentCard({
     appointment: a,
@@ -28,13 +29,17 @@ export function AppointmentCard({
         >
             <div className="grid gap-5 sm:grid-cols-[180px_1fr]">
                 <div className="relative aspect-square overflow-hidden rounded-xl bg-blush/30">
-                    <Image
-                        src={a.image}
-                        alt={a.service}
-                        fill
-                        sizes="180px"
-                        className="object-cover"
-                    />
+                    {a.image ? (
+                        <Image
+                            src={a.image}
+                            alt={a.service}
+                            fill
+                            sizes="180px"
+                            className="object-cover"
+                        />
+                    ) : (
+                        <ImagePlaceholder name={a.service} kind="service"/>
+                    )}
                 </div>
                 <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-3">
