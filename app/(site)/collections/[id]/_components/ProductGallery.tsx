@@ -4,13 +4,27 @@ import {useState} from "react";
 import Image from "next/image";
 import {ChevronLeft, ChevronRight, X, ZoomIn} from "lucide-react";
 import {Dialog, DialogContent} from "@/components/ui/dialog";
+import {ProductBadge} from "@/app/(site)/collections/_components/ProductBadge";
 
-const FALLBACK_IMAGE = "https://picsum.photos/seed/product-detail/1400/1400";
-
-export function ProductGallery({images, name}: { images: string[]; name: string }) {
-    const gallery = images.length > 0 ? images : [FALLBACK_IMAGE];
+export function ProductGallery({
+    images,
+    name,
+    badge,
+}: { images: string[]; name: string; badge?: string | null }) {
+    const gallery = images;
     const [activeImage, setActiveImage] = useState(0);
     const [lightbox, setLightbox] = useState(false);
+
+    // No uploaded photo yet: show a plain placeholder block instead of a stock image.
+    if (gallery.length === 0) {
+        return (
+            <div className="min-w-0">
+                <div className="relative aspect-square w-full rounded-2xl border border-border bg-secondary">
+                    {badge ? <ProductBadge label={badge}/> : null}
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-w-0">
@@ -26,6 +40,7 @@ export function ProductGallery({images, name}: { images: string[]; name: string 
                         priority
                     />
                 </div>
+                {badge ? <ProductBadge label={badge}/> : null}
                 <button
                     onClick={() => setLightbox(true)}
                     className="absolute right-3 top-3 grid h-10 w-10

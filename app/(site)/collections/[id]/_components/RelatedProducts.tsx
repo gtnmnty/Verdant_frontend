@@ -5,6 +5,7 @@ import Image from "next/image";
 import {toast} from "sonner";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {SectionTitle} from "@/app/(site)/collections/[id]/_components/shared";
+import {activeSalePrice} from "@/app/(site)/collections/_components/query";
 
 interface BackendProductSummary {
     id: string;
@@ -27,8 +28,6 @@ const RELATED_PRODUCTS_QUERY = `
         }
     }
 `;
-
-const FALLBACK_IMAGE = "https://picsum.photos/seed/related-product/600/600";
 
 export function RelatedProducts(
     {excludeProductId, category}: { excludeProductId: string; category: string }
@@ -68,17 +67,21 @@ export function RelatedProducts(
                             bg-surface-lowest sm:w-65"
                     >
                         <div className="relative aspect-square">
-                            <Image
-                                src={r.primaryImage?.url ?? FALLBACK_IMAGE}
-                                alt={r.name}
-                                fill
-                                sizes="260px"
-                                className="object-cover"
-                            />
+                            {r.primaryImage ? (
+                                <Image
+                                    src={r.primaryImage.url}
+                                    alt={r.name}
+                                    fill
+                                    sizes="260px"
+                                    className="object-cover"
+                                />
+                            ) : (
+                                <div className="size-full bg-secondary"/>
+                            )}
                         </div>
                         <div className="flex items-center justify-between p-4">
                             <p className="font-display text-base text-primary">{r.name}</p>
-                            <p className="text-sm text-soft-rose">${r.salePrice ?? r.price}</p>
+                            <p className="text-sm text-soft-rose">${activeSalePrice(r.price, r.salePrice) ?? r.price}</p>
                         </div>
                     </article>
                 ))}

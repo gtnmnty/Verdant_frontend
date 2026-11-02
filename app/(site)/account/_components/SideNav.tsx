@@ -1,6 +1,6 @@
 "use client";
 
-import {useState} from "react";
+import {useEffect, useState} from "react";
 import Link from "next/link";
 import {useRouter} from "next/navigation";
 import {toast} from "sonner";
@@ -9,6 +9,7 @@ import {
     Calendar,
     Gift,
     Heart,
+    LayoutDashboard,
     LifeBuoy,
     LogOut,
     ShoppingBag,
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import type {SectionId} from "@/app/(site)/account/_components/AccountContent";
 import {apiRequest} from "@/utils/apiClient";
+import {gqlRequest} from "@/utils/graphqlClient";
 
 type NavEntry =
     | { kind: "section"; id: SectionId; label: string; icon: typeof User }
@@ -49,8 +51,26 @@ export function SideNav({
     onSectionChange: (s: SectionId) => void;
 }) {
     const [confirmDelete, setConfirmDelete] = useState(false);
-    const {logout} = useAuth();
+    const {logout, loading: authLoading} = useAuth();
     const router = useRouter();
+    const [role, setRole] = useState<string | null>(null);
+    const isStaff = role !== null && role !== "CUSTOMER";
+
+    // Only used to decide whether to show the admin link; the backend still enforces access.
+    useEffect(() => {
+        if (authLoading) return;
+        let cancelled = false;
+        gqlRequest<{ me: { role: string } }>(`query SideNavRole { me { role } }`)
+            .then((res) => {
+                if (!cancelled) setRole(res?.me?.role ?? null);
+            })
+            .catch(() => {
+                // Link just stays hidden; ProfileSection already reports load failures.
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, [authLoading]);
 
     const signOut = async () => {
         await logout();
@@ -110,6 +130,16 @@ export function SideNav({
                 })}
             </nav>
             <div className="mt-6 hidden flex-col items-start gap-3 lg:flex">
+                {isStaff && (
+                    <Link
+                        href="/admin"
+                        className="flex items-center gap-2 text-xs font-semibold
+                              uppercase tracking-[0.18em] text-primary
+                              hover:text-soft-rose"
+                    >
+                        <LayoutDashboard className="h-4 w-4"/> Admin Dashboard
+                    </Link>
+                )}
                 <button
                     onClick={signOut}
                     className="flex items-center gap-2 text-xs font-semibold
@@ -127,7 +157,6 @@ export function SideNav({
                     <Trash2 className="h-4 w-4"/> Delete Account
                 </button>
             </div>
-
             <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
                 <AlertDialogContent>
                     <AlertDialogHeader>

@@ -11,6 +11,7 @@ import {ReviewsSection} from "@/app/(site)/collections/[id]/_components/ReviewsS
 import {
     PRODUCT_BY_ID_QUERY,
     CATEGORY_LABELS,
+    activeSalePrice,
     type BackendProduct,
 } from "@/app/(site)/collections/_components/query";
 
@@ -53,9 +54,10 @@ export function ProductDetailContent({id}: { id: string }) {
         categoryLabel: CATEGORY_LABELS[product.catalog] ?? product.catalog,
         description: product.description ?? "",
         price: product.price,
-        salePrice: product.salePrice,
+        salePrice: activeSalePrice(product.price, product.salePrice),
         averageRating: product.averageRating,
         reviewCount: product.reviewCount,
+        badge: product.badge,
         tags: product.tags,
         inStock: product.inStock,
         isFavorited: product.isFavorited,
@@ -89,7 +91,7 @@ export function ProductDetailContent({id}: { id: string }) {
 
             <section className="grid grid-cols-1 gap-[clamp(20px,3vw,40px)]
                  lg:grid-cols-[1.1fr_1fr]">
-                <ProductGallery images={galleryImages} name={product.name}/>
+                <ProductGallery images={galleryImages} name={product.name} badge={product.badge}/>
                 <ProductInfo product={productInfoData}/>
             </section>
 

@@ -17,6 +17,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
+import {useUnreadNotifications} from "@/hooks/useUnreadNotifications";
 
 const NAV_LINKS = [
     {label: "Home", href: "/"},
@@ -35,7 +36,7 @@ const ICON_ACTIONS = [
 export function Header() {
     const [isScrolled, setIsScrolled] = useState(false);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const unread = 2;
+    const unread = useUnreadNotifications();
 
     useEffect(() => {
         const onScroll = () => setIsScrolled(window.scrollY > 10);

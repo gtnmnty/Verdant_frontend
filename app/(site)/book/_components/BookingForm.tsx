@@ -12,10 +12,38 @@ import {
 } from "@/app/(site)/book/_components/FloatingField";
 import {BookingSection} from "@/app/(site)/book/_components/BookingSection";
 import { useBranches } from "@/hooks/useBranches";
-import {SERVICES, TIME_SLOTS} from "@/app/(site)/book/_components/data";
+import {TIME_SLOTS} from "@/app/(site)/book/_components/data";
 import {Errors, FormState, INITIAL, PROFILE_ME_QUERY, ServiceType} from "@/app/(site)/book/_components/query";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {useAuth} from "@/context/AuthContext";
+
+const SERVICES_QUERY = `
+    query BookableServices {
+        services(pageSize: 100) {
+            items { id name }
+        }
+    }
+`;
+
+const BOOK_APPOINTMENT_MUTATION = `
+    mutation BookAppointment($input: CreateAppointmentInput!) {
+        bookAppointment(input: $input) {
+            id
+            appointmentCode
+            status
+        }
+    }
+`;
+
+// "02:00 PM" on "2026-11-05" -> an ISO instant, read in the customer's own time zone.
+function toScheduledAt(date: string, time: string): string | null {
+    const slot = /^(\d{2}):(\d{2}) (AM|PM)$/.exec(time);
+    const day = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+    if (!slot || !day) return null;
+    const hours = (Number(slot[1]) % 12) + (slot[3] === "PM" ? 12 : 0);
+    const when = new Date(Number(day[1]), Number(day[2]) - 1, Number(day[3]), hours, Number(slot[2]));
+    return Number.isNaN(when.getTime()) ? null : when.toISOString();
+}
 
 export function BookingForm() {
     const {branches, loading: branchesLoading} = useBranches();
@@ -23,14 +51,13 @@ export function BookingForm() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // Deep-links (e.g. "Book This Service" from a Journal story) can pass a
-    // service name that isn't one of the salon's standard offerings — fold it
-    // into the options list so it still shows up selected rather than blank.
+    // Deep-links ("Book This Service", Journal stories) pass a service name. The options are the salon's real,
+    // bookable services (loaded below): a booking needs the service's id, so a name that isn't one of them
+    // can't be booked and is simply not preselected.
     const requestedService = searchParams.get("service");
-    const serviceOptions =
-        requestedService && !SERVICES.includes(requestedService as (typeof SERVICES)[number])
-            ? [requestedService, ...SERVICES]
-            : SERVICES;
+    const [catalog, setCatalog] = useState<{id: string; name: string}[]>([]);
+    const [profileCountry, setProfileCountry] = useState("");
+    const serviceOptions = catalog.map((c) => c.name);
 
     const [form, setForm] = useState<FormState>(() => ({
         ...INITIAL,
@@ -38,6 +65,19 @@ export function BookingForm() {
     }));
     const [errors, setErrors] = useState<Errors>({});
     const [loading, setLoading] = useState(false);
+
+    useEffect(() => {
+        let cancelled = false;
+        gqlRequest<{services: {items: {id: string; name: string}[]}}>(SERVICES_QUERY)
+            .then((res) => {
+                if (cancelled) return;
+                setCatalog(res.services.items);
+                // A deep-linked name that isn't bookable would sit selected but invalid: clear it.
+                setForm((f) => res.services.items.some((i) => i.name === f.service) ? f : {...f, service: ""});
+            })
+            .catch(() => toast.error("Couldn't load our services. Please refresh the page."));
+        return () => { cancelled = true; };
+    }, []);
 
     useEffect(() => {
         // Wait for AuthProvider's initial /auth/refresh check to resolve.
@@ -58,11 +98,13 @@ export function BookingForm() {
                     city: string;
                     state: string;
                     postal: string;
+                    country?: string;
                 } | null;
             }
         }>(PROFILE_ME_QUERY)
             .then((res) => {
                 if (cancelled || !res) return;
+                setProfileCountry(res.me.shippingAddress?.country ?? "");
 
                 setForm((f) => ({
                     ...f,
@@ -99,6 +141,7 @@ export function BookingForm() {
             if (!form.address.trim()) e.address = "Required";
             if (!form.city.trim()) e.city = "Required";
             if (!form.postal.trim()) e.postal = "Required";
+            if (!form.region.trim()) e.region = "Required";
         }
         if (!form.date) e.date = "Required";
         if (!form.time) e.time = "Required";
@@ -106,19 +149,50 @@ export function BookingForm() {
         return Object.keys(e).length === 0;
     };
 
-    const onSubmit = (ev: SubmitEvent) => {
+    const onSubmit = async (ev: SubmitEvent) => {
         ev.preventDefault();
         if (!validate()) {
             toast.error("Please complete the highlighted fields.");
             return;
         }
+
+        const service = catalog.find((c) => c.name === form.service);
+        const scheduledAt = toScheduledAt(form.date, form.time);
+        const branch = branches.find((b) => b.name === form.branch);
+        if (!service || !scheduledAt) {
+            toast.error("Please choose a service, a date and a time.");
+            return;
+        }
+
+        const inSalon = form.serviceType === "In Salon";
         setLoading(true);
-        setTimeout(() => {
-            setLoading(false);
+        try {
+            // The booking is made for the signed-in account (name, phone and email above are for the concierge).
+            await gqlRequest(BOOK_APPOINTMENT_MUTATION, {
+                input: {
+                    serviceId: service.id,
+                    serviceType: inSalon ? "IN_SALON" : "HOME_SERVICE",
+                    branchId: inSalon ? branch?.id : undefined,
+                    homeAddress: inSalon ? undefined : {
+                        line1: form.address.trim(),
+                        line2: form.suite.trim() || undefined,
+                        city: form.city.trim(),
+                        state: form.region.trim(),
+                        postal: form.postal.trim(),
+                        country: profileCountry || undefined,
+                    },
+                    scheduledAt,
+                    notes: form.notes.trim() || undefined,
+                },
+            });
             toast.success("Reservation received — our concierge will be in touch.");
             setForm(INITIAL);
             router.push("/appointments");
-        }, 900);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "We couldn't book your appointment. Please try again.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -209,6 +283,7 @@ export function BookingForm() {
                                 label="State / Region"
                                 value={form.region}
                                 onChange={(v) => set("region", v)}
+                                error={errors.region}
                             />
                         </>
                     )}

@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useState} from "react";
+import {useEffect, useState} from "react";
 import Link from "next/link";
 import {Download, Plus, RefreshCw, Search} from "lucide-react";
 import {toast} from "sonner";
@@ -20,6 +20,7 @@ import {ConfirmDialog} from "@/app/admin/_components/ConfirmDialog";
 import {ProductFormDialog} from "@/app/admin/products/_components/ProductFormDialog";
 import {gqlRequest} from "@/utils/graphqlClient";
 import type {AdminProduct} from "@/app/admin/products/_components/types";
+import {PRODUCT_CATEGORIES, categoryLabel} from "@/app/admin/products/_components/categories";
 
 export function PriceDisplay({
      price,
@@ -72,7 +73,7 @@ interface BackendAdminProductDto {
     price: number;
     salePrice: number | null;
     sku: string | null;
-    images: { url: string }[];
+    images: { id: string; url: string }[];
     tags: string[];
     info: string[];
     badge: string | null;
@@ -114,7 +115,7 @@ const ADMIN_PRODUCTS_QUERY = `
                 price
                 salePrice
                 sku
-                images { url }
+                images { id url }
                 tags
                 info
                 badge
@@ -160,6 +161,7 @@ export function toAdminProduct(p: BackendAdminProductDto): AdminProduct {
         salePrice: p.salePrice,
         sku: p.sku ?? "",
         images: p.images.map((i) => i.url),
+        imageIds: p.images.map((i) => i.id),
         tags: p.tags,
         info: p.info,
         badge: p.badge,
@@ -200,11 +202,6 @@ export function ProductsContent() {
     };
 
     useEffect(fetchProducts, [search, category, status]);
-
-    const categories = useMemo(
-        () => Array.from(new Set(products.map((p) => p.category))).sort(),
-        [products],
-    );
 
     const openCreate = () => {
         setEditing(null);
@@ -276,7 +273,7 @@ export function ProductsContent() {
                     )}
                     <div className="min-w-0">
                         <p className="truncate font-medium">{p.name}</p>
-                        <p className="truncate text-xs text-admin-muted">{p.category}</p>
+                        <p className="truncate text-xs text-admin-muted">{categoryLabel(p.category)}</p>
                     </div>
                 </Link>
             ),
@@ -291,7 +288,7 @@ export function ProductsContent() {
             header: "Category",
             sortable: true,
             sortValue: (p) => p.category,
-            render: (p) => <span className="text-sm">{p.category}</span>,
+            render: (p) => <span className="text-sm">{categoryLabel(p.category)}</span>,
         },
         {
             key: "price",
@@ -350,8 +347,8 @@ export function ProductsContent() {
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
-                        {categories.map((c) => (
-                            <SelectItem key={c} value={c}>{c}</SelectItem>
+                        {PRODUCT_CATEGORIES.map((c) => (
+                            <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>

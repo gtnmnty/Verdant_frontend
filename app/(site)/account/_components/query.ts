@@ -4,6 +4,7 @@ export const PROFILE_ME_QUERY = `
         me {
             id
             fullName
+            role
             email
             pendingEmail
             phone
@@ -44,6 +45,7 @@ export const UPDATE_PROFILE_MUTATION = `
 
 export interface ProfileData {
     fullName: string;
+    role: string;
     email: string;
     phone: string;
     street: string;

@@ -4,7 +4,6 @@ import HeroSection from "@/app/(site)/_components/HeroSection";
 import ServicesSection from "@/app/(site)/_components/ServiceSection";
 import CollectionSection from "@/app/(site)/_components/CollectionSection";
 import PhilosophySection from "@/app/(site)/_components/PhilosophySection";
-import PromoBanner from "@/app/(site)/_components/PromoBanner";
 import { Footer } from "@/components/layout/Footer";
 import { PAGE_GUTTER } from "@/utils/pageGutter";
 
@@ -32,7 +31,6 @@ export default function HomePage() {
                 <CollectionSection />
                 <AtmosphereSection />
                 <PhilosophySection />
-                <PromoBanner />
             </div>
             <Footer />
         </>

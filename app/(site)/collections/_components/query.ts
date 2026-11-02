@@ -23,6 +23,8 @@ export const PRODUCTS_QUERY = `
                 catalog
                 price
                 salePrice
+                badge
+                tags
                 primaryImage { url }
                 isFavorited
             }
@@ -45,6 +47,7 @@ export const PRODUCT_BY_ID_QUERY = `
             description
             reviewCount
             averageRating
+            badge
             tags
             info
             images { url }
@@ -67,6 +70,13 @@ export const CATEGORY_LABELS: Record<string, string> = {
     MAKE_UP: "Make Up",
 };
 
+// Same rule as Product.effectivePrice() on the backend: a sale price only counts when it is positive and below
+// the regular price. A stored 0 (an empty sale-price field) used to display as "$0" while checkout charged
+// the regular price.
+export function activeSalePrice(price: number, salePrice: number | null): number | null {
+    return salePrice !== null && salePrice > 0 && salePrice < price ? salePrice : null;
+}
+
 // Shape returned by PRODUCTS_QUERY's `items` — summary fields only.
 export interface BackendProductSummary {
     id: string;
@@ -74,6 +84,8 @@ export interface BackendProductSummary {
     catalog: string;
     price: number;
     salePrice: number | null;
+    badge: string | null;
+    tags: string[];
     primaryImage: {url: string} | null;
     isFavorited: boolean;
 }
@@ -88,6 +100,7 @@ export interface BackendProduct {
     description: string | null;
     reviewCount: number;
     averageRating: number;
+    badge: string | null;
     tags: string[];
     info: string[];
     images: {url: string}[];

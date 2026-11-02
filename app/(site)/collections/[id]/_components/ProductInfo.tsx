@@ -26,6 +26,7 @@ export interface ProductInfoData {
     salePrice: number | null;
     averageRating: number;
     reviewCount: number;
+    badge: string | null;
     tags: string[];
     inStock: boolean;
     isFavorited: boolean;
@@ -103,7 +104,7 @@ export function ProductInfo({product}: { product: ProductInfoData }) {
                  text-soft-rose">
                     ${activePrice.toLocaleString()}
                 </p>
-                {product.salePrice && (
+                {product.salePrice !== null && (
                     <p className="pb-1 text-sm
                        text-on-surface-variant
                        line-through">
@@ -130,17 +131,9 @@ export function ProductInfo({product}: { product: ProductInfoData }) {
             </p>
 
             {product.tags.length > 0 && (
-                <ul className="mt-5 flex flex-wrap gap-2">
-                    {product.tags.map((t) => (
-                        <li
-                            key={t}
-                            className="rounded-full border border-border
-                             px-3 py-1 text-xs text-on-surface-variant"
-                        >
-                            {t}
-                        </li>
-                    ))}
-                </ul>
+                <p className="mt-5 text-xs tracking-wide text-on-surface-variant">
+                    {product.tags.join("  ·  ")}
+                </p>
             )}
 
             <div className="mt-6 flex flex-wrap items-center gap-4">

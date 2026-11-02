@@ -1,9 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import {Heart} from "lucide-react";
-import {CATEGORY_LABELS, type BackendProductSummary} from "@/app/(site)/collections/_components/query";
-
-const FALLBACK_IMAGE = "https://picsum.photos/seed/collections-product/900/1125";
+import {
+    CATEGORY_LABELS,
+    activeSalePrice,
+    type BackendProductSummary,
+} from "@/app/(site)/collections/_components/query";
+import {ProductBadge} from "@/app/(site)/collections/_components/ProductBadge";
 
 export function ProductCard({
     product,
@@ -14,7 +17,7 @@ export function ProductCard({
     wished: boolean;
     onWish: () => void;
 }) {
-    const displayPrice = product.salePrice ?? product.price;
+    const displayPrice = activeSalePrice(product.price, product.salePrice) ?? product.price;
 
     return (
         <article className="group flex flex-col">
@@ -24,14 +27,17 @@ export function ProductCard({
                         bg-secondary"
             >
                 <div className="relative aspect-4/5 w-full">
-                    <Image
-                        src={product.primaryImage?.url ?? FALLBACK_IMAGE}
-                        alt={product.name}
-                        fill
-                        sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
-                        className="object-cover transition-transform
-                            duration-500 group-hover:scale-105"
-                    />
+                    {product.primaryImage ? (
+                        <Image
+                            src={product.primaryImage.url}
+                            alt={product.name}
+                            fill
+                            sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 30vw"
+                            className="object-cover transition-transform
+                                duration-500 group-hover:scale-105"
+                        />
+                    ) : null}
+                    {product.badge ? <ProductBadge label={product.badge}/> : null}
                 </div>
                 <button
                     type="button"
@@ -65,6 +71,11 @@ export function ProductCard({
                        text-soft-rose">
                         {CATEGORY_LABELS[product.catalog] ?? product.catalog}
                     </p>
+                    {product.tags.length > 0 ? (
+                        <p className="mt-1 truncate text-xs text-on-surface-variant">
+                            {product.tags.join("  ·  ")}
+                        </p>
+                    ) : null}
                 </div>
                 <span className="shrink-0 font-display text-base text-primary">
           ${displayPrice}

@@ -45,6 +45,7 @@ export function ProfileSection() {
     const router = useRouter();
     const [data, setData] = useState<ProfileData>({
         fullName: "",
+        role: "",
         email: "",
         phone: "",
         street: "",
@@ -76,6 +77,7 @@ export function ProfileSection() {
             me: {
                 id: string;
                 fullName: string;
+                role: string;
                 email: string;
                 pendingEmail: string | null;
                 phone: string | null;
@@ -95,6 +97,7 @@ export function ProfileSection() {
                 const me = res.me;
                 const profile: ProfileData = {
                     fullName: me.fullName ?? "",
+                    role: me.role ?? "",
                     email: me.email ?? "",
                     phone: me.phone ?? "",
                     street: me.shippingAddress?.line1 ?? "",
