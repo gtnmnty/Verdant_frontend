@@ -17,6 +17,7 @@ import {
 import {Button} from "@/components/ui/button";
 import {Input} from "@/components/ui/input";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {useAuth} from "@/context/AuthContext";
 import {EmptyBlock, PageIntro, SectionTitle} from "@/app/(site)/account/_components/shared";
 
 type FavKind = "Service" | "Product";
@@ -106,7 +107,11 @@ export function FavouritesSection() {
     const [kind, setKind] = useState<"all" | FavKind>("all");
     const [removeId, setRemoveId] = useState<string | null>(null);
 
+    const {token, loading: authLoading} = useAuth();
+
     useEffect(() => {
+        // Wait for the session restore: a refresh starts without a token, and an anonymous request has no favourites.
+        if (authLoading) return;
         let cancelled = false;
         gqlRequest<{
             serviceFavorites: {items: BackendCatalogItem[]};
@@ -124,7 +129,7 @@ export function FavouritesSection() {
             })
             .finally(() => { if (!cancelled) setLoading(false); });
         return () => { cancelled = true; };
-    }, []);
+    }, [authLoading, token]);
 
     const filtered = favs.filter(
         (f) =>

@@ -8,10 +8,13 @@ export function ChipInput({
   value,
   onChange,
   placeholder = "Type and press Enter…",
+  commitOnComma = true,
 }: {
   value: string[];
   onChange: (next: string[]) => void;
   placeholder?: string;
+  // Turn off for sentence-style entries, where a comma is part of the text.
+  commitOnComma?: boolean;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -22,7 +25,7 @@ export function ChipInput({
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "Enter" || (commitOnComma && e.key === ",")) {
       e.preventDefault();
       commit();
     } else if (e.key === "Backspace" && draft === "" && value.length > 0) {
@@ -37,7 +40,7 @@ export function ChipInput({
       {value.map((chip) => (
         <span
           key={chip}
-          className="inline-flex items-center gap-1 rounded-full bg-admin-sage px-2.5 py-1 text-xs font-medium text-admin-ink"
+          className="inline-flex max-w-full items-center gap-1 rounded-full bg-admin-sage px-2.5 py-1 text-left text-xs font-medium text-admin-ink"
         >
           {chip}
           <button

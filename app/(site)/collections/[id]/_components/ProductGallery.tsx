@@ -19,7 +19,7 @@ export function ProductGallery({
     if (gallery.length === 0) {
         return (
             <div className="min-w-0">
-                <div className="relative aspect-square w-full rounded-2xl border border-border bg-secondary">
+                <div className="relative aspect-4/3 w-full rounded-2xl border border-border bg-secondary">
                     {badge ? <ProductBadge label={badge}/> : null}
                 </div>
             </div>
@@ -30,7 +30,7 @@ export function ProductGallery({
         <div className="min-w-0">
             <div className="group relative overflow-hidden rounded-2xl
                  border border-border bg-secondary">
-                <div className="relative aspect-square w-full">
+                <div className="relative aspect-4/3 w-full">
                     <Image
                         src={gallery[activeImage]}
                         alt={name}
@@ -80,12 +80,12 @@ export function ProductGallery({
             </div>
 
             {gallery.length > 1 && (
-                <div className="mt-4 grid grid-cols-4 gap-3">
+                <div className="mt-3 grid grid-cols-4 gap-3">
                     {gallery.map((src, i) => (
                         <button
                             key={src + i}
                             onClick={() => setActiveImage(i)}
-                            className={`relative aspect-square overflow-hidden rounded-xl border transition-all ${
+                            className={`relative aspect-3/2 overflow-hidden rounded-lg border transition-all ${
                                 activeImage === i
                                     ? "border-primary ring-2 ring-primary/30"
                                     : "border-border hover:border-primary/60"

@@ -52,13 +52,15 @@ export function CartItemRow({
 
             <div className="relative h-16 w-16 shrink-0 overflow-hidden
                  rounded-lg bg-surface-low sm:h-28 sm:w-28">
-                <Image
-                    src={item.image}
-                    alt={item.name}
-                    fill
-                    sizes="(max-width: 640px) 64px, 112px"
-                    className="object-cover"
-                />
+                {item.image ? (
+                    <Image
+                        src={item.image}
+                        alt={item.name}
+                        fill
+                        sizes="(max-width: 640px) 64px, 112px"
+                        className="object-cover"
+                    />
+                ) : null}
             </div>
 
             <div className="min-w-35 flex-1 basis-40">

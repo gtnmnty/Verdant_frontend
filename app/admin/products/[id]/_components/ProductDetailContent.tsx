@@ -182,6 +182,16 @@ export function ProductDetailContent() {
                             {product.description}
                         </p>
 
+                        {product.info.length > 0 ? (
+                            <ul className="mt-4 space-y-1.5">
+                                {product.info.map((line) => (
+                                    <li key={line} className="text-sm text-admin-muted">
+                                        ✦ {line}
+                                    </li>
+                                ))}
+                            </ul>
+                        ) : null}
+
                         {product.badge || product.tags.length ? (
                             <div className="mt-4 flex flex-wrap gap-1.5">
                                 {product.badge ? (

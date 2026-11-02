@@ -30,6 +30,7 @@ export const MY_ORDERS_QUERY = `
                   id
                   product {
                     id
+                    primaryImage { url }
                   }
                   productName
                   productImage
@@ -80,6 +81,10 @@ export const ORDER_BY_ID_QUERY = `
             }
             items {
                 id
+                product {
+                    id
+                    primaryImage { url }
+                }
                 productName
                 productImage
                 quantity
@@ -94,6 +99,7 @@ export const ORDER_BY_ID_QUERY = `
 
 export interface BackendOrderItem {
     id: string;
+    product?: { id: string; primaryImage: { url: string } | null } | null;
     productName: string;
     productImage: string | null;
     quantity: number;

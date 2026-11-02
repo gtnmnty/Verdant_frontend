@@ -169,7 +169,7 @@ function toOrderItem(item: BackendCartItem): CheckoutOrderItem {
         id: item.id,
         name: item.product.name,
         category: CATEGORY_LABELS[item.product.itemCatalog] ?? item.product.itemCatalog,
-        image: item.product.image ?? "https://picsum.photos/seed/checkout-item/300/300",
+        image: item.product.image,
         price: item.product.salePrice ?? item.product.price,
         quantity: item.quantity,
         deliveryOption: item.deliveryOption,

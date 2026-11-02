@@ -97,7 +97,8 @@ export function OrderDetailContent({id}: { id: string }) {
         items: order.items.map((i) => ({
             id: i.id,
             productName: i.productName,
-            productImage: i.productImage,
+            // The stored image is null for orders placed before the product had a photo; use its current one.
+            productImage: i.productImage ?? i.product?.primaryImage?.url ?? null,
             quantity: i.quantity,
             unitPrice: Number(i.unitPrice),
         })),

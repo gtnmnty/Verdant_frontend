@@ -2,7 +2,7 @@ export type OrderStatus = "PLACED" | "PROCESSING" | "IN_TRANSIT" | "DELIVERED" |
 
 export interface OrderItem {
     id: string;
-    product?: { id: string } | null;
+    product?: { id: string; primaryImage?: { url: string } | null } | null;
     productName: string;
     productImage: string | null;
     quantity: number;

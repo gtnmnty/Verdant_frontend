@@ -30,7 +30,7 @@ export interface CheckoutOrderItem {
     id: string;
     name: string;
     category: string;
-    image: string;
+    image: string | null;
     price: number;
     quantity: number;
     // Delivery speed chosen in the cart (backend enum: STANDARD | EXPRESS | SAME_DAY).

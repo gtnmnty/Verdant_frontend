@@ -42,6 +42,7 @@ interface Draft {
     lowStockThreshold: number;
     badges: string[]; // only badges[0] is sent — backend has a single `badge` field
     tags: string[];
+    info: string[]; // quick infos: short sentences
     images: string[]; // saved image URLs plus newly picked ones as data: URLs (uploaded on save)
     primaryImage: number;
     status: "active" | "inactive";
@@ -58,6 +59,7 @@ const EMPTY: Draft = {
     lowStockThreshold: 5,
     badges: [],
     tags: [],
+    info: [],
     images: [],
     primaryImage: 0,
     status: "active",
@@ -76,6 +78,7 @@ function toDraft(p: AdminProduct): Draft {
         lowStockThreshold: p.lowStockThreshold,
         badges: p.badge ? [p.badge] : [],
         tags: p.tags,
+        info: p.info,
         images: p.images,
         primaryImage: 0,
         status: p.status,
@@ -172,6 +175,7 @@ export function ProductFormDialog({
             salePrice: draft.salePrice,
             badge: draft.badges[0] || undefined,
             tags: draft.tags,
+            info: draft.info,
             stockQuantity: draft.stock,
             lowStockThreshold: draft.lowStockThreshold,
             isFeatured: draft.featured,
@@ -412,6 +416,16 @@ export function ProductFormDialog({
                                 placeholder="e.g. repair, hydration"
                             />
                         </div>
+                    </div>
+
+                    <div>
+                        <Label className="mb-2 block">Quick Infos</Label>
+                        <ChipInput
+                            value={draft.info}
+                            onChange={(v) => set("info", v)}
+                            commitOnComma={false}
+                            placeholder="Type a short sentence and press Enter, e.g. Suitable for sensitive skin"
+                        />
                     </div>
                 </div>
 

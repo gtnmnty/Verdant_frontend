@@ -84,13 +84,15 @@ export function ReviewStep({
                             <li key={item.id} className="flex items-center gap-3 p-4">
                                 <div className="relative h-14 w-14 shrink-0 overflow-hidden
                                 rounded-lg bg-surface-low">
-                                    <Image
-                                        src={item.image}
-                                        alt={item.name}
-                                        fill
-                                        sizes="56px"
-                                        className="object-cover"
-                                    />
+                                    {item.image ? (
+                                        <Image
+                                            src={item.image}
+                                            alt={item.name}
+                                            fill
+                                            sizes="56px"
+                                            className="object-cover"
+                                        />
+                                    ) : null}
                                 </div>
                                 <div className="min-w-0 flex-1">
                                     <p className="truncate text-sm font-medium text-on-surface">

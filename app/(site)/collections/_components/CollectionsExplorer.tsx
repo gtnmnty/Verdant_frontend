@@ -20,6 +20,7 @@ import {
     PaginationPrevious,
 } from "@/components/ui/pagination";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {useAuth} from "@/context/AuthContext";
 import {ProductCard} from "@/app/(site)/collections/_components/ProductCard";
 import {
     PRODUCTS_QUERY,
@@ -73,7 +74,11 @@ export function CollectionsExplorer() {
         setPage(1);
     }, [debouncedQuery, activeCategory, sort]);
 
+    const {token, loading: authLoading} = useAuth();
+
     useEffect(() => {
+        // Favourites are per user: wait for the session restore, or a refresh loads every heart as empty.
+        if (authLoading) return;
         let cancelled = false;
         setLoading(true);
 
@@ -99,7 +104,7 @@ export function CollectionsExplorer() {
             .finally(() => { if (!cancelled) setLoading(false); });
 
         return () => { cancelled = true; };
-    }, [activeCategory, debouncedQuery, sort, page]);
+    }, [activeCategory, debouncedQuery, sort, page, authLoading, token]);
 
     const toggleWishlist = (id: string, name: string) => {
         const wasWished = wishlist.has(id);
