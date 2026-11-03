@@ -1,6 +1,7 @@
 import type { NavKey } from "@/lib/admin/roles";
 import {
   CalendarDays,
+  BookOpen,
   LayoutDashboard,
   Package,
   Scissors,
@@ -31,6 +32,7 @@ export const ADMIN_NAV: AdminNavItem[] = [
   { href: "/admin/accounts", label: "Accounts", icon: Users, navKey: "accounts" },
   { href: "/admin/branches", label: "Branches", icon: Store, navKey: "branches" },
   { href: "/admin/reviews", label: "Reviews", icon: Star, navKey: "reviews" },
+  { href: "/admin/journal", label: "Journal", icon: BookOpen, navKey: "journal" },
   { href: "/admin/audit-logs", label: "Audit Logs", icon: ScrollText, navKey: "audit" },
 ];
 

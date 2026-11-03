@@ -11,6 +11,7 @@ export type NavKey =
   | "branches"
   | "reviews"
   | "pages"
+  | "journal"
   | "audit"
   | "settings";
 
@@ -60,6 +61,7 @@ const MANAGER: RolePerms = {
     branches: "full",
     reviews: "full",
     pages: "view",
+    journal: "full",
     audit: "full",
     settings: "full",
   },
@@ -108,6 +110,7 @@ const ADMIN: RolePerms = {
     branches: "full",
     reviews: "full",
     pages: "full",
+    journal: "full",
     audit: "full",
     settings: "full",
   },
@@ -153,6 +156,7 @@ const RECEPTIONIST: RolePerms = {
     branches: "hidden",
     reviews: "hidden",
     pages: "hidden",
+    journal: "hidden",
     audit: "hidden",
     settings: "view",
   },
@@ -198,6 +202,7 @@ const STYLIST: RolePerms = {
     branches: "hidden",
     reviews: "hidden",
     pages: "hidden",
+    journal: "hidden",
     audit: "hidden",
     settings: "view",
   },
@@ -253,6 +258,7 @@ export function navKeyFromPath(pathname: string): NavKey | null {
     branches: "branches",
     reviews: "reviews",
     pages: "pages",
+    journal: "journal",
     settings: "settings",
     "audit-logs": "audit",
   };

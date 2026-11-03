@@ -1,3 +1,5 @@
+import {gqlRequest} from "@/utils/graphqlClient";
+
 export interface JournalProduct {
     id: string;
     name: string;
@@ -5,12 +7,16 @@ export interface JournalProduct {
     image: string;
 }
 
-export type JournalCategory =
-    | "Color"
-    | "Cut & Style"
-    | "Spa & Skin"
-    | "Bridal"
-    | "Texture";
+export const CATEGORY_LABELS = {
+    COLOR: "Color",
+    CUT_AND_STYLE: "Cut & Style",
+    SPA_AND_SKIN: "Spa & Skin",
+    BRIDAL: "Bridal",
+    TEXTURE: "Texture",
+} as const;
+
+export type JournalCategoryKey = keyof typeof CATEGORY_LABELS;
+export type JournalCategory = (typeof CATEGORY_LABELS)[JournalCategoryKey];
 
 export interface JournalStory {
     id: string;
@@ -19,165 +25,91 @@ export interface JournalStory {
     resultImage: string;
     resultImageWidth: number;
     resultImageHeight: number;
-    productImage: string;
+    // Primary image of the featured product or service (shown as the inset photo).
+    productImage: string | null;
+    // True when the story features a product rather than a service (so there is nothing to book).
+    isProductStory: boolean;
     service: string;
     category: JournalCategory;
     stylist: string;
     products: JournalProduct[];
 }
 
-// TODO: replace with a fetch to a real backend once journal/client-story
-// endpoints exist. Image URLs are placeholders — swap for real asset URLs
-// when available. Product ids that match items in cart/_components/data.ts
-// (e.g. "silk-elixir-restorative-oil") resolve to the same catalog entry
-// once a shared product source exists.
-//
-// Result image heights are deliberately varied (rather than one fixed
-// aspect ratio) so the masonry grid on the Journal page reads like a
-// genuine Pinterest board instead of a uniform tile grid.
+export const JOURNAL_CATEGORIES = Object.values(CATEGORY_LABELS);
 
-export const JOURNAL_STORIES: JournalStory[] = [
-    {
-        id: "sophia-botanical-gloss",
-        clientName: "Sophia M.",
-        quote:
-            "The botanical color treatment saved my hair after months of damage.",
-        resultImage: "https://picsum.photos/seed/journal-sophia-result/900/1300",
-        resultImageWidth: 900,
-        resultImageHeight: 1300,
-        productImage: "https://picsum.photos/seed/journal-sophia-products/700/700",
-        service: "Signature Botanical Gloss & Cut",
-        category: "Color",
-        stylist: "Elena Rose",
-        products: [
-            {
-                id: "nourishing-oil",
-                name: "Nourishing Oil",
-                price: 68,
-                image: "https://picsum.photos/seed/nourishing-oil/200/200",
-            },
-            {
-                id: "hydrating-mask",
-                name: "Hydrating Mask",
-                price: 54,
-                image: "https://picsum.photos/seed/hydrating-mask/200/200",
-            },
-        ],
-    },
-    {
-        id: "amara-texture-reset",
-        clientName: "Amara K.",
-        quote:
-            "My curls finally have definition without the frizz — it's a whole new routine.",
-        resultImage: "https://picsum.photos/seed/journal-amara-result/900/950",
-        resultImageWidth: 900,
-        resultImageHeight: 950,
-        productImage: "https://picsum.photos/seed/journal-amara-products/700/700",
-        service: "Curl Definition Ritual",
-        category: "Texture",
-        stylist: "Marcus Chen",
-        products: [
-            {
-                id: "curl-cream",
-                name: "Curl Defining Cream",
-                price: 42,
-                image: "https://picsum.photos/seed/curl-cream/200/200",
-            },
-            {
-                id: "silk-elixir-restorative-oil",
-                name: "Silk Elixir Restorative Oil",
-                price: 82,
-                image: "https://picsum.photos/seed/silk-elixir/200/200",
-            },
-        ],
-    },
-    {
-        id: "priya-bridal-glow",
-        clientName: "Priya N.",
-        quote:
-            "Everything from the trial to the final look felt effortless and calm.",
-        resultImage: "https://picsum.photos/seed/journal-priya-result/900/1150",
-        resultImageWidth: 900,
-        resultImageHeight: 1150,
-        productImage: "https://picsum.photos/seed/journal-priya-products/700/700",
-        service: "Bridal Vision Styling",
-        category: "Bridal",
-        stylist: "Elena Rose",
-        products: [
-            {
-                id: "pearl-hairpins",
-                name: "Pearl Hairpin Set",
-                price: 36,
-                image: "https://picsum.photos/seed/pearl-hairpins/200/200",
-            },
-            {
-                id: "setting-mist",
-                name: "All-Night Setting Mist",
-                price: 29,
-                image: "https://picsum.photos/seed/setting-mist/200/200",
-            },
-        ],
-    },
-    {
-        id: "noor-facial-renewal",
-        clientName: "Noor A.",
-        quote:
-            "My skin has never felt this calm — the facial was worth every minute.",
-        resultImage: "https://picsum.photos/seed/journal-noor-result/900/1400",
-        resultImageWidth: 900,
-        resultImageHeight: 1400,
-        productImage: "https://picsum.photos/seed/journal-noor-products/700/700",
-        service: "Botanical Renewal Facial",
-        category: "Spa & Skin",
-        stylist: "Wren Ashby",
-        products: [
-            {
-                id: "hydrating-clay-mask",
-                name: "Hydrating Clay Mask",
-                price: 58,
-                image: "https://picsum.photos/seed/clay-mask/200/200",
-            },
-            {
-                id: "rosewater-toner",
-                name: "Rosewater Toner",
-                price: 32,
-                image: "https://picsum.photos/seed/rosewater-toner/200/200",
-            },
-        ],
-    },
-    {
-        id: "leah-precision-cut",
-        clientName: "Leah T.",
-        quote:
-            "The cut is so precise it barely needs any styling in the morning.",
-        resultImage: "https://picsum.photos/seed/journal-leah-result/900/1000",
-        resultImageWidth: 900,
-        resultImageHeight: 1000,
-        productImage: "https://picsum.photos/seed/journal-leah-products/700/700",
-        service: "Architectural Bob & Gloss",
-        category: "Cut & Style",
-        stylist: "Marcus Chen",
-        products: [
-            {
-                id: "ceramic-sculpt-styler",
-                name: "Ceramic Sculpt Styler",
-                price: 245,
-                image: "https://picsum.photos/seed/ceramic-sculpt/200/200",
-            },
-            {
-                id: "shine-serum",
-                name: "Weightless Shine Serum",
-                price: 46,
-                image: "https://picsum.photos/seed/shine-serum/200/200",
-            },
-        ],
-    },
-];
+interface ApiImage {
+    url: string;
+    width: number;
+    height: number;
+}
 
-export const JOURNAL_CATEGORIES = [
-    "Color",
-    "Cut & Style",
-    "Spa & Skin",
-    "Bridal",
-    "Texture",
-] as const;
+interface ApiStory {
+    id: string;
+    clientName: string;
+    quote: string;
+    category: JournalCategoryKey;
+    service: string;
+    stylist: string;
+    resultImage: ApiImage;
+    productImage: ApiImage | null;
+    serviceImageUrl: string | null;
+    products: {
+        id: string;
+        name: string;
+        price: number;
+        salePrice: number | null;
+        imageUrl: string | null;
+    }[];
+}
+
+const STORIES_QUERY = `
+    query JournalStories($category: JournalCategory, $search: String, $page: Int, $pageSize: Int) {
+        journalStories(category: $category, search: $search, page: $page, pageSize: $pageSize) {
+            items {
+                id clientName quote category service stylist
+                resultImage { url width height }
+                productImage { url width height }
+                serviceImageUrl
+                products { id name price salePrice imageUrl }
+            }
+            totalPages
+        }
+    }
+`;
+
+function toStory(s: ApiStory): JournalStory {
+    return {
+        id: s.id,
+        clientName: s.clientName,
+        quote: s.quote,
+        resultImage: s.resultImage.url,
+        resultImageWidth: s.resultImage.width,
+        resultImageHeight: s.resultImage.height,
+        productImage: s.products[0]?.imageUrl ?? s.serviceImageUrl ?? s.productImage?.url ?? null,
+        isProductStory: s.products.length > 0,
+        service: s.service,
+        category: CATEGORY_LABELS[s.category],
+        stylist: s.stylist,
+        products: s.products.map((p) => ({
+            id: p.id,
+            name: p.name,
+            price: Number(p.salePrice ?? p.price),
+            image: p.imageUrl ?? "",
+        })),
+    };
+}
+
+// Fetches every published story (the public page filters client-side across the full set).
+export async function fetchJournalStories(): Promise<JournalStory[]> {
+    const stories: JournalStory[] = [];
+    let page = 1;
+    let totalPages = 1;
+    do {
+        const res = await gqlRequest<{ journalStories: { items: ApiStory[]; totalPages: number } }>(
+            STORIES_QUERY, {page, pageSize: 50});
+        stories.push(...res.journalStories.items.map(toStory));
+        totalPages = res.journalStories.totalPages;
+        page += 1;
+    } while (page <= totalPages);
+    return stories;
+}
