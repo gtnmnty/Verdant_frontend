@@ -45,6 +45,7 @@ export function DataTable<T extends { id: string }>({
   emptyTitle,
   emptyDescription,
   bulkActions,
+  selectable = true,
 }: {
   rows: T[];
   columns: Column<T>[];
@@ -53,6 +54,8 @@ export function DataTable<T extends { id: string }>({
   emptyTitle?: string;
   emptyDescription?: string;
   bulkActions?: (ids: string[], clear: () => void) => ReactNode;
+  // Show the row checkboxes. Off for read-only tables (e.g. the audit log), where there is nothing to select for.
+  selectable?: boolean;
 }) {
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -129,13 +132,15 @@ export function DataTable<T extends { id: string }>({
           <table className="w-full min-w-[640px] text-sm">
             <thead>
               <tr className="border-b border-admin-line bg-admin-cream/50 text-left text-xs uppercase tracking-wide text-admin-muted">
-                <th className="w-10 px-4 py-3">
-                  <Checkbox
-                    checked={paged.length > 0 && paged.every((r) => selected.has(r.id))}
-                    onCheckedChange={toggleAll}
-                    aria-label="Select all"
-                  />
-                </th>
+                {selectable ? (
+                  <th className="w-10 px-4 py-3">
+                    <Checkbox
+                      checked={paged.length > 0 && paged.every((r) => selected.has(r.id))}
+                      onCheckedChange={toggleAll}
+                      aria-label="Select all"
+                    />
+                  </th>
+                ) : null}
                 {columns.map((col) => (
                   <th key={col.key} className={`px-4 py-3 font-semibold ${col.className ?? ""}`}>
                     {col.sortable ? (
@@ -158,13 +163,15 @@ export function DataTable<T extends { id: string }>({
             <tbody>
               {paged.map((row) => (
                 <tr key={row.id} className="border-b border-admin-line/60 last:border-b-0 hover:bg-admin-cream/40">
-                  <td className="px-4 py-3">
-                    <Checkbox
-                      checked={selected.has(row.id)}
-                      onCheckedChange={() => toggleOne(row.id)}
-                      aria-label="Select row"
-                    />
-                  </td>
+                  {selectable ? (
+                    <td className="px-4 py-3">
+                      <Checkbox
+                        checked={selected.has(row.id)}
+                        onCheckedChange={() => toggleOne(row.id)}
+                        aria-label="Select row"
+                      />
+                    </td>
+                  ) : null}
                   {columns.map((col) => (
                     <td key={col.key} className={`px-4 py-3 align-middle ${col.className ?? ""}`}>
                       {col.render(row)}
@@ -206,11 +213,15 @@ export function DataTable<T extends { id: string }>({
         {paged.map((row) => (
           <div key={row.id} className="rounded-xl border border-admin-line bg-admin-surface p-4">
             <div className="mb-2 flex items-start justify-between gap-2">
-              <Checkbox
-                checked={selected.has(row.id)}
-                onCheckedChange={() => toggleOne(row.id)}
-                aria-label="Select row"
-              />
+              {selectable ? (
+                <Checkbox
+                  checked={selected.has(row.id)}
+                  onCheckedChange={() => toggleOne(row.id)}
+                  aria-label="Select row"
+                />
+              ) : (
+                <span />
+              )}
               {rowActions ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>

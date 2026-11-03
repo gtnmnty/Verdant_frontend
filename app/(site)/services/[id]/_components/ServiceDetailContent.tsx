@@ -36,7 +36,7 @@ interface BackendService {
         name: string;
         bio: string | null;
         avatarUrl: string | null;
-        branch: {name: string} | null;
+        branch: {id: string; name: string} | null;
     }[];
     isFavorited: boolean;
 }
@@ -62,23 +62,16 @@ const SERVICE_QUERY = `
                 name
                 bio
                 avatarUrl
-                branch { name }
+                branch { id name }
             }
             isFavorited
         }
     }
 `;
 
-const ME_QUERY = `
-    query Me {
-        me { id }
-    }
-`;
-
 export function ServiceDetailContent({id}: { id: string }) {
     const [qty, setQty] = useState(1);
     const [service, setService] = useState<BackendService | null>(null);
-    const [userId, setUserId] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -94,12 +87,6 @@ export function ServiceDetailContent({id}: { id: string }) {
                 if (!cancelled) toast.error(err instanceof Error ? err.message : "Failed to load service.");
             })
             .finally(() => { if (!cancelled) setLoading(false); });
-
-        // Best-effort — used to attribute bookAppointment to the signed-in
-        // user. If it fails (e.g. not logged in), booking is disabled.
-        gqlRequest<{ me: {id: string} }>(ME_QUERY)
-            .then((res) => { if (!cancelled) setUserId(res.me.id); })
-            .catch(() => { if (!cancelled) setUserId(null); });
 
         return () => { cancelled = true; };
     }, [id]);
@@ -123,6 +110,7 @@ export function ServiceDetailContent({id}: { id: string }) {
         id: service.id,
         name: service.name,
         subName: service.subName,
+        description: service.description,
         categoryLabel: CATEGORY_LABELS[service.catalog] ?? service.catalog,
         price: service.price,
         durationInMinutes: service.durationInMinutes,
@@ -137,6 +125,7 @@ export function ServiceDetailContent({id}: { id: string }) {
         name: s.name,
         bio: s.bio,
         avatarUrl: s.avatarUrl,
+        branchId: s.branch?.id ?? null,
         branchName: s.branch?.name ?? null,
     }));
 
@@ -177,7 +166,6 @@ export function ServiceDetailContent({id}: { id: string }) {
                 serviceId={service.id}
                 serviceName={service.name}
                 price={service.price}
-                userId={userId}
                 stylists={stylists}
                 qty={qty}
             />

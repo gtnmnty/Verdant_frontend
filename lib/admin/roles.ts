@@ -1,4 +1,4 @@
-export type Role = "manager" | "admin" | "receptionist" | "stylist";
+export type Role = "owner" | "manager" | "admin" | "receptionist" | "stylist";
 
 export type NavKey =
   | "dashboard"
@@ -91,6 +91,9 @@ const MANAGER: RolePerms = {
   },
 };
 
+// The owner sees and can do everything a manager can.
+const OWNER: RolePerms = { ...MANAGER, role: "owner", label: "Owner", nav: { ...MANAGER.nav, pages: "view" } };
+
 const ADMIN: RolePerms = {
   role: "admin",
   label: "Admin",
@@ -142,13 +145,13 @@ const RECEPTIONIST: RolePerms = {
   nav: {
     dashboard: "view",
     products: "view",
-    services: "view",
+    services: "hidden",
     orders: "full",
     appointments: "full",
-    stylists: "view",
+    stylists: "hidden",
     accounts: "hidden",
     branches: "hidden",
-    reviews: "view",
+    reviews: "hidden",
     pages: "hidden",
     audit: "hidden",
     settings: "view",
@@ -190,10 +193,10 @@ const STYLIST: RolePerms = {
     services: "hidden",
     orders: "hidden",
     appointments: "view",
-    stylists: "view",
+    stylists: "hidden",
     accounts: "hidden",
     branches: "hidden",
-    reviews: "view",
+    reviews: "hidden",
     pages: "hidden",
     audit: "hidden",
     settings: "view",
@@ -227,12 +230,13 @@ const STYLIST: RolePerms = {
 };
 
 export const ROLE_PERMS: Record<Role, RolePerms> = {
+  owner: OWNER,
   manager: MANAGER,
   admin: ADMIN,
   receptionist: RECEPTIONIST,
   stylist: STYLIST,
 };
-export const ROLES: Role[] = ["manager", "admin", "receptionist", "stylist"];
+export const ROLES: Role[] = ["owner", "manager", "admin", "receptionist", "stylist"];
 
 export function navKeyFromPath(pathname: string): NavKey | null {
   const m = pathname.match(/^\/admin(?:\/([^/]+))?/);
@@ -253,4 +257,11 @@ export function navKeyFromPath(pathname: string): NavKey | null {
     "audit-logs": "audit",
   };
   return map[seg] ?? null;
+}
+
+// AccountRole from the backend ("OWNER"...) -> staff role used for permissions. CUSTOMER (and anything unknown)
+// has no admin access.
+export function roleFromBackend(role: string | null | undefined): Role | null {
+  const r = role?.toLowerCase();
+  return r && r in ROLE_PERMS ? (r as Role) : null;
 }

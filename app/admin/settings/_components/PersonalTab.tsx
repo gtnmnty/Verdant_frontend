@@ -10,6 +10,7 @@ import { ImageUploader } from "@/app/admin/_components/ImageUploader";
 import { SettingsCard } from "@/app/admin/settings/_components/SettingsCard";
 import { gqlRequest } from "@/utils/graphqlClient";
 import { apiRequest } from "@/utils/apiClient";
+import { useRole } from "@/lib/admin/role-context";
 import { ConfirmEmailChangeDialog, isEmailChanged } from "@/components/account/ConfirmEmailChangeDialog";
 
 interface Me {
@@ -32,7 +33,13 @@ const UPDATE_PROFILE_MUTATION = `
     }
 `;
 
+// Same rule as the backend's @ValidPassword (PasswordPolicy.REGEX): 8+ characters with a digit, a lowercase and
+// an uppercase letter.
+const PASSWORD_POLICY = /^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z]).{8,}$/;
+const PASSWORD_HINT = "New password needs at least 8 characters, with an uppercase letter, a lowercase letter and a number.";
+
 export function PersonalTab() {
+  const { refreshMe } = useRole();
   const [profile, setProfile] = useState({ name: "", email: "", phone: "", avatar: "" });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -61,7 +68,22 @@ export function PersonalTab() {
       .finally(() => setLoading(false));
   }, []);
 
+  // updateProfile has no avatar field: a picked file goes through the avatar endpoint (multipart -> Cloudinary).
+  const uploadAvatar = async () => {
+    if (!profile.avatar.startsWith("data:")) return;
+    const blob = await (await fetch(profile.avatar)).blob();
+    const form = new FormData();
+    form.append("file", new File([blob], `avatar.${blob.type.split("/")[1] || "jpg"}`, { type: blob.type }));
+    const res = await apiRequest<{ avatarUrl: string | null }>("/v1/users/avatar", { method: "POST", body: form });
+    const url = res?.avatarUrl ?? "";
+    setProfile((p) => ({ ...p, avatar: url }));
+  };
+
   const saveProfile = () => {
+    if (!profile.name.trim()) {
+      toast.error("Name can't be empty");
+      return;
+    }
     if (emailChanging && !emailPassword) {
       toast.error("Enter your current password to change your email");
       return;
@@ -69,13 +91,20 @@ export function PersonalTab() {
     setSaving(true);
     gqlRequest<{ updateProfile: { pendingEmail: string | null } }>(UPDATE_PROFILE_MUTATION, {
       input: {
-        fullName: profile.name,
+        fullName: profile.name.trim(),
         email: profile.email,
         currentPassword: emailChanging ? emailPassword : undefined,
         phone: profile.phone || undefined,
       },
     })
-      .then((res) => {
+      .then(async (res) => {
+        // The profile is saved at this point, so a failed photo upload gets its own message.
+        try {
+          await uploadAvatar();
+        } catch (err) {
+          toast.error(`Profile saved, but the photo failed: ${err instanceof Error ? err.message : "upload error"}`);
+        }
+        refreshMe();
         setEmailPassword("");
         if (emailChanging && res.updateProfile.pendingEmail) {
           // Field goes back to the live address; the new one shows as pending below.
@@ -96,8 +125,16 @@ export function PersonalTab() {
       toast.error("Passwords don't match");
       return;
     }
-    if (!pw.old || pw.n.length < 8) {
-      toast.error("Enter your current password and a new one (min. 8 characters)");
+    if (!pw.old) {
+      toast.error("Enter your current password");
+      return;
+    }
+    if (!PASSWORD_POLICY.test(pw.n)) {
+      toast.error(PASSWORD_HINT);
+      return;
+    }
+    if (pw.n === pw.old) {
+      toast.error("Your new password must be different from the current one");
       return;
     }
     setPwSaving(true);

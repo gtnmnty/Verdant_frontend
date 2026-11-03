@@ -1,12 +1,20 @@
 "use client";
 
 import {useEffect, useState, type ReactNode} from "react";
+import {usePathname} from "next/navigation";
+import {AccessDenied} from "@/app/admin/AccessDenied";
+import {useRole} from "@/lib/admin/role-context";
+import {navKeyFromPath} from "@/lib/admin/roles";
 import {AdminSidebar} from "@/app/admin/_components/AdminSidebar";
 import {AdminTopbar} from "@/app/admin/_components/AdminTopbar";
 
 const COLLAPSED_KEY = "admin.sidebar.collapsed";
 
 export function AdminShellClient({children}: { children: ReactNode }) {
+    const pathname = usePathname();
+    const {perms} = useRole();
+    const navKey = navKeyFromPath(pathname);
+    const blocked = navKey !== null && perms.nav[navKey] === "hidden";
     const [collapsed, setCollapsed] = useState(false);
     const [hydrated, setHydrated] = useState(false);
 
@@ -59,7 +67,7 @@ export function AdminShellClient({children}: { children: ReactNode }) {
             >
                 <AdminTopbar/>
                 <main className="w-full min-w-0 flex-1 px-3 py-5 sm:px-6 sm:py-6">
-                    {children}
+                    {blocked ? <AccessDenied/> : children}
                 </main>
             </div>
         </div>

@@ -88,7 +88,13 @@ export function AppointmentCard({
                     <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-blush/40 pt-4">
                         {(a.status === "upcoming" || a.status === "pending") && (
                             <>
-                                <Button onClick={onReschedule}>Reschedule</Button>
+                                {a.status === "pending" ? (
+                                    <Button onClick={onReschedule}>Reschedule</Button>
+                                ) : (
+                                    <p className="w-full text-xs text-on-surface-variant sm:w-auto">
+                                        Approved — to change the time, please contact the salon.
+                                    </p>
+                                )}
                                 <Button
                                     onClick={onCancel}
                                     variant="outline"

@@ -49,6 +49,7 @@ interface AdminStylistsPage {
 const ADMIN_STYLISTS_QUERY = `
     query AdminStylists(
         $status: StylistAccountStatus,
+        $branchId: ID,
         $search: String, 
         $sort: StylistSort, 
         $page: Int, 
@@ -56,6 +57,7 @@ const ADMIN_STYLISTS_QUERY = `
     ) {
         adminStylists(
             status: $status,
+            branchId: $branchId,
             search: $search, 
             sort: $sort, 
             page: $page, 
@@ -74,6 +76,14 @@ const ADMIN_STYLISTS_QUERY = `
                 createdAt
             }
             totalItems
+        }
+    }
+`;
+
+const BRANCH_OPTIONS_QUERY = `
+    query StylistBranchFilter {
+        adminBranches(pageSize: 100) {
+            items { id name }
         }
     }
 `;
@@ -118,6 +128,8 @@ export function StylistsContent() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [status, setStatus] = useState("all");
+    const [branchFilter, setBranchFilter] = useState("all");
+    const [branches, setBranches] = useState<{ id: string; name: string }[]>([]);
     const [formOpen, setFormOpen] = useState(false);
     const [editing, setEditing] = useState<AdminStylist | null>(null);
     const [deleting, setDeleting] = useState<AdminStylist | null>(null);
@@ -126,6 +138,7 @@ export function StylistsContent() {
     const fetchStylists = () => {
         setLoading(true);
         gqlRequest<{ adminStylists: AdminStylistsPage }>(ADMIN_STYLISTS_QUERY, {
+            branchId: branchFilter === "all" ? undefined : branchFilter,
             status: status === "all" ? undefined : STATUS_TO_BACKEND[status],
             search: search.trim() || undefined,
             page: 1,
@@ -138,7 +151,14 @@ export function StylistsContent() {
             .finally(() => setLoading(false));
     };
 
-    useEffect(fetchStylists, [search, status]);
+    useEffect(fetchStylists, [search, status, branchFilter]);
+
+    // Live branch list for the filter (not derived from the loaded rows, so it never shrinks to the current pick).
+    useEffect(() => {
+        gqlRequest<{ adminBranches: { items: { id: string; name: string }[] } }>(BRANCH_OPTIONS_QUERY)
+            .then((res) => setBranches(res.adminBranches.items))
+            .catch(() => { /* filter is supplementary — fail quietly */ });
+    }, []);
 
     const openCreate = () => {
         setEditing(null);
@@ -246,6 +266,17 @@ export function StylistsContent() {
                         className="border-admin-line bg-admin-surface pl-9"
                     />
                 </div>
+                <Select value={branchFilter} onValueChange={setBranchFilter}>
+                    <SelectTrigger className="w-44 border-admin-line bg-admin-surface">
+                        <SelectValue/>
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">All Branches</SelectItem>
+                        {branches.map((b) => (
+                            <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
                 <Select value={status} onValueChange={setStatus}>
                     <SelectTrigger className="w-36 border-admin-line bg-admin-surface">
                         <SelectValue/>

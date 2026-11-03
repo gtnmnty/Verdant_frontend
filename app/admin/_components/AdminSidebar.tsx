@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/tooltip";
 import {ADMIN_NAV, type AdminNavItem} from "@/app/admin/_components/nav";
 import { useAuth } from "@/context/AuthContext";
+import { useRole } from "@/lib/admin/role-context";
 import { useRouter } from "next/navigation";
 
 export function AdminSidebar({
@@ -24,6 +25,7 @@ export function AdminSidebar({
     onToggleCollapsed?: () => void;
 }) {
     const { logout } = useAuth();
+    const { perms } = useRole();
     const router = useRouter();
     const pathname = usePathname();
 
@@ -79,7 +81,7 @@ export function AdminSidebar({
 
                 <nav className={`flex-1 overflow-y-auto ${collapsed ? "px-2" : "px-3"}`}>
                     <ul className="flex flex-col gap-1">
-                        {ADMIN_NAV.map((item) => {
+                        {ADMIN_NAV.filter((item) => perms.nav[item.navKey] !== "hidden").map((item) => {
                             const active = item.exact
                                 ? pathname === item.href
                                 : pathname === item.href || pathname.startsWith(item.href + "/");
@@ -97,6 +99,7 @@ export function AdminSidebar({
                     </ul>
                 </nav>
 
+                {perms.caps.createAppointment ? (
                 <div className={`pt-4 pb-3 ${collapsed ? "px-2" : "px-4"}`}>
                     {collapsed ? (
                         <Tooltip delayDuration={150}>
@@ -126,6 +129,8 @@ export function AdminSidebar({
                         </Link>
                     )}
                 </div>
+
+                ) : null}
 
                 <div className={`border-t border-white/10 py-3 ${collapsed ? "px-2" : "px-3"}`}>
                     <Link

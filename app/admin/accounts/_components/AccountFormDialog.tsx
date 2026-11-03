@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import {ImageUploader} from "@/app/admin/_components/ImageUploader";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {useRole} from "@/lib/admin/role-context";
 import {
     ROLE_TO_BACKEND,
     STATUS_TO_BACKEND,
@@ -63,6 +64,7 @@ export function AccountFormDialog({
     onEditingChange: (a: AdminAccount) => void;
     onSaved: () => void;
 }) {
+    const {perms} = useRole();
     const save = () => {
         if (!editing) return;
         if (!editing.name.trim() || !editing.email.includes("@")) {
@@ -252,9 +254,16 @@ export function AccountFormDialog({
                                 <SelectContent>
                                     <SelectItem value="unverified">Unverified</SelectItem>
                                     <SelectItem value="active">Active</SelectItem>
-                                    <SelectItem value="inactive">Inactive</SelectItem>
-                                    <SelectItem value="suspended">Suspended</SelectItem>
-                                    <SelectItem value="banned">Banned</SelectItem>
+                                    {[
+                                        ["inactive", "Inactive"],
+                                        ["suspended", "Suspended"],
+                                        ["banned", "Banned"],
+                                    ]
+                                        // Only a manager or owner can suspend/lock accounts; others just see the current value.
+                                        .filter(([v]) => perms.caps.suspendStaff || v === editing.status)
+                                        .map(([v, label]) => (
+                                            <SelectItem key={v} value={v}>{label}</SelectItem>
+                                        ))}
                                 </SelectContent>
                             </Select>
                         </div>

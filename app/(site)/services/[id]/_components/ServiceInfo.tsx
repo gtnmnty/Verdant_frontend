@@ -11,6 +11,7 @@ export interface ServiceInfoData {
     id: string;
     name: string;
     subName: string;
+    description: string | null;
     categoryLabel: string;
     price: number;
     durationInMinutes: number;
@@ -72,6 +73,11 @@ export function ServiceInfo({
                  text-on-surface-variant">
                 {service.subName}
             </p>
+            {service.description ? (
+                <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-on-surface-variant">
+                    {service.description}
+                </p>
+            ) : null}
 
             <div className="mt-4 flex items-center gap-3">
                 <Stars value={service.averageRating}/>

@@ -1,6 +1,7 @@
 "use client";
 
-import React, {useState, type SubmitEvent} from "react";
+import React, {useEffect, useState, type SubmitEvent} from "react";
+import Link from "next/link";
 import {toast} from "sonner";
 import {Calendar as CalendarIcon, MapPin} from "lucide-react";
 import {Button} from "@/components/ui/button";
@@ -14,7 +15,8 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {gqlRequest} from "@/utils/graphqlClient";
-import {BRANCHES, TIME_SLOTS} from "@/app/(site)/services/[id]/_components/data";
+import {useAuth} from "@/context/AuthContext";
+import {TIME_SLOTS} from "@/app/(site)/services/[id]/_components/data";
 import {SectionTitle} from "@/app/(site)/services/[id]/_components/shared";
 import type {StylistData} from "@/app/(site)/services/[id]/_components/StylistsSection";
 
@@ -28,52 +30,90 @@ const BOOK_APPOINTMENT_MUTATION = `
     }
 `;
 
+// Public query: only branches that are currently open.
+const BRANCHES_QUERY = `
+    query BookingBranches {
+        branches { id name }
+    }
+`;
+
+interface BranchOption {
+    id: string;
+    name: string;
+}
+
+// Select value meaning "no preferred stylist" (the backend books the appointment unassigned).
+const ANY_STYLIST = "any";
+
 export function BookingForm({
     serviceId,
     serviceName,
     price,
-    userId,
     stylists,
     qty,
 }: {
     serviceId: string;
     serviceName: string;
     price: number;
-    userId: string | null;
     stylists: StylistData[];
     qty: number;
 }) {
-    const [branch, setBranch] = useState(BRANCHES[0]);
-    const [stylist, setStylist] = useState<string>(stylists[0]?.id ?? "");
+    const [branches, setBranches] = useState<BranchOption[]>([]);
+    const [branch, setBranch] = useState("");
+    const [stylist, setStylist] = useState<string>(ANY_STYLIST);
     const [date, setDate] = useState("");
     const [time, setTime] = useState(TIME_SLOTS[0]);
     const [submitting, setSubmitting] = useState(false);
+    const [errors, setErrors] = useState<{ branch?: string; date?: string; form?: string }>({});
+    const {token, loading: authLoading} = useAuth();
 
     const totalPrice = price * qty;
 
+    useEffect(() => {
+        let cancelled = false;
+        gqlRequest<{ branches: BranchOption[] }>(BRANCHES_QUERY)
+            .then((res) => {
+                if (cancelled) return;
+                setBranches(res.branches);
+                setBranch((current) => current || res.branches[0]?.id || "");
+            })
+            .catch(() => { if (!cancelled) setBranches([]); });
+        return () => { cancelled = true; };
+    }, []);
+
+    // Only offer stylists who work at the chosen branch (stylists without a branch stay available everywhere).
+    const branchStylists = stylists.filter((s) => !s.branchId || !branch || s.branchId === branch);
+
+    const changeBranch = (id: string) => {
+        setBranch(id);
+        const stillValid = stylists.some((s) => s.id === stylist && (!s.branchId || s.branchId === id));
+        if (!stillValid) setStylist(ANY_STYLIST);
+    };
+
     const handleBook = (e: SubmitEvent) => {
         e.preventDefault();
-        if (!date) {
-            toast.error("Please choose a date.");
-            return;
+
+        // Missing input is shown next to the field, not as a popup.
+        const found: typeof errors = {};
+        if (!branch) found.branch = "Please choose a branch.";
+        if (!date) found.date = "Please choose a date.";
+        else if (new Date(`${date}T${time}:00`).getTime() <= Date.now()) {
+            found.date = "Please choose a date and time in the future.";
         }
-        if (!userId) {
-            toast.error("Please sign in to book an appointment.");
-            return;
-        }
-        if (!stylist) {
-            toast.error("No stylist is available for this service yet.");
-            return;
-        }
+        // The session restore may still be running after a refresh: wait for it instead of calling it "signed out".
+        if (!authLoading && !token) found.form = "signin";
+        setErrors(found);
+        if (Object.keys(found).length > 0 || authLoading) return;
 
         const scheduledAt = new Date(`${date}T${time}:00`).toISOString();
 
         setSubmitting(true);
         gqlRequest(BOOK_APPOINTMENT_MUTATION, {
             input: {
-                userId,
                 serviceId,
-                stylistId: stylist,
+                // Optional: left out, the appointment is booked unassigned.
+                stylistId: stylist === ANY_STYLIST ? undefined : stylist,
+                branchId: branch,
                 // No in-salon/home-service picker in this form yet — defaults to in-salon.
                 serviceType: "IN_SALON",
                 scheduledAt,
@@ -81,13 +121,14 @@ export function BookingForm({
             },
         })
             .then(() => {
+                setErrors({});
                 toast.success("Appointment confirmed", {
                     description: `${serviceName} · ${date} at ${time}`,
                 });
                 setDate("");
             })
             .catch((err) => {
-                toast.error(err instanceof Error ? err.message : "Failed to book appointment.");
+                setErrors({form: err instanceof Error ? err.message : "Failed to book appointment."});
             })
             .finally(() => setSubmitting(false));
     };
@@ -105,29 +146,37 @@ export function BookingForm({
                 className="mt-6 grid grid-cols-1 gap-5 md:grid-cols-2
                         lg:grid-cols-[1fr_1fr_1fr_auto]"
             >
-                {/* No public branches endpoint yet — this stays a static list. */}
                 <Field label="Branch" icon={<MapPin className="h-3.5 w-3.5"/>}>
-                    <Select value={branch} onValueChange={setBranch}>
+                    <Select
+                        value={branch}
+                        onValueChange={(v) => {
+                            changeBranch(v);
+                            setErrors((e) => ({...e, branch: undefined}));
+                        }}
+                        disabled={branches.length === 0}
+                    >
                         <SelectTrigger className="w-full">
-                            <SelectValue/>
+                            <SelectValue placeholder={branches.length === 0 ? "No branches available" : undefined}/>
                         </SelectTrigger>
                         <SelectContent>
-                            {BRANCHES.map((b) => (
-                                <SelectItem key={b} value={b}>
-                                    {b}
+                            {branches.map((b) => (
+                                <SelectItem key={b.id} value={b.id}>
+                                    {b.name}
                                 </SelectItem>
                             ))}
                         </SelectContent>
                     </Select>
+                    <FieldError message={errors.branch}/>
                 </Field>
 
-                <Field label="Preferred Stylist">
-                    <Select value={stylist} onValueChange={setStylist} disabled={stylists.length === 0}>
+                <Field label="Preferred Stylist (optional)">
+                    <Select value={stylist} onValueChange={setStylist}>
                         <SelectTrigger className="w-full">
-                            <SelectValue placeholder={stylists.length === 0 ? "No stylists available" : undefined}/>
+                            <SelectValue/>
                         </SelectTrigger>
                         <SelectContent>
-                            {stylists.map((s) => (
+                            <SelectItem value={ANY_STYLIST}>Any available stylist</SelectItem>
+                            {branchStylists.map((s) => (
                                 <SelectItem key={s.id} value={s.id}>
                                     {s.name}
                                 </SelectItem>
@@ -137,7 +186,16 @@ export function BookingForm({
                 </Field>
 
                 <Field label="Date" icon={<CalendarIcon className="h-3.5 w-3.5"/>}>
-                    <Input type="date" value={date} onChange={(e) => setDate(e.target.value)}/>
+                    <Input
+                        type="date"
+                        value={date}
+                        aria-invalid={!!errors.date}
+                        onChange={(e) => {
+                            setDate(e.target.value);
+                            setErrors((er) => ({...er, date: undefined}));
+                        }}
+                    />
+                    <FieldError message={errors.date}/>
                 </Field>
 
                 <Field label="Time">
@@ -156,6 +214,17 @@ export function BookingForm({
                 </Field>
 
                 <div className="md:col-span-2 lg:col-span-4">
+                    {errors.form ? (
+                        <p role="alert"
+                           className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                            {errors.form === "signin" ? (
+                                <>
+                                    Please <Link href="/auth" className="font-semibold underline">sign in</Link> to
+                                    book an appointment.
+                                </>
+                            ) : errors.form}
+                        </p>
+                    ) : null}
                     <div className="flex flex-col items-stretch justify-between
                          gap-4 border-t border-border pt-5 sm:flex-row
                          sm:items-center">
@@ -200,4 +269,8 @@ function Field({
             {children}
         </div>
     );
+}
+
+function FieldError({message}: { message?: string }) {
+    return message ? <p className="mt-1.5 text-xs text-destructive">{message}</p> : null;
 }

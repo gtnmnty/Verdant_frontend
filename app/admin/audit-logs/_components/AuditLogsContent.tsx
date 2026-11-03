@@ -120,7 +120,7 @@ function toLogEntry(e: BackendAuditLogEntry): LogEntry {
 
 export function AuditLogsContent() {
     const {perms, role} = useRole();
-    const allowed = role === "admin" || role === "manager";
+    const allowed = role === "admin" || role === "manager" || role === "owner";
 
     const [entries, setEntries] = useState<LogEntry[]>([]);
     const [hasNext, setHasNext] = useState(false);
