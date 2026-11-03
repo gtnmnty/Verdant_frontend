@@ -18,6 +18,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import {AccountFormDialog, EMPTY_ACCOUNT} from "@/app/admin/accounts/_components/AccountFormDialog";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
 import {useRole} from "@/lib/admin/role-context";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {
@@ -83,7 +84,9 @@ const DELETE_ACCOUNTS_MUTATION = `
     }
 `;
 
-const FALLBACK_AVATAR = "https://picsum.photos/seed/account-admin/100/100";
+const ROLE_RANK: Record<string, number> = {
+    owner: 0, manager: 1, admin: 2, receptionist: 3, stylist: 4, customer: 5,
+};
 
 function toAdminAccount(a: BackendAccount): AdminAccount {
     return {
@@ -91,7 +94,7 @@ function toAdminAccount(a: BackendAccount): AdminAccount {
         name: a.fullName,
         email: a.email,
         phone: a.phone ?? "",
-        avatar: a.avatarUrl ?? FALLBACK_AVATAR,
+        avatar: a.avatarUrl ?? "",
         role: ROLE_FROM_BACKEND[a.role] ?? a.role.toLowerCase(),
         status: STATUS_FROM_BACKEND[a.status] ?? a.status.toLowerCase(),
         address: {line1: "", line2: "", city: "", state: "", postal: "", country: ""},
@@ -100,9 +103,9 @@ function toAdminAccount(a: BackendAccount): AdminAccount {
 }
 
 export function AccountsContent() {
-    const {perms} = useRole();
-    const canTouch = (a: AdminAccount) =>
-        perms.caps.manageManagers || a.role !== "manager";
+    const {perms, role, me} = useRole();
+    // Same seniority rule as the backend (AccountService.requireCanManage): only accounts below your own role.
+    const canTouch = (a: AdminAccount) => (ROLE_RANK[a.role] ?? 99) > ROLE_RANK[role];
     const router = useRouter();
 
     const [accounts, setAccounts] = useState<AdminAccount[]>([]);
@@ -112,6 +115,7 @@ export function AccountsContent() {
     const [editing, setEditing] = useState<AdminAccount | null>(null);
     const [open, setOpen] = useState(false);
     const [deleteId, setDeleteId] = useState<string | null>(null);
+    const [deletingIds, setDeletingIds] = useState<string[] | null>(null);
 
     const fetchAccounts = () => {
         setLoading(true);
@@ -123,12 +127,13 @@ export function AccountsContent() {
             page: 1,
             pageSize: 100,
         })
-            .then((res) => setAccounts(res.accounts.content.map(toAdminAccount)))
+            // The signed-in user is not listed (they manage their own account under Settings).
+            .then((res) => setAccounts(res.accounts.content.filter((a) => a.id !== me.id).map(toAdminAccount)))
             .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load accounts."))
             .finally(() => setLoading(false));
     };
 
-    useEffect(fetchAccounts, [q, roleFilter]);
+    useEffect(fetchAccounts, [q, roleFilter, me.id]);
 
     const filtered = useMemo(() => accounts, [accounts]);
 
@@ -161,8 +166,14 @@ export function AccountsContent() {
             sortValue: (a) => a.name,
             render: (a) => (
                 <div className="flex min-w-0 items-center gap-3">
-                    {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded avatar URLs */}
-                    <img src={a.avatar} alt="" className="size-9 shrink-0 rounded-full"/>
+                    <div className="size-9 shrink-0 overflow-hidden rounded-full">
+                        {a.avatar ? (
+                            // eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded avatar URLs
+                            <img src={a.avatar} alt="" className="size-full object-cover"/>
+                        ) : (
+                            <ImagePlaceholder name={a.name} kind="stylist" compact/>
+                        )}
+                    </div>
                     <div className="min-w-0">
                         <p className="truncate font-medium">{a.name}</p>
                         <p className="truncate text-xs text-admin-muted">{a.email}</p>
@@ -237,6 +248,19 @@ export function AccountsContent() {
 
             <DataTable
                 rows={filtered}
+                bulkActions={(ids, clear) => (
+                    <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-admin-rose"
+                        onClick={() => {
+                            setDeletingIds(ids);
+                            clear();
+                        }}
+                    >
+                        Delete selected
+                    </Button>
+                )}
                 columns={columns}
                 emptyTitle={loading ? "Loading…" : "No accounts found"}
                 emptyDescription={loading ?
@@ -259,10 +283,13 @@ export function AccountsContent() {
                             },
                         },
                         {label: "Reset password", onSelect: () => resetPassword(row)},
-                        {
-                            label: row.status === "active" ? "Suspend" : "Restore",
-                            onSelect: (r: AdminAccount) => toggleSuspend(r),
-                        },
+                        // Suspending is for managers and owners only.
+                        ...(perms.caps.suspendStaff
+                            ? [{
+                                label: row.status === "active" ? "Suspend" : "Restore",
+                                onSelect: (r: AdminAccount) => toggleSuspend(r),
+                            }]
+                            : []),
                         {label: "Delete", destructive: true, onSelect: (r: AdminAccount) => setDeleteId(r.id)},
                     ];
                 }}
@@ -274,6 +301,25 @@ export function AccountsContent() {
                 editing={editing}
                 onEditingChange={setEditing}
                 onSaved={fetchAccounts}
+            />
+
+            <ConfirmDialog
+                open={!!deletingIds}
+                onOpenChange={(o) => !o && setDeletingIds(null)}
+                title={`Delete ${deletingIds?.length ?? 0} accounts?`}
+                destructive
+                confirmLabel="Delete"
+                onConfirm={() => {
+                    if (!deletingIds) return;
+                    gqlRequest(DELETE_ACCOUNTS_MUTATION, {ids: deletingIds})
+                        .then(() => {
+                            toast.success(`Deleted ${deletingIds.length} accounts`);
+                            setDeletingIds(null);
+                            fetchAccounts();
+                        })
+                        .catch((err) =>
+                            toast.error(err instanceof Error ? err.message : "Failed to delete accounts."));
+                }}
             />
 
             <ConfirmDialog

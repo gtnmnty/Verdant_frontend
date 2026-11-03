@@ -1,12 +1,3 @@
-// The backend has no public "branches" listing endpoint (only adminBranches,
-// which is role-gated), so branch selection in the booking form stays
-// hardcoded for now until that endpoint exists.
-export const BRANCHES = [
-    "Verdant Luxe — Mayfair",
-    "Verdant Luxe — Marais",
-    "Verdant Luxe — SoHo",
-];
-
 export const TIME_SLOTS = ["10:00", "11:30", "13:00", "14:30", "16:00", "17:30"];
 
 // No backend model for FAQ content — kept static.

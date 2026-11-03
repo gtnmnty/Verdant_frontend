@@ -22,6 +22,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { gqlRequest } from "@/utils/graphqlClient";
 import { showSaveError } from "@/lib/admin/save-error";
+import { isConcurrentModification } from "@/utils/graphqlClient";
 import {
   SERVICE_TYPE_TO_BACKEND,
   type AdminAppointment,
@@ -62,6 +63,90 @@ const UPDATE_APPOINTMENT_MUTATION = `
     }
 `;
 
+// <input type="datetime-local"> works in the browser's local time, but the backend stores/returns UTC instants.
+// Slicing the ISO string put UTC digits into the field, so every edit + save moved the time by the UTC offset.
+function toLocalInput(iso: string | Date): string {
+  const d = typeof iso === "string" ? new Date(iso) : iso;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Select value meaning "no stylist yet" (the appointment stays unassigned / pending).
+const NO_STYLIST = "none";
+
+type Errors = Partial<Record<"customer" | "service" | "branch" | "address" | "startsAt" | "form", string>>;
+
+function FieldError({ message }: { message?: string }) {
+  return message ? <p className="mt-1 text-xs text-admin-rose">{message}</p> : null;
+}
+
+// Typeable and selectable: typing filters the customer list, clicking a row picks that customer.
+// Typing again after a pick clears it, so a free-typed name can never be saved as a real customer.
+function CustomerCombobox({
+  customers,
+  value,
+  selectedId,
+  invalid,
+  onType,
+  onPick,
+}: {
+  customers: CustomerOption[];
+  value: string;
+  selectedId: string;
+  invalid: boolean;
+  onType: (text: string) => void;
+  onPick: (id: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const needle = value.trim().toLowerCase();
+  const matches = (needle && !selectedId
+    ? customers.filter((c) =>
+        [c.fullName, c.email, c.phone ?? ""].some((f) => f.toLowerCase().includes(needle)))
+    : customers
+  ).slice(0, 50);
+
+  return (
+    <div className="relative">
+      <Input
+        value={value}
+        placeholder="Type a name, email or phone — or pick from the list"
+        aria-invalid={invalid}
+        autoComplete="off"
+        onFocus={() => setOpen(true)}
+        onBlur={() => setTimeout(() => setOpen(false), 120)}
+        onChange={(e) => {
+          onType(e.target.value);
+          setOpen(true);
+        }}
+      />
+      {open ? (
+        <ul className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border border-admin-line bg-admin-surface p-1 shadow-md">
+          {matches.length === 0 ? (
+            <li className="px-3 py-2 text-xs text-admin-muted">No matching customers.</li>
+          ) : (
+            matches.map((c) => (
+              <li key={c.id}>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    onPick(c.id);
+                    setOpen(false);
+                  }}
+                  className="flex w-full flex-col rounded px-3 py-1.5 text-left text-sm hover:bg-admin-cream"
+                >
+                  <span className="font-medium">{c.fullName}</span>
+                  <span className="text-xs text-admin-muted">{c.email}{c.phone ? ` · ${c.phone}` : ""}</span>
+                </button>
+              </li>
+            ))
+          )}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 interface Draft {
   serviceType: ServiceType;
   userId: string;
@@ -87,7 +172,7 @@ const EMPTY: Draft = {
   branchId: "",
   serviceId: "",
   stylistId: "",
-  startsAt: new Date().toISOString().slice(0, 16),
+  startsAt: toLocalInput(new Date()),
   guests: 1,
   notes: "",
 };
@@ -109,9 +194,11 @@ export function AppointmentFormDialog({
   const [stylists, setStylists] = useState<StylistOption[]>([]);
   const [branches, setBranches] = useState<BranchOption[]>([]);
   const [saving, setSaving] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
 
   useEffect(() => {
     if (!open) return;
+    setErrors({});
     gqlRequest<{
       accounts: { content: CustomerOption[] };
       adminServices: { items: ServiceOption[] };
@@ -137,7 +224,7 @@ export function AppointmentFormDialog({
             branchId: res.adminBranches.items.find((b) => b.name === appointment.branchName)?.id ?? "",
             serviceId: appointment.serviceId ?? res.adminServices.items[0]?.id ?? "",
             stylistId: appointment.stylistId ?? "",
-            startsAt: appointment.startsAt.slice(0, 16),
+            startsAt: toLocalInput(appointment.startsAt),
             guests: appointment.guests,
             notes: appointment.notes,
           });
@@ -145,7 +232,7 @@ export function AppointmentFormDialog({
           setDraft({
             ...EMPTY,
             serviceId: res.adminServices.items[0]?.id ?? "",
-            stylistId: res.adminStylists.items[0]?.id ?? "",
+            stylistId: "",
             branchId: res.adminBranches.items[0]?.id ?? "",
           });
         }
@@ -153,8 +240,15 @@ export function AppointmentFormDialog({
       .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load form options."));
   }, [open, appointment]);
 
-  const set = <K extends keyof Draft>(key: K, value: Draft[K]) =>
+  const set = <K extends keyof Draft>(key: K, value: Draft[K]) => {
     setDraft((d) => ({ ...d, [key]: value }));
+    setErrors((e) => ({ ...e, form: undefined }));
+  };
+
+  const typeCustomer = (text: string) => {
+    setDraft((d) => ({ ...d, customerName: text, userId: "", phone: "", email: "" }));
+    setErrors((e) => ({ ...e, customer: undefined, form: undefined }));
+  };
 
   const pickCustomer = (id: string) => {
     const c = customers.find((a) => a.id === id);
@@ -165,25 +259,31 @@ export function AppointmentFormDialog({
       phone: c?.phone ?? d.phone,
       email: c?.email ?? d.email,
     }));
+    setErrors((e) => ({ ...e, customer: undefined, form: undefined }));
   };
 
   const selectedService = services.find((s) => s.id === draft.serviceId);
 
   const save = () => {
+    // Missing input is shown next to the field, not as a popup.
+    const found: Errors = {};
     if (!draft.userId) {
-      toast.error("Customer required");
-      return;
+      found.customer = draft.customerName.trim()
+        ? "No customer with that name — pick one from the list."
+        : "Please choose a customer.";
     }
-    if (!draft.serviceId || !draft.stylistId) {
-      toast.error("Service and stylist are required");
-      return;
-    }
+    if (!draft.serviceId) found.service = "Please choose a service.";
+    if (draft.serviceType === "in_salon" && !draft.branchId) found.branch = "Please choose a branch.";
+    if (draft.serviceType === "home_service" && !draft.address.trim()) found.address = "Please enter the address.";
+    if (!draft.startsAt) found.startsAt = "Please choose a date and time.";
+    setErrors(found);
+    if (Object.keys(found).length > 0) return;
 
     const scheduledAt = new Date(draft.startsAt).toISOString();
     const shared = {
       userId: draft.userId,
       serviceId: draft.serviceId,
-      stylistId: draft.stylistId,
+      stylistId: draft.stylistId || undefined, // optional; assigning one to a pending appointment approves it
       serviceType: SERVICE_TYPE_TO_BACKEND[draft.serviceType],
       branchId: draft.serviceType === "in_salon" ? draft.branchId || undefined : undefined,
       scheduledAt,
@@ -205,17 +305,23 @@ export function AppointmentFormDialog({
         onOpenChange(false);
         onSaved();
       })
-      .catch((err) =>
-        showSaveError(err, "Failed to save appointment.", () => {
-          onOpenChange(false);
-          onSaved();
-        }))
+      .catch((err) => {
+        // Failures stay inline; a concurrent edit keeps its toast because that one carries the "Reload" action.
+        if (isConcurrentModification(err)) {
+          showSaveError(err, "Failed to save appointment.", () => {
+            onOpenChange(false);
+            onSaved();
+          });
+          return;
+        }
+        setErrors({ form: err instanceof Error ? err.message : "Failed to save appointment." });
+      })
       .finally(() => setSaving(false));
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] gap-6 overflow-y-auto p-6 sm:max-w-3xl">
+      <DialogContent className="max-h-[90vh] gap-6 overflow-y-auto p-6 sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle className="font-display text-2xl">
             {appointment ? "Edit appointment" : "New appointment"}
@@ -245,14 +351,15 @@ export function AppointmentFormDialog({
 
           <div className="sm:col-span-2">
             <Label>Customer</Label>
-            <Select value={draft.userId} onValueChange={pickCustomer}>
-              <SelectTrigger className="w-full"><SelectValue placeholder="Select customer" /></SelectTrigger>
-              <SelectContent>
-                {customers.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>{c.fullName}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <CustomerCombobox
+              customers={customers}
+              value={draft.customerName}
+              selectedId={draft.userId}
+              invalid={!!errors.customer}
+              onType={typeCustomer}
+              onPick={pickCustomer}
+            />
+            <FieldError message={errors.customer} />
           </div>
           <div>
             <Label>Phone</Label>
@@ -266,7 +373,8 @@ export function AppointmentFormDialog({
           {draft.serviceType === "home_service" ? (
             <div className="sm:col-span-2">
               <Label>Complete Address</Label>
-              <Input value={draft.address} onChange={(e) => set("address", e.target.value)} />
+              <Input value={draft.address} aria-invalid={!!errors.address} onChange={(e) => set("address", e.target.value)} />
+              <FieldError message={errors.address} />
             </div>
           ) : (
             <div className="sm:col-span-2">
@@ -279,6 +387,7 @@ export function AppointmentFormDialog({
                   ))}
                 </SelectContent>
               </Select>
+              <FieldError message={errors.branch} />
             </div>
           )}
 
@@ -287,8 +396,10 @@ export function AppointmentFormDialog({
             <Input
               type="datetime-local"
               value={draft.startsAt}
+              aria-invalid={!!errors.startsAt}
               onChange={(e) => set("startsAt", e.target.value)}
             />
+            <FieldError message={errors.startsAt} />
           </div>
 
           <div>
@@ -301,12 +412,17 @@ export function AppointmentFormDialog({
                 ))}
               </SelectContent>
             </Select>
+            <FieldError message={errors.service} />
           </div>
           <div>
-            <Label>Stylist</Label>
-            <Select value={draft.stylistId} onValueChange={(v) => set("stylistId", v)}>
+            <Label>Stylist (optional)</Label>
+            <Select
+              value={draft.stylistId || NO_STYLIST}
+              onValueChange={(v) => set("stylistId", v === NO_STYLIST ? "" : v)}
+            >
               <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
+                <SelectItem value={NO_STYLIST}>Unassigned</SelectItem>
                 {stylists.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
@@ -334,6 +450,12 @@ export function AppointmentFormDialog({
             <Textarea rows={3} value={draft.notes} onChange={(e) => set("notes", e.target.value)} />
           </div>
         </div>
+
+        {errors.form ? (
+          <p role="alert" className="rounded-lg border border-admin-rose/40 bg-admin-rose/10 px-3 py-2 text-sm text-admin-rose">
+            {errors.form}
+          </p>
+        ) : null}
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)}>

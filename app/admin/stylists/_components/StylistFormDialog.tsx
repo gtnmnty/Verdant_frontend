@@ -234,7 +234,7 @@ export function StylistFormDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+            <DialogContent className="max-h-[90vh] gap-6 overflow-y-auto p-6 sm:max-w-4xl">
                 <DialogHeader>
                     <DialogTitle>{stylist ? "Edit Stylist" : "New Stylist"}</DialogTitle>
                 </DialogHeader>

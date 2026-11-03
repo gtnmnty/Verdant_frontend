@@ -13,6 +13,7 @@ import {
 import { EmptyState } from "@/app/admin/_components/EmptyState";
 import { StatusBadge } from "@/app/admin/_components/StatusBadge";
 import { gqlRequest } from "@/utils/graphqlClient";
+import { CustomerAvatar } from "@/app/admin/appointments/_components/AppointmentsContent";
 import {
   SERVICE_TYPE_FROM_BACKEND,
   STATUS_FROM_BACKEND,
@@ -22,7 +23,7 @@ import {
 interface BackendAdminAppointmentDetail {
   id: string;
   appointmentCode: string;
-  user: { id: string; fullName: string; email: string; phone: string | null };
+  user: { id: string; fullName: string; email: string; phone: string | null; avatarUrl: string | null };
   serviceName: string;
   serviceType: string;
   stylist: { id: string; name: string } | null;
@@ -40,7 +41,7 @@ const ADMIN_APPOINTMENT_DETAIL_QUERY = `
         adminAppointment(id: $id) {
             id
             appointmentCode
-            user { id fullName email phone }
+            user { id fullName email phone avatarUrl }
             serviceName
             serviceType
             stylist { id name }
@@ -52,6 +53,12 @@ const ADMIN_APPOINTMENT_DETAIL_QUERY = `
             homeAddress { line1 city }
             notes
         }
+    }
+`;
+
+const APPROVE_APPOINTMENT_MUTATION = `
+    mutation ApproveAppointmentDetail($id: ID!) {
+        approveAppointment(id: $id) { id status }
     }
 `;
 
@@ -67,15 +74,13 @@ const CANCEL_APPOINTMENT_MUTATION = `
     }
 `;
 
-const FALLBACK_AVATAR = "https://picsum.photos/seed/appointment-admin/100/100";
-
 function toAdminAppointment(a: BackendAdminAppointmentDetail): AdminAppointment {
   return {
     id: a.id,
     appointmentCode: a.appointmentCode,
     userId: a.user.id,
     customer: a.user.fullName,
-    customerAvatar: FALLBACK_AVATAR,
+    customerAvatar: a.user.avatarUrl ?? "",
     phone: a.user.phone ?? "",
     email: a.user.email,
     address: a.homeAddress ? [a.homeAddress.line1, a.homeAddress.city].filter(Boolean).join(", ") : "",
@@ -127,6 +132,11 @@ export function AppointmentDetailContent() {
     );
   }
 
+  const approve = () => {
+    gqlRequest(APPROVE_APPOINTMENT_MUTATION, { id: a.id })
+      .then(() => { toast.success("Appointment approved"); fetchAppointment(); })
+      .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to approve appointment."));
+  };
   const complete = () => {
     gqlRequest(COMPLETE_APPOINTMENT_MUTATION, { id: a.id })
       .then(() => { toast.success("Marked completed"); fetchAppointment(); })
@@ -146,10 +156,16 @@ export function AppointmentDetailContent() {
         title={a.customer}
         actions={
           <>
-            {/* "Approve" (pending -> upcoming) was dropped: no backend
-                mutation exists to flip status without also cancelling or
-                completing. See AppointmentsContent.tsx for details. */}
-            <Button variant="outline" onClick={complete} disabled={a.status === "completed"}>
+            {a.status === "pending" ? (
+              <Button className="bg-admin-sidebar text-white" onClick={approve}>
+                Approve
+              </Button>
+            ) : null}
+            <Button
+              variant="outline"
+              onClick={complete}
+              disabled={a.status === "completed" || a.status === "cancelled"}
+            >
               Mark completed
             </Button>
             <Button
@@ -165,8 +181,7 @@ export function AppointmentDetailContent() {
       <DetailGrid>
         <DetailCard>
           <div className="flex items-center gap-4">
-            {/* eslint-disable-next-line @next/next/no-img-element -- no real avatar field on AdminAppointmentDto */}
-            <img src={a.customerAvatar} alt="" className="size-16 rounded-full" />
+            <CustomerAvatar name={a.customer} src={a.customerAvatar} className="size-16" />
             <div>
               <StatusBadge status={a.status} />
               <h2 className="mt-2 font-display text-2xl">{a.customer}</h2>

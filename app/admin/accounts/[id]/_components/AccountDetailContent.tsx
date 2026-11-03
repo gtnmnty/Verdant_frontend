@@ -14,6 +14,8 @@ import {EmptyState} from "@/app/admin/_components/EmptyState";
 import {StatusBadge} from "@/app/admin/_components/StatusBadge";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {ROLE_PERMS, type Role} from "@/lib/admin/roles";
+import {ImagePlaceholder} from "@/components/ui/image-placeholder";
+import {useRole} from "@/lib/admin/role-context";
 import {
     ROLE_FROM_BACKEND,
     STATUS_FROM_BACKEND,
@@ -93,7 +95,6 @@ const SEND_PASSWORD_RESET_MUTATION = `
     }
 `;
 
-const FALLBACK_AVATAR = "https://picsum.photos/seed/account-admin/100/100";
 
 function toAdminAccount(a: BackendAccountDetail): AdminAccount {
     return {
@@ -101,7 +102,7 @@ function toAdminAccount(a: BackendAccountDetail): AdminAccount {
         name: a.fullName,
         email: a.email,
         phone: a.phone ?? "",
-        avatar: a.avatarUrl ?? FALLBACK_AVATAR,
+        avatar: a.avatarUrl ?? "",
         role: ROLE_FROM_BACKEND[a.role] ?? a.role.toLowerCase(),
         status: STATUS_FROM_BACKEND[a.status] ?? a.status.toLowerCase(),
         address: {
@@ -120,7 +121,7 @@ function formatAddress(addr: AdminAccount["address"]): string {
     return [addr.line1, addr.city, addr.state, addr.postal].filter(Boolean).join(", ") || "—";
 }
 
-const INTERNAL_ROLES: Role[] = ["manager", "admin", "receptionist", "stylist"];
+const INTERNAL_ROLES: Role[] = ["owner", "manager", "admin", "receptionist", "stylist"];
 
 // Last reset / set-password link: PENDING until the background send finishes, then SENT or FAILED.
 // SENT means the mail server accepted it, not that it reached the inbox.
@@ -137,6 +138,7 @@ function ResetLinkStatusText({status, at}: { status: string | null; at: string |
 export function AccountDetailContent() {
     const params = useParams<{ id: string }>();
     const router = useRouter();
+    const {perms} = useRole();
     const [account, setAccount] = useState<AdminAccount | null | undefined>(undefined);
     const [audit, setAudit] = useState<BackendAuditEntry[]>([]);
     // Delivery of the last reset / set-password link (H-9). Kept beside the account, not inside AdminAccount.
@@ -222,9 +224,11 @@ export function AccountDetailContent() {
                         <Button variant="outline" onClick={resetPassword}>
                             Reset password
                         </Button>
-                        <Button variant="outline" onClick={suspend}>
-                            {account.status === "active" ? "Suspend" : "Restore"}
-                        </Button>
+                        {perms.caps.suspendStaff ? (
+                            <Button variant="outline" onClick={suspend}>
+                                {account.status === "active" ? "Suspend" : "Restore"}
+                            </Button>
+                        ) : null}
                     </>
                 }
             />
@@ -232,8 +236,14 @@ export function AccountDetailContent() {
                 <div className="space-y-5">
                     <DetailCard>
                         <div className="flex items-center gap-4">
-                            {/* eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded avatar URLs */}
-                            <img src={account.avatar} alt="" className="size-20 rounded-2xl"/>
+                            <div className="size-20 overflow-hidden rounded-2xl">
+                                {account.avatar ? (
+                                    // eslint-disable-next-line @next/next/no-img-element -- arbitrary uploaded avatar URLs
+                                    <img src={account.avatar} alt="" className="size-full object-cover"/>
+                                ) : (
+                                    <ImagePlaceholder name={account.name} kind="stylist"/>
+                                )}
+                            </div>
                             <div>
                                 <StatusBadge status={account.status}/>
                                 <h2 className="mt-2 font-display text-2xl">{account.name}</h2>

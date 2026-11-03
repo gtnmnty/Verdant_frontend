@@ -7,6 +7,7 @@ export interface StylistData {
     name: string;
     bio: string | null;
     avatarUrl: string | null;
+    branchId: string | null;
     branchName: string | null;
 }
 

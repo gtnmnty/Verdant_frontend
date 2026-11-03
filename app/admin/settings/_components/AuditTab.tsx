@@ -91,6 +91,7 @@ export function AuditTab() {
           rows={filtered}
           columns={columns}
           pageSize={10}
+          selectable={false}
           emptyTitle={loading ? "Loading…" : "No matching entries"}
         />
       </SettingsCard>

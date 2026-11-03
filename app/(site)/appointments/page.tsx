@@ -12,5 +12,5 @@ export const metadata: Metadata = {
 };
 
 export default function AppointmentsPage() {
-    return <div className="w-full px-[clamp(12px,5vw,10vw)] sm:px-[6vw] lg:px-[10vw]"><AppointmentsFeed/></div>;
+    return <div className="w-full px-[clamp(12px,5vw,10vw)] sm:px-[4vw] lg:px-[5vw]"><AppointmentsFeed/></div>;
 }
