@@ -83,6 +83,7 @@ export function ReviewsSection({productId}: { productId: string }) {
     const [rvRating, setRvRating] = useState(5);
     const [rvText, setRvText] = useState("");
     const [submitting, setSubmitting] = useState(false);
+    const [refreshKey, setRefreshKey] = useState(0); // bump to force a refetch after submitting
 
     useEffect(() => {
         let cancelled = false;
@@ -106,7 +107,7 @@ export function ReviewsSection({productId}: { productId: string }) {
             .finally(() => { if (!cancelled) setLoading(false); });
 
         return () => { cancelled = true; };
-    }, [productId, reviewSort, reviewPage]);
+    }, [productId, reviewSort, reviewPage, refreshKey]);
 
     const breakdown = useMemo(() => {
         const counts = [0, 0, 0, 0, 0];
@@ -142,6 +143,7 @@ export function ReviewsSection({productId}: { productId: string }) {
                 setRvText("");
                 setReviewPage(0);
                 setReviewSort("recent");
+                setRefreshKey((k) => k + 1);
             })
             .catch((err) => {
                 toast.error(err instanceof Error ? err.message : "Failed to submit review.");

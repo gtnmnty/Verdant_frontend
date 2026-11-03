@@ -97,18 +97,49 @@ export function ReviewsContent() {
     const [starFilter, setStarFilter] = useState<0 | 1 | 2 | 3 | 4 | 5>(0);
 
     useEffect(() => {
-        setLoading(true);
-        gqlRequest<{ adminReviews: AdminReviewPage }>(ADMIN_REVIEWS_QUERY, {
-            itemType: typeFilter === "all" ? undefined : typeFilter === "product" ? "PRODUCT" : "SALON_SERVICE",
-            filter: STAR_FILTER_TO_BACKEND[starFilter],
-            search: q.trim() || undefined,
-            sort: "NEWEST",
-            page: 1,
-            pageSize: 100,
-        })
-            .then((res) => setReviews(res.adminReviews.items.map(toAdminReview)))
-            .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load reviews."))
-            .finally(() => setLoading(false));
+        let cancelled = false;
+
+        const load = (background: boolean) => {
+            if (!background) setLoading(true);
+            gqlRequest<{ adminReviews: AdminReviewPage }>(ADMIN_REVIEWS_QUERY, {
+                itemType: typeFilter === "all" ? undefined : typeFilter === "product" ? "PRODUCT" : "SALON_SERVICE",
+                filter: STAR_FILTER_TO_BACKEND[starFilter],
+                search: q.trim() || undefined,
+                sort: "NEWEST",
+                page: 1,
+                pageSize: 100,
+            })
+                .then((res) => {
+                    if (!cancelled) setReviews(res.adminReviews.items.map(toAdminReview));
+                })
+                .catch((err) => {
+                    // A failed background poll shouldn't pop a toast every interval.
+                    if (!cancelled && !background) {
+                        toast.error(err instanceof Error ? err.message : "Failed to load reviews.");
+                    }
+                })
+                .finally(() => {
+                    if (!cancelled && !background) setLoading(false);
+                });
+        };
+
+        load(false);
+
+        // New reviews are written by customers elsewhere, so keep the list fresh without a manual reload:
+        // poll while the tab is visible and refetch as soon as the admin returns to it.
+        const poll = setInterval(() => {
+            if (document.visibilityState === "visible") load(true);
+        }, 15000);
+        const onVisible = () => {
+            if (document.visibilityState === "visible") load(true);
+        };
+        document.addEventListener("visibilitychange", onVisible);
+
+        return () => {
+            cancelled = true;
+            clearInterval(poll);
+            document.removeEventListener("visibilitychange", onVisible);
+        };
     }, [q, typeFilter, starFilter]);
 
     const filtered = useMemo(() => reviews, [reviews]);
