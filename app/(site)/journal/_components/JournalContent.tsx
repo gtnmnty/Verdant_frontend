@@ -9,7 +9,7 @@ import {JournalEmptyState} from "@/app/(site)/journal/_components/JournalEmptySt
 import {JournalLoadingState} from "@/app/(site)/journal/_components/JournalLoadingState";
 import {
     JOURNAL_CATEGORIES,
-    JOURNAL_STORIES,
+    fetchJournalStories,
     type JournalStory,
 } from "@/app/(site)/journal/_components/data";
 import { gqlRequest } from "@/utils/graphqlClient";
@@ -25,20 +25,25 @@ const ADD_TO_CART_MUTATION = `
 
 export function JournalContent() {
     const [isLoading, setIsLoading] = useState(true);
+    const [stories, setStories] = useState<JournalStory[]>([]);
     const [search, setSearch] = useState("");
     const [activeCategory, setActiveCategory] = useState("All");
     const [activeStory, setActiveStory] = useState<JournalStory | null>(null);
 
-    // Simulates the initial fetch from a backend so the loading state is
-    // exercised; replace with real fetch/query state once an API exists.
     useEffect(() => {
-        const timer = setTimeout(() => setIsLoading(false), 500);
-        return () => clearTimeout(timer);
+        let cancelled = false;
+        fetchJournalStories()
+            .then((items) => !cancelled && setStories(items))
+            .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to load the journal."))
+            .finally(() => !cancelled && setIsLoading(false));
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     const filteredStories = useMemo(() => {
         const query = search.trim().toLowerCase();
-        return JOURNAL_STORIES.filter((story) => {
+        return stories.filter((story) => {
             const matchesCategory = activeCategory === "All" || story.category === activeCategory;
             if (!matchesCategory) return false;
             if (!query) return true;
@@ -52,7 +57,7 @@ export function JournalContent() {
                 .toLowerCase();
             return haystack.includes(query);
         });
-    }, [search, activeCategory]);
+    }, [stories, search, activeCategory]);
 
     // Flow: Call the backend GraphQL mutation to persist the selected product into the user's cart
     async function handleAddProduct(productId: string, productName: string) {
@@ -67,26 +72,6 @@ export function JournalContent() {
             toast.success(`${productName} added to your bag.`);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : "Failed to add product to cart.");
-        }
-    }
-
-    // Flow: Concurrently add each product in the curated routine to the backend cart
-    async function handleAddRoutine(story: JournalStory) {
-        try {
-            await Promise.all(
-                story.products.map((product) =>
-                    gqlRequest(ADD_TO_CART_MUTATION, {
-                        input: {
-                            productId: product.id,
-                            quantity: 1,
-                            deliveryOption: "STANDARD",
-                        },
-                    })
-                )
-            );
-            toast.success(`${story.clientName}'s routine added to your bag.`);
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : "Failed to add routine to cart.");
         }
     }
 
@@ -133,7 +118,6 @@ export function JournalContent() {
                 story={activeStory}
                 onOpenChange={(open) => !open && setActiveStory(null)}
                 onAddProduct={handleAddProduct}
-                onAddRoutine={handleAddRoutine}
             />
         </div>
     );

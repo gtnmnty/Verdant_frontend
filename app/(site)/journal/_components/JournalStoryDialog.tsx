@@ -15,16 +15,15 @@ interface JournalStoryDialogProps {
     story: JournalStory | null;
     onOpenChange: (open: boolean) => void;
     onAddProduct: (productId: string, productName: string) => void;
-    onAddRoutine: (story: JournalStory) => void;
 }
 
 export function JournalStoryDialog(
-    {story, onOpenChange, onAddProduct, onAddRoutine,}: JournalStoryDialogProps
+    {story, onOpenChange, onAddProduct,}: JournalStoryDialogProps
 ) {
     return (
         <Dialog open={!!story} onOpenChange={onOpenChange}>
             {/* sm:max-w-* is needed to override the base DialogContent's sm:max-w-sm. */}
-            <DialogContent className="max-h-[90vh] overflow-y-auto p-0
+            <DialogContent className="max-h-[90vh] overflow-y-auto overflow-x-hidden p-0
             sm:max-w-[min(calc(100vw-4rem),52rem)]">
                 {story ? (
                     <div className="grid grid-cols-1 md:grid-cols-2">
@@ -40,6 +39,7 @@ export function JournalStoryDialog(
                                     className="object-cover"
                                 />
                             </div>
+                            {story.productImage ? (
                             <div
                                 className="absolute bottom-[clamp(0.75rem,1.5vw,1.25rem)]
                                 right-[clamp(0.75rem,1.5vw,1.25rem)]
@@ -48,12 +48,13 @@ export function JournalStoryDialog(
                                 border-[clamp(3px,0.4vw,5px)] border-surface shadow-lg">
                                 <Image
                                     src={story.productImage}
-                                    alt={`Products used for ${story.clientName}'s ${story.service}`}
+                                    alt={`${story.service} featured in ${story.clientName}'s story`}
                                     fill
                                     sizes="120px"
                                     className="object-cover"
                                 />
                             </div>
+                            ) : null}
                         </div>
 
                         {/* Story content */}
@@ -64,7 +65,7 @@ export function JournalStoryDialog(
                             </p>
                             <DialogTitle
                                 className="mt-[0.75em] font-display text-fluid-xl
-                                italic leading-snug text-on-surface">
+                                italic leading-snug text-on-surface [overflow-wrap:anywhere]">
                                 &ldquo;{story.quote}&rdquo;
                             </DialogTitle>
                             <p className="mt-[0.75em] text-fluid-sm text-on-surface-variant">
@@ -80,81 +81,76 @@ export function JournalStoryDialog(
                                     </dt>
                                     <dd className="text-on-surface-variant">{story.service}</dd>
                                 </div>
-                                <div className="flex gap-[0.5em]">
-                                    <dt className="w-[5.5em] shrink-0 font-semibold text-on-surface">
-                                        Stylist
-                                    </dt>
-                                    <dd className="text-on-surface-variant">{story.stylist}</dd>
-                                </div>
+                                {story.stylist ? (
+                                  <div className="flex gap-[0.5em]">
+                                      <dt className="w-[5.5em] shrink-0 font-semibold text-on-surface">
+                                          Stylist
+                                      </dt>
+                                      <dd className="text-on-surface-variant">{story.stylist}</dd>
+                                  </div>
+                                ) : null}
                             </dl>
 
-                            <div className="mt-[clamp(1rem,2vw,1.5rem)]">
-                                <p className="text-fluid-2xs font-semibold
-                                uppercase tracking-[0.18em]
-                                text-on-surface-variant">
-                                    Products Used
-                                </p>
-                                <ul className="mt-[clamp(0.5rem,1vw,0.875rem)] flex flex-wrap
-                                gap-[clamp(0.375rem,0.8vw,0.625rem)]">
-                                    {story.products.map((product) => (
-                                        <li
-                                            key={product.id}
-                                            className="flex items-center
-                                            gap-[0.5em] rounded-full border
-                                            border-blush/60 bg-surface
-                                             py-[0.4em] pl-[0.9em] pr-[0.4em]
-                                             text-fluid-xs
-                                             font-medium
-                                             text-on-surface
-                                             transition-colors
-                                             hover:border-primary"
-                                        >
-                                            <Link
-                                                href={`/collections/${product.id}`}
-                                                className="hover:text-primary"
+                            {story.products.length > 0 ? (
+                                <div className="mt-[clamp(1rem,2vw,1.5rem)]">
+                                    <p className="text-fluid-2xs font-semibold
+                                    uppercase tracking-[0.18em]
+                                    text-on-surface-variant">
+                                        Products Used
+                                    </p>
+                                    <ul className="mt-[clamp(0.5rem,1vw,0.875rem)] flex flex-wrap
+                                    gap-[clamp(0.375rem,0.8vw,0.625rem)]">
+                                        {story.products.map((product) => (
+                                            <li
+                                                key={product.id}
+                                                className="flex items-center
+                                                gap-[0.5em] rounded-full border
+                                                border-blush/60 bg-surface
+                                                 py-[0.4em] pl-[0.9em] pr-[0.4em]
+                                                 text-fluid-xs
+                                                 font-medium
+                                                 text-on-surface
+                                                 transition-colors
+                                                 hover:border-primary"
                                             >
-                                                {product.name}
-                                            </Link>
-                                            <span className="text-on-surface-variant">
-                                                ${product.price.toFixed(2)}
-                                            </span>
-                                            <button
-                                                type="button"
-                                                onClick={() => onAddProduct(product.id, product.name)}
-                                                aria-label={`Add ${product.name} to cart`}
-                                                className="grid size-[1.6em] shrink-0
-                                                place-items-center
-                                                rounded-full text-primary
-                                                transition-colors hover:bg-primary
-                                                hover:text-primary-foreground"
-                                            >
-                                                <Plus className="size-[60%]"/>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                                                <Link
+                                                    href={`/collections/${product.id}`}
+                                                    className="hover:text-primary"
+                                                >
+                                                    {product.name}
+                                                </Link>
+                                                <span className="text-on-surface-variant">
+                                                    ${product.price.toFixed(2)}
+                                                </span>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => onAddProduct(product.id, product.name)}
+                                                    aria-label={`Add ${product.name} to cart`}
+                                                    className="grid size-[1.6em] shrink-0
+                                                    place-items-center
+                                                    rounded-full text-primary
+                                                    transition-colors hover:bg-primary
+                                                    hover:text-primary-foreground"
+                                                >
+                                                    <Plus className="size-[60%]"/>
+                                                </button>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            ) : null}
 
                             <div className="mt-[clamp(1.5rem,3vw,2.25rem)] flex flex-wrap
                             gap-[clamp(0.5rem,1vw,0.75rem)]">
+                                {story.isProductStory ? null : (
                                 <Button asChild
                                         className="h-auto px-[1.5em] py-[0.85em] text-fluid-xs
-                                        uppercase tracking-[0.12em]">
+                                        uppercase tracking-[0.12em] text-primary-foreground!">
                                     <Link href={`/book?service=${encodeURIComponent(story.service)}`}>
                                         Book This Service
                                     </Link>
                                 </Button>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    onClick={() => onAddRoutine(story)}
-                                    className="h-auto border-primary px-[1.5em] py-[0.85em]
-                                    text-fluid-xs uppercase tracking-[0.12em] text-primary
-                                    hover:bg-primary
-                                    hover:text-primary-foreground"
-                                >
-                                    Shop {story.clientName.split(" ")[0]}&apos;s Routine
-                                </Button>
+                                )}
                             </div>
                         </div>
                     </div>
