@@ -1,6 +1,6 @@
 "use client";
 
-import {useEffect, useMemo, useState, type SubmitEvent} from "react";
+import {useEffect, useMemo, useRef, useState, type SubmitEvent} from "react";
 import {toast} from "sonner";
 import {Star} from "lucide-react";
 import {Button} from "@/components/ui/button";
@@ -61,6 +61,10 @@ const UPSERT_REVIEW_MUTATION = `
     mutation UpsertProductReview($targetId: ID!, $stars: Int!, $text: String) {
         upsertReview(targetType: PRODUCT, targetId: $targetId, stars: $stars, text: $text) {
             id
+            user { fullName }
+            stars
+            text
+            createdAt
         }
     }
 `;
@@ -82,12 +86,13 @@ export function ReviewsSection({productId}: { productId: string }) {
 
     const [rvRating, setRvRating] = useState(5);
     const [rvText, setRvText] = useState("");
-    const [submitting, setSubmitting] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0); // bump to force a refetch after submitting
+    const silentRef = useRef(false); // when true the next fetch reconciles quietly, without the "Loading" flash
 
     useEffect(() => {
         let cancelled = false;
-        setLoading(true);
+        if (!silentRef.current) setLoading(true);
+        silentRef.current = false;
 
         gqlRequest<{ reviews: ReviewConnection }>(REVIEWS_QUERY, {
             targetId: productId,
@@ -131,24 +136,52 @@ export function ReviewsSection({productId}: { productId: string }) {
             toast.error("Please write a review before submitting.");
             return;
         }
-        setSubmitting(true);
-        gqlRequest(UPSERT_REVIEW_MUTATION, {
+        const stars = rvRating;
+        const text = rvText.trim();
+        const tempId = `pending-${Date.now()}`;
+        const alreadyOnNewest = reviewPage === 0 && reviewSort === "recent";
+
+        // Optimistic: show the review and reset the form right away, then confirm with the server.
+        if (alreadyOnNewest) {
+            const pending: BackendReview = {
+                id: tempId,
+                user: {fullName: "You"},
+                stars,
+                text,
+                createdAt: new Date().toISOString(),
+            };
+            setReviews((prev) => [pending, ...prev].slice(0, PER_PAGE));
+            setTotalCount((c) => c + 1);
+        } else {
+            setReviewPage(0);
+            setReviewSort("recent");
+        }
+        setRvRating(5);
+        setRvText("");
+
+        gqlRequest<{ upsertReview: BackendReview }>(UPSERT_REVIEW_MUTATION, {
             targetId: productId,
-            stars: rvRating,
-            text: rvText.trim(),
+            stars,
+            text,
         })
-            .then(() => {
+            .then((res) => {
                 toast.success("Review submitted");
-                setRvRating(5);
-                setRvText("");
-                setReviewPage(0);
-                setReviewSort("recent");
+                if (alreadyOnNewest) {
+                    setReviews((prev) => prev.map((r) => (r.id === tempId ? res.upsertReview : r)));
+                }
+                // Quiet refetch so counts, averages and a replaced earlier review are exact.
+                silentRef.current = true;
                 setRefreshKey((k) => k + 1);
             })
             .catch((err) => {
+                if (alreadyOnNewest) {
+                    setReviews((prev) => prev.filter((r) => r.id !== tempId));
+                    setTotalCount((c) => Math.max(0, c - 1));
+                }
+                setRvRating(stars);
+                setRvText(text);
                 toast.error(err instanceof Error ? err.message : "Failed to submit review.");
-            })
-            .finally(() => setSubmitting(false));
+            });
     };
 
     return (
@@ -311,11 +344,10 @@ export function ReviewsSection({productId}: { productId: string }) {
                 />
                 <Button
                     type="submit"
-                    disabled={submitting}
                     className="mt-5 bg-champagne-gold text-primary
                           hover:bg-champagne-gold/90"
                 >
-                    {submitting ? "Submitting…" : "Submit Review"}
+                    Submit Review
                 </Button>
             </form>
         </section>

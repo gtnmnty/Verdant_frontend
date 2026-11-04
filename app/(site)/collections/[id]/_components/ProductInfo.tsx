@@ -48,23 +48,20 @@ const TOGGLE_FAVORITE_MUTATION = `
 export function ProductInfo({product}: { product: ProductInfoData }) {
     const [wished, setWished] = useState(product.isFavorited);
     const [qty, setQty] = useState(1);
-    const [adding, setAdding] = useState(false);
 
     const activePrice = product.salePrice ?? product.price;
     const total = activePrice * qty;
 
     const addToCart = () => {
-        setAdding(true);
+        // Optimistic: confirm immediately; only speak up again if the server rejects it.
+        const addedQty = qty;
+        const toastId = toast.success("Added to cart", {description: `${product.name} × ${addedQty}`});
         gqlRequest(ADD_TO_CART_MUTATION, {
-            input: {productId: product.id, quantity: qty, deliveryOption: "STANDARD"},
-        })
-            .then(() => {
-                toast.success("Added to cart", {description: `${product.name} × ${qty}`});
-            })
-            .catch((err) => {
-                toast.error(err instanceof Error ? err.message : "Failed to add to cart.");
-            })
-            .finally(() => setAdding(false));
+            input: {productId: product.id, quantity: addedQty, deliveryOption: "STANDARD"},
+        }).catch((err) => {
+            toast.dismiss(toastId);
+            toast.error(err instanceof Error ? err.message : "Failed to add to cart.");
+        });
     };
 
     const toggleWishlist = () => {
@@ -223,13 +220,13 @@ export function ProductInfo({product}: { product: ProductInfoData }) {
 
             <Button
                 onClick={addToCart}
-                disabled={adding || !product.inStock}
+                disabled={!product.inStock}
                 size="lg"
                 className="mt-6 w-full text-[11px] uppercase
                         tracking-[0.18em]"
             >
                 <ShoppingBag className="mr-1.5 h-4 w-4"/>
-                {adding ? "Adding…" : `Add to Cart · $${total.toLocaleString()}`}
+                {`Add to Cart · $${total.toLocaleString()}`}
             </Button>
 
             <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
