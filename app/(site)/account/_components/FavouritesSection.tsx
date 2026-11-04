@@ -161,11 +161,14 @@ export function FavouritesSection() {
     };
 
     const addProductToCart = (f: Fav) => {
+        // Optimistic: confirm immediately; only speak up again if the server rejects it.
+        const toastId = toast.success(`${f.name} added to cart.`);
         gqlRequest(ADD_TO_CART_MUTATION, {
             input: {productId: f.id, quantity: 1, deliveryOption: "STANDARD"},
-        })
-            .then(() => toast.success(`${f.name} added to cart.`))
-            .catch((err) => toast.error(err instanceof Error ? err.message : "Failed to add to cart."));
+        }).catch((err) => {
+            toast.dismiss(toastId);
+            toast.error(err instanceof Error ? err.message : "Failed to add to cart.");
+        });
     };
 
     if (loading) {
