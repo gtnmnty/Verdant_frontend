@@ -28,6 +28,7 @@ import {
     CATEGORY_LABELS,
     type BackendProductSummary,
 } from "@/app/(site)/collections/_components/query";
+import {CardGridSkeleton} from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 6;
 
@@ -201,7 +202,7 @@ export function CollectionsExplorer() {
 
             {/* Grid */}
             {loading ? (
-                <p className="mt-20 text-center text-sm text-on-surface-variant">Loading products…</p>
+                <CardGridSkeleton label="Loading products"/>
             ) : products.length === 0 ? (
                 <div className="mt-20 flex flex-col items-center
                  justify-center text-center">

@@ -20,6 +20,7 @@ import {
 } from "@/app/(site)/cart/_components/data";
 import {useAuth} from "@/context/AuthContext";
 import Link from "next/link";
+import {ListSkeleton, Skeleton} from "@/components/ui/skeleton";
 
 // --- backend <-> frontend delivery option mapping ---
 // Backend enum (common.graphql): STANDARD | EXPRESS | SAME_DAY
@@ -291,9 +292,10 @@ export function CartContent() {
             </div>
 
             {loading ? (
-                <p className="mt-10 text-center text-sm text-on-surface-variant py-12">
-                    Loading your bag…
-                </p>
+                <div className="mt-10 grid gap-8 lg:grid-cols-[1fr_360px] lg:items-start lg:gap-10">
+                    <ListSkeleton count={3} label="Loading your bag"/>
+                    <Skeleton className="h-72 rounded-2xl"/>
+                </div>
             ) : items.length === 0 ? (
                 <div className="mt-10">
                     <EmptyCart/>

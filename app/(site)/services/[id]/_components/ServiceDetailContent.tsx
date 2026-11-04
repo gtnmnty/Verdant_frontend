@@ -10,6 +10,7 @@ import {ServiceInfo, type ServiceInfoData} from "@/app/(site)/services/[id]/_com
 import {StylistsSection, type StylistData} from "@/app/(site)/services/[id]/_components/StylistsSection";
 import {BookingForm} from "@/app/(site)/services/[id]/_components/BookingForm";
 import {ServiceReviewsSection} from "@/app/(site)/services/[id]/_components/ServiceReviewsSection";
+import {DetailSkeleton} from "@/components/ui/skeleton";
 
 const CATEGORY_LABELS: Record<string, string> = {
     SKIN_CARE: "Skin Care",
@@ -92,7 +93,7 @@ export function ServiceDetailContent({id}: { id: string }) {
     }, [id]);
 
     if (loading) {
-        return <p className="py-24 text-center text-sm text-on-surface-variant">Loading service…</p>;
+        return <DetailSkeleton label="Loading service"/>;
     }
 
     if (!service) {

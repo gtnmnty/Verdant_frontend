@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {EmptyBlock, PageIntro, SectionTitle} from "@/app/(site)/account/_components/shared";
+import {ListSkeleton} from "@/components/ui/skeleton";
 
 // Same lazy Stripe instance pattern as checkout's PaymentStep: card details stay inside Stripe's iframe.
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
@@ -224,7 +225,7 @@ export function GiftCardsSection() {
         return (
             <div className="space-y-10">
                 <PageIntro title="Gift Cards" subtitle="Share the Verdant Luxe ritual with someone you love."/>
-                <p className="text-sm text-on-surface-variant">Loading gift cards…</p>
+                <ListSkeleton count={2} label="Loading gift cards"/>
             </div>
         );
     }

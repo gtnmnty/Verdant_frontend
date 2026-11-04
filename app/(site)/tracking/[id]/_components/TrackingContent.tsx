@@ -14,6 +14,7 @@ import {TrackingActions} from "@/app/(site)/tracking/[id]/_components/TrackingAc
 import {type DeliveryOption, type Stage, type TrackItem} from "@/app/(site)/tracking/[id]/_components/data";
 import {PaymentStatusBadge} from "@/app/(site)/orders/_components/PaymentStatus";
 import {STATUS_LABELS} from "@/app/(site)/orders/_components/data";
+import {ListSkeleton} from "@/components/ui/skeleton";
 
 interface BackendOrderItem {
     id: string;
@@ -181,7 +182,7 @@ export function TrackingContent({id}: { id: string }) {
     }, [id, authLoading, token, router]);
 
     if (loading) {
-        return <p className="py-24 text-center text-sm text-on-surface-variant">Loading order…</p>;
+        return <div className="mx-auto w-[min(92vw,900px)] py-16"><ListSkeleton count={3} label="Loading order"/></div>;
     }
 
     if (!order) {

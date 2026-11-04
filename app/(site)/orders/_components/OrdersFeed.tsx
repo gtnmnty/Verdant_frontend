@@ -16,6 +16,7 @@ import { formatDate } from "@/app/(site)/orders/_components/data";
 import { useRouter } from "next/navigation";
 import { MY_ORDERS_QUERY } from "@/app/(site)/orders/_components/query";
 import {useAuth} from "@/context/AuthContext";
+import {ListSkeleton} from "@/components/ui/skeleton";
 
 const PER_PAGE = 6;
 
@@ -161,7 +162,7 @@ export function OrdersFeed() {
 
             <section className="space-y-6">
                 {loading ? (
-                    <p className="text-center text-sm text-on-surface-variant py-12">Loading orders…</p>
+                    <ListSkeleton count={3} label="Loading orders"/>
                 ) : visible.length === 0 ? (
                     <div className="rounded-2xl border border-dashed border-blush/60 p-12 text-center">
                         <p className="font-display text-2xl text-primary">No orders found</p>

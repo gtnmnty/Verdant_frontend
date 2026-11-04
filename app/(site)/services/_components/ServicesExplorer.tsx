@@ -22,6 +22,7 @@ import {
 import {gqlRequest} from "@/utils/graphqlClient";
 import {CATEGORIES, type Category, type Service} from "@/app/(site)/services/_components/data";
 import {ServiceCard} from "@/app/(site)/services/_components/ServiceCard";
+import {CardGridSkeleton} from "@/components/ui/skeleton";
 
 const PAGE_SIZE = 6;
 type SortKey = "featured" | "popular" | "price-asc" | "price-desc";
@@ -290,7 +291,7 @@ export function ServicesExplorer() {
 
             {/* Grid */}
             {loading ? (
-                <p className="mt-20 text-center text-sm text-on-surface-variant">Loading services…</p>
+                <CardGridSkeleton label="Loading services"/>
             ) : services.length === 0 ? (
                 <div className="mt-20 flex flex-col items-center
                  justify-center text-center">

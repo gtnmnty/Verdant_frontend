@@ -20,6 +20,7 @@ import {gqlRequest} from "@/utils/graphqlClient";
 import {useAuth} from "@/context/AuthContext";
 import {EmptyBlock, PageIntro, SectionTitle} from "@/app/(site)/account/_components/shared";
 import {ImagePlaceholder} from "@/components/ui/image-placeholder";
+import {ListSkeleton} from "@/components/ui/skeleton";
 
 type FavKind = "Service" | "Product";
 
@@ -176,7 +177,7 @@ export function FavouritesSection() {
             <div className="space-y-10">
                 <PageIntro title="Favourites" subtitle="Your curated collection
                 of beloved rituals and products."/>
-                <p className="text-sm text-on-surface-variant">Loading favourites…</p>
+                <ListSkeleton count={3} label="Loading favourites"/>
             </div>
         );
     }
