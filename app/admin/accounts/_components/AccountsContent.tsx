@@ -262,7 +262,8 @@ export function AccountsContent() {
                     </Button>
                 )}
                 columns={columns}
-                emptyTitle={loading ? "Loading…" : "No accounts found"}
+                loading={loading}
+                emptyTitle="No accounts found"
                 emptyDescription={loading ?
                     "Fetching accounts from the server." : "Try a different search or role filter."}
                 rowActions={(row) => {

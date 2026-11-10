@@ -303,7 +303,8 @@ export function ServicesContent() {
       <DataTable
         rows={services}
         columns={columns}
-        emptyTitle={loading ? "Loading…" : "No services found"}
+        loading={loading}
+        emptyTitle="No services found"
         emptyDescription={loading ? "Fetching services from the server." : "Try a different search or add a new service."}
         bulkActions={(ids, clear) => (
           <Button

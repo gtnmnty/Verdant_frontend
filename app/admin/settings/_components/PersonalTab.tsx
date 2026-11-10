@@ -12,6 +12,7 @@ import { gqlRequest } from "@/utils/graphqlClient";
 import { apiRequest } from "@/utils/apiClient";
 import { useRole } from "@/lib/admin/role-context";
 import { ConfirmEmailChangeDialog, isEmailChanged } from "@/components/account/ConfirmEmailChangeDialog";
+import {Skeleton, SkeletonRegion} from "@/components/ui/skeleton";
 
 interface Me {
   fullName: string;
@@ -154,7 +155,14 @@ export function PersonalTab() {
     <div className="space-y-5">
       <SettingsCard title="Profile information">
         {loading ? (
-          <p className="text-sm text-admin-muted">Loading…</p>
+          <SkeletonRegion label="Loading profile" className="grid gap-4 sm:grid-cols-2">
+            {Array.from({length: 4}).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-3 w-24"/>
+                <Skeleton className="h-9 w-full"/>
+              </div>
+            ))}
+          </SkeletonRegion>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2">
             <div>

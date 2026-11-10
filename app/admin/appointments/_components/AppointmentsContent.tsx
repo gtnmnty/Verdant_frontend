@@ -341,7 +341,8 @@ export function AppointmentsContent() {
       <DataTable
         rows={appointments}
         columns={columns}
-        emptyTitle={loading ? "Loading…" : "No appointments found"}
+        loading={loading}
+        emptyTitle="No appointments found"
         emptyDescription={loading ? "Fetching appointments from the server." : "Try a different search, status, or branch filter."}
         selectable={!readOnly}
         bulkActions={readOnly ? undefined : (ids, clear) => (

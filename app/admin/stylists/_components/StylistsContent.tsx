@@ -300,7 +300,8 @@ export function StylistsContent() {
             <DataTable
                 rows={stylists}
                 columns={columns}
-                emptyTitle={loading ? "Loading…" : "No stylists found"}
+                loading={loading}
+                emptyTitle="No stylists found"
                 emptyDescription={loading ?
                     "Fetching stylists from the server." :
                     "Try a different search or add a new stylist."}

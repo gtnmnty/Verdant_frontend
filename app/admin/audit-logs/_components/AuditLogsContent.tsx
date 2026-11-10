@@ -10,6 +10,7 @@ import {Input} from "@/components/ui/input";
 import {useRole} from "@/lib/admin/role-context";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {dayLabel, groupByDay} from "@/app/(site)/notifications/_components/data";
+import {Skeleton, SkeletonRegion} from "@/components/ui/skeleton";
 
 type ActionType =
     | "CREATED" | "BOOKED" | "RESTOCKED" | "FAVORITE" | "UPDATED" | "CANCELLED"
@@ -279,14 +280,20 @@ export function AuditLogsContent() {
                 </div>
                 <p className="mt-3 border-t border-admin-line pt-3 text-xs text-admin-muted">
                     {loading
-                        ? "Loading…"
+                        ? <Skeleton className="inline-block h-3 w-40 align-middle"/>
                         : `${filtered.length} ${filtered.length === 1 ? "entry" : "entries"}${
                             filtersActive ? " matching your filters" : ` of ${totalElements} loaded`
                         }`}
                 </p>
             </section>
 
-            {!loading && groups.length === 0 ? (
+            {loading && groups.length === 0 ? (
+                <SkeletonRegion label="Loading audit log" className="space-y-2">
+                    {Array.from({length: 6}).map((_, i) => (
+                        <Skeleton key={i} className="h-14 w-full rounded-lg"/>
+                    ))}
+                </SkeletonRegion>
+            ) : !loading && groups.length === 0 ? (
                 <div
                     className="grid place-items-center gap-2 rounded-lg border border-admin-line bg-admin-surface px-6 py-14 text-center">
                     <ShieldCheck className="size-6 text-admin-muted"/>

@@ -21,6 +21,7 @@ import {
   PaginationPrevious,
 } from "@/components/ui/pagination";
 import { EmptyState } from "@/app/admin/_components/EmptyState";
+import { Skeleton, SkeletonRegion } from "@/components/ui/skeleton";
 
 export interface Column<T> {
   key: string;
@@ -44,6 +45,7 @@ export function DataTable<T extends { id: string }>({
   pageSize = 8,
   emptyTitle,
   emptyDescription,
+  loading = false,
   bulkActions,
   selectable = true,
 }: {
@@ -53,6 +55,8 @@ export function DataTable<T extends { id: string }>({
   pageSize?: number;
   emptyTitle?: string;
   emptyDescription?: string;
+  // While true and there are no rows yet, show skeleton rows instead of the empty state.
+  loading?: boolean;
   bulkActions?: (ids: string[], clear: () => void) => ReactNode;
   // Show the row checkboxes. Off for read-only tables (e.g. the audit log), where there is nothing to select for.
   selectable?: boolean;
@@ -107,6 +111,25 @@ export function DataTable<T extends { id: string }>({
     });
 
   const clearSelection = () => setSelected(new Set());
+
+  if (rows.length === 0 && loading) {
+    return (
+      <SkeletonRegion label="Loading" className="overflow-hidden rounded-xl border border-admin-line bg-admin-surface">
+        <div className="border-b border-admin-line bg-admin-cream/50 px-4 py-3">
+          <Skeleton className="h-3 w-1/3" />
+        </div>
+        {Array.from({ length: Math.min(pageSize, 6) }).map((_, i) => (
+          <div key={i} className="flex items-center gap-4 border-b border-admin-line/60 px-4 py-3.5 last:border-b-0">
+            <Skeleton className="size-4 shrink-0" />
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-4 w-1/5" />
+            <Skeleton className="hidden h-4 w-1/6 md:block" />
+            <Skeleton className="ml-auto h-4 w-16" />
+          </div>
+        ))}
+      </SkeletonRegion>
+    );
+  }
 
   if (rows.length === 0) {
     return <EmptyState title={emptyTitle ?? "No records yet"} description={emptyDescription} />;

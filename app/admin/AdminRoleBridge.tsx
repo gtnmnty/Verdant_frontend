@@ -5,6 +5,7 @@ import {useRouter} from "next/navigation";
 import {RoleProvider} from "@/lib/admin/role-context";
 import {useAdmin} from "@/lib/admin/store";
 import {useAuth} from "@/context/AuthContext";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 export function AdminRoleBridge({children}: { children: ReactNode }) {
     const {stylists} = useAdmin();
@@ -18,7 +19,7 @@ export function AdminRoleBridge({children}: { children: ReactNode }) {
     // A freshly loaded tab has no access token until the session restore finishes, and an anonymous request is
     // answered with 'You do not have permission'. Hold the admin pages back so none of them fire early.
     if (loading || token === null) {
-        return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+        return <AdminDetailSkeleton/>;
     }
 
     return (

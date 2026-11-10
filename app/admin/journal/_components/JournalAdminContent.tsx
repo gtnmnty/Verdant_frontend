@@ -194,7 +194,8 @@ export function JournalAdminContent() {
         rows={stories}
         columns={columns}
         selectable={false}
-        emptyTitle={loading ? "Loading…" : "No testimonials found"}
+        loading={loading}
+        emptyTitle="No testimonials found"
         emptyDescription="Add a testimonial to show it on the public Journal."
         rowActions={(row) => [
           {
