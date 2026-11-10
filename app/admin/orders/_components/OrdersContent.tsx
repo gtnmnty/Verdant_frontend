@@ -278,7 +278,8 @@ export function OrdersContent() {
             <DataTable
                 rows={filtered}
                 columns={columns}
-                emptyTitle={loading ? "Loading…" : "No orders found"}
+                loading={loading}
+                emptyTitle="No orders found"
                 emptyDescription={loading ? "Fetching orders from the server." :
                                             "Try a different search or status filter."}
                 rowActions={(o) => [

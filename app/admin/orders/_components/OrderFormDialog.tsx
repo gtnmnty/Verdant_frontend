@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/select";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {showSaveError} from "@/lib/admin/save-error";
+import {Skeleton, SkeletonRegion} from "@/components/ui/skeleton";
 
 const ORDER_STATUSES = ["PLACED", "PROCESSING", "IN_TRANSIT", "DELIVERED", "CANCELLED"] as const;
 // Mirrors the backend PaymentStatus enum. PENDING is where every order starts, so without it an
@@ -277,7 +278,12 @@ export function OrderFormDialog({
                 </DialogHeader>
 
                 {loading ? (
-                    <p className="py-8 text-center text-sm text-admin-muted">Loading order…</p>
+                    <SkeletonRegion label="Loading order" className="grid gap-4 py-2">
+                        <div className="grid gap-4 sm:grid-cols-3">
+                            <Skeleton className="h-9"/><Skeleton className="h-9"/><Skeleton className="h-9"/>
+                        </div>
+                        <Skeleton className="h-32"/>
+                    </SkeletonRegion>
                 ) : draft ? (
                     <div className="grid gap-4">
                         <div className="grid gap-4 sm:grid-cols-3">

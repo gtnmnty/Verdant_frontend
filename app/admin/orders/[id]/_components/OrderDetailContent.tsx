@@ -15,6 +15,7 @@ import {ConfirmDialog} from "@/app/admin/_components/ConfirmDialog";
 import {EmptyState} from "@/app/admin/_components/EmptyState";
 import {OrderFormDialog} from "@/app/admin/orders/_components/OrderFormDialog";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 const STATUS_FROM_BACKEND: Record<string, string> = {
     PLACED: "pending",
@@ -115,7 +116,7 @@ export function OrderDetailContent() {
     useEffect(fetchOrder, [params.id]);
 
     if (order === undefined) {
-        return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+        return <AdminDetailSkeleton/>;
     }
 
     if (!order) {

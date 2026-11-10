@@ -18,6 +18,7 @@ import { CustomerAvatar } from "@/app/admin/appointments/_components/Appointment
 import { Button } from "@/components/ui/button";
 import { useRole } from "@/lib/admin/role-context";
 import { gqlRequest } from "@/utils/graphqlClient";
+import {Skeleton, SkeletonRegion} from "@/components/ui/skeleton";
 
 // ---------- data ----------
 
@@ -159,7 +160,7 @@ function BarChart({ data, labels }: { data: number[]; labels: string[] }) {
   );
 }
 
-function SlotList({ title, rows, emptyText }: { title: string; rows: DashAppointment[]; emptyText: string }) {
+function SlotList({ title, rows, emptyText, loading = false }: { title: string; rows: DashAppointment[]; emptyText: string; loading?: boolean }) {
   return (
     <section className="rounded-2xl bg-admin-surface p-5 shadow-sm">
       <div className="flex items-center justify-between">
@@ -168,7 +169,13 @@ function SlotList({ title, rows, emptyText }: { title: string; rows: DashAppoint
           View all
         </Link>
       </div>
-      {rows.length === 0 ? (
+      {rows.length === 0 && loading ? (
+        <SkeletonRegion label="Loading appointments" className="mt-4 space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          ))}
+        </SkeletonRegion>
+      ) : rows.length === 0 ? (
         <p className="mt-4 text-sm text-admin-muted">{emptyText}</p>
       ) : (
         <ul className="mt-4 space-y-3">
@@ -406,7 +413,21 @@ export function DashboardContent() {
             <section className="flex flex-col rounded-2xl bg-admin-surface p-5 shadow-sm">
               <h2 className="font-display text-xl sm:text-2xl">Recent Activity</h2>
               {(audit.data?.auditDashboardFeed.content ?? []).length === 0 ? (
-                <p className="mt-4 flex-1 text-sm text-admin-muted">{audit.loading ? "Loading…" : "No recent activity."}</p>
+                audit.loading ? (
+                <SkeletonRegion label="Loading recent activity" className="mt-4 flex-1 space-y-4">
+                  {Array.from({length: 3}).map((_, i) => (
+                    <div key={i} className="flex gap-3">
+                      <Skeleton className="h-12 w-1 shrink-0 rounded-full"/>
+                      <div className="flex-1 space-y-2">
+                        <Skeleton className="h-4 w-2/3"/>
+                        <Skeleton className="h-3 w-1/2"/>
+                      </div>
+                    </div>
+                  ))}
+                </SkeletonRegion>
+              ) : (
+                <p className="mt-4 flex-1 text-sm text-admin-muted">No recent activity.</p>
+              )
               ) : (
                 <ul className="mt-4 flex-1 space-y-4">
                   {audit.data!.auditDashboardFeed.content.map((a) => (
@@ -436,7 +457,8 @@ export function DashboardContent() {
           <SlotList
             title={role === "stylist" ? "My upcoming slots" : "Upcoming slots"}
             rows={view.slots}
-            emptyText={appts.loading ? "Loading…" : "No upcoming appointments."}
+            loading={appts.loading}
+            emptyText="No upcoming appointments."
           />
         ) : null}
 

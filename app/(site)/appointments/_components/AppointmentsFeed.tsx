@@ -21,6 +21,7 @@ import {
 } from "@/app/(site)/appointments/_components/AppointmentDialogs";
 import type {Appointment} from "@/app/(site)/appointments/_components/data";
 import {useAuth} from "@/context/AuthContext";
+import {ListSkeleton} from "@/components/ui/skeleton";
 
 const PER_PAGE = 6;
 
@@ -307,7 +308,7 @@ export function AppointmentsFeed() {
 
                 <section className="space-y-5">
                     {loading ? (
-                        <p className="py-16 text-center text-sm text-on-surface-variant">Loading appointments…</p>
+                        <ListSkeleton count={3} label="Loading appointments"/>
                     ) : items.length === 0 ? (
                         <div
                             className="rounded-2xl border border-dashed border-blush/60 bg-surface-lowest p-12 text-center">

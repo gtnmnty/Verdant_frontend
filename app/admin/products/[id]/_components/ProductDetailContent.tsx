@@ -22,6 +22,7 @@ import {PriceDisplay, toAdminProduct} from "@/app/admin/products/_components/Pro
 import {categoryLabel} from "@/app/admin/products/_components/categories";
 import {gqlRequest} from "@/utils/graphqlClient";
 import type {AdminProduct} from "@/app/admin/products/_components/types";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 const ADMIN_PRODUCT_DETAIL_QUERY = `
     query AdminProductDetail($id: ID!) {
@@ -84,7 +85,7 @@ export function ProductDetailContent() {
     useEffect(fetchProduct, [params.id]);
 
     if (product === undefined) {
-        return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+        return <AdminDetailSkeleton/>;
     }
 
     if (!product) {

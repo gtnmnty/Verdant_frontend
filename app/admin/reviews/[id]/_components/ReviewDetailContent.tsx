@@ -14,6 +14,7 @@ import {
 import {EmptyState} from "@/app/admin/_components/EmptyState";
 import {StatusBadge} from "@/app/admin/_components/StatusBadge";
 import {gqlRequest} from "@/utils/graphqlClient";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 interface BackendAdminReviewDetail {
     id: string;
@@ -63,7 +64,7 @@ export function ReviewDetailContent() {
     }, [params.id]);
 
     if (review === undefined) {
-        return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+        return <AdminDetailSkeleton/>;
     }
 
     if (!review) {

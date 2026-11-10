@@ -12,6 +12,7 @@ import {
 import { ROLE_PERMS, roleFromBackend, type Role, type RolePerms } from "@/lib/admin/roles";
 import { useAuth } from "@/context/AuthContext";
 import { gqlRequest } from "@/utils/graphqlClient";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 export interface AdminMe {
   id: string;
@@ -82,7 +83,7 @@ export function RoleProvider({
   );
 
   if (state.status === "loading") {
-    return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+    return <AdminDetailSkeleton/>;
   }
   if (!value) {
     return (

@@ -15,6 +15,7 @@ import {
     activeSalePrice,
     type BackendProduct,
 } from "@/app/(site)/collections/_components/query";
+import {DetailSkeleton} from "@/components/ui/skeleton";
 
 export function ProductDetailContent({id}: { id: string }) {
     const [product, setProduct] = useState<BackendProduct | null>(null);
@@ -40,7 +41,7 @@ export function ProductDetailContent({id}: { id: string }) {
     }, [id, authLoading, token]);
 
     if (loading) {
-        return <p className="py-24 text-center text-sm text-on-surface-variant">Loading product…</p>;
+        return <DetailSkeleton label="Loading product"/>;
     }
 
     if (!product) {

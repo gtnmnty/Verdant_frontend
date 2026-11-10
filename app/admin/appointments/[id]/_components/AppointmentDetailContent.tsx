@@ -19,6 +19,7 @@ import {
   STATUS_FROM_BACKEND,
   type AdminAppointment,
 } from "@/app/admin/appointments/_components/types";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 interface BackendAdminAppointmentDetail {
   id: string;
@@ -115,7 +116,7 @@ export function AppointmentDetailContent() {
   useEffect(fetchAppointment, [params.id]);
 
   if (a === undefined) {
-    return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+    return <AdminDetailSkeleton/>;
   }
 
   if (!a) {

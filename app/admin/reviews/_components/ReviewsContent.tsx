@@ -260,7 +260,8 @@ export function ReviewsContent() {
             <DataTable
                 rows={filtered}
                 columns={columns}
-                emptyTitle={loading ? "Loading…" : "No reviews found"}
+                loading={loading}
+                emptyTitle="No reviews found"
                 emptyDescription={loading ?
                     "Fetching reviews from the server." : "Try a different search, rating, or item type filter."}
                 rowActions={(r) => [

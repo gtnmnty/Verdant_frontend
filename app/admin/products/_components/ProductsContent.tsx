@@ -382,7 +382,8 @@ export function ProductsContent() {
             <DataTable
                 rows={products}
                 columns={columns}
-                emptyTitle={loading ? "Loading…" : "No products found"}
+                loading={loading}
+                emptyTitle="No products found"
                 emptyDescription={loading ?
                     "Fetching products from the server." :
                     "Try a different search or add a new product."}

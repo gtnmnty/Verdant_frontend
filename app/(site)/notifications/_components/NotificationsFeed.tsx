@@ -1,4 +1,5 @@
 "use client";
+import {ListSkeleton} from "@/components/ui/skeleton";
 
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 import Link from "next/link";
@@ -541,9 +542,7 @@ export function NotificationsFeed() {
             {/* Feed */}
             <section className="mt-8">
                 {!ready ? (
-                    <p className="py-16 text-center text-sm text-on-surface-variant">
-                        Loading your feed…
-                    </p>
+                    <ListSkeleton count={4} label="Loading your feed"/>
                 ) : groups.length === 0 ? (
                     <div
                         className={`

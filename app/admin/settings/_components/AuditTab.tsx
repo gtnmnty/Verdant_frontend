@@ -92,7 +92,8 @@ export function AuditTab() {
           columns={columns}
           pageSize={10}
           selectable={false}
-          emptyTitle={loading ? "Loading…" : "No matching entries"}
+          loading={loading}
+          emptyTitle="No matching entries"
         />
       </SettingsCard>
     </div>

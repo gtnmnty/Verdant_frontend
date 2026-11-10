@@ -19,6 +19,7 @@ import {toAdminStylist} from "@/app/admin/stylists/_components/StylistsContent";
 import {gqlRequest} from "@/utils/graphqlClient";
 import type {AdminStylist} from "@/app/admin/stylists/_components/types";
 import {ImagePlaceholder} from "@/components/ui/image-placeholder";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 const ADMIN_STYLIST_DETAIL_QUERY = `
     query AdminStylistDetail($id: ID!) {
@@ -72,7 +73,7 @@ export function StylistDetailContent() {
     useEffect(fetchStylist, [params.id]);
 
     if (stylist === undefined) {
-        return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+        return <AdminDetailSkeleton/>;
     }
 
     if (!stylist) {

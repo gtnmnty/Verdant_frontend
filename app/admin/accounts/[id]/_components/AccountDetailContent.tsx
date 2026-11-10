@@ -21,6 +21,7 @@ import {
     STATUS_FROM_BACKEND,
     type AdminAccount,
 } from "@/app/admin/accounts/_components/types";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 interface BackendAccountDetail {
     id: string;
@@ -166,7 +167,7 @@ export function AccountDetailContent() {
     }, [params.id]);
 
     if (account === undefined) {
-        return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+        return <AdminDetailSkeleton/>;
     }
 
     if (!account) {

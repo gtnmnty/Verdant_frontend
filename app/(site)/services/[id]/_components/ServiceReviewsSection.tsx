@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/pagination";
 import {gqlRequest} from "@/utils/graphqlClient";
 import {SectionTitle, Stars} from "@/app/(site)/services/[id]/_components/shared";
+import {ReviewsSkeleton} from "@/components/ui/skeleton";
 
 const PER_PAGE = 3;
 type SortKey = "recent" | "high" | "low";
@@ -254,7 +255,7 @@ export function ServiceReviewsSection({serviceId}: { serviceId: string }) {
                     </div>
 
                     {loading ? (
-                        <p className="py-16 text-center text-sm text-on-surface-variant">Loading reviews…</p>
+                        <ReviewsSkeleton/>
                     ) : reviews.length === 0 ? (
                         <div className="py-16 text-center">
                             <p className="font-display text-lg text-primary">No reviews yet</p>

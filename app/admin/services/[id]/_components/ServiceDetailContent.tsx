@@ -22,6 +22,7 @@ import {toAdminService} from "@/app/admin/services/_components/ServicesContent";
 import {gqlRequest} from "@/utils/graphqlClient";
 import type {AdminService} from "@/app/admin/services/_components/types";
 import {ImagePlaceholder} from "@/components/ui/image-placeholder";
+import {AdminDetailSkeleton} from "@/components/ui/skeleton";
 
 const ADMIN_SERVICE_DETAIL_QUERY = `
     query AdminServiceDetail($id: ID!) {
@@ -82,7 +83,7 @@ export function ServiceDetailContent() {
     useEffect(fetchService, [params.id]);
 
     if (service === undefined) {
-        return <p className="py-16 text-center text-sm text-admin-muted">Loading…</p>;
+        return <AdminDetailSkeleton/>;
     }
 
     if (!service) {
